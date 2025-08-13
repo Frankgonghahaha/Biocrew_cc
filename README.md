@@ -65,6 +65,12 @@ BioCrew/
    QWEN_MODEL_NAME=QWEN3
    ```
 
+3. **重要提示**：
+   - `QWEN_API_BASE` 需要替换为实际的API端点地址
+   - `QWEN_API_KEY` 需要替换为有效的API密钥
+   - 如果使用阿里云Qwen模型，请注册阿里云账号并获取API密钥
+   - 如果使用其他兼容OpenAI的API，请确保端点支持OpenAI格式的请求
+
 ## 安装依赖
 
 ```bash
@@ -75,6 +81,14 @@ pip install -r requirements.txt
 
 ```bash
 python main.py
+```
+
+## 测试系统
+
+可以运行测试脚本来验证系统功能：
+
+```bash
+python test_system.py
 ```
 
 ## 后续开发

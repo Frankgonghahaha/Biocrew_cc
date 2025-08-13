@@ -29,9 +29,9 @@ def main():
     # 初始化LLM模型
     # 后续需要根据用户提供的URL和Token配置
     llm = ChatOpenAI(
-        openai_api_base=Config.QWEN_API_BASE,  # 用户提供的URL
-        openai_api_key=Config.QWEN_API_KEY,        # 用户提供的Token
-        model_name=Config.QWEN_MODEL_NAME                    # QWEN3系列模型
+        base_url=Config.QWEN_API_BASE,  # 用户提供的URL
+        api_key=Config.QWEN_API_KEY,        # 用户提供的Token
+        model=Config.QWEN_MODEL_NAME                    # QWEN3系列模型
     )
     
     # 创建智能体
