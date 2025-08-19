@@ -147,6 +147,7 @@ Thumbs.db
 # Test files
 test_*.py
 *_test.py
+*_tests.py
 
 # Output files
 *.out
@@ -154,3 +155,6 @@ test_*.py
 
 # Local configuration files
 config/local_*.py
+
+# Runtime log files
+latest_run*.log
