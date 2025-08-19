@@ -3,7 +3,7 @@
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Python Version](https://img.shields.io/badge/python-3.8%2B-blue.svg)](https://www.python.org/downloads/)
 
-这是一个使用CrewAI框架构建的多智能体系统，专门用于水质生物净化技术的开发和优化。系统通过模拟专家团队协作的方式，为水处理工程师和环境科学家提供智能化的生物净化解决方案。
+这是一个使用[CrewAI](https://github.com/joaomdmoura/crewAI)框架构建的多智能体系统，专门用于水质生物净化技术的开发和优化。系统通过模拟专家团队协作的方式，为水处理工程师和环境科学家提供智能化的生物净化解决方案。
 
 ## 项目特色
 
@@ -11,6 +11,10 @@
 - **专业领域知识**：基于水质处理和微生物学专业知识构建的专家系统
 - **灵活配置**：支持多种工作模式，可根据需求定制处理流程
 - **易于扩展**：模块化设计，便于添加新的专家角色和处理流程
+
+## 致谢
+
+本项目基于 [CrewAI](https://github.com/joaomdmoura/crewAI) 框架开发，感谢 CrewAI 团队提供的强大而灵活的多智能体协作框架。
 
 ## 项目结构
 
