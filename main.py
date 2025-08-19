@@ -7,9 +7,14 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
+# 确保环境变量已加载
+from dotenv import load_dotenv
+load_dotenv()
+
 from crewai import Agent, Task, Crew, Process
 from langchain_openai import ChatOpenAI
 from config.config import Config
+import dashscope
 
 # 智能体导入
 from agents.task_coordination_agent import TaskCoordinationAgent
@@ -26,12 +31,29 @@ def main():
     print("基于CrewAI的水质生物净化技术开发多智能体系统")
     print("=" * 50)
     
-    # 初始化LLM模型
-    # 后续需要根据用户提供的URL和Token配置
+    # 打印配置信息用于调试
+    print(f"QWEN_API_BASE: {Config.QWEN_API_BASE}")
+    print(f"QWEN_API_KEY: {Config.QWEN_API_KEY}")
+    print(f"QWEN_MODEL_NAME: {Config.QWEN_MODEL_NAME}")
+    print(f"OPENAI_API_BASE: {Config.OPENAI_API_BASE}")
+    print(f"OPENAI_API_KEY: {Config.OPENAI_API_KEY}")
+    
+    # 验证API密钥是否存在
+    if not Config.QWEN_API_KEY or Config.QWEN_API_KEY == "YOUR_API_KEY":
+        print("错误：API密钥未正确设置")
+        return
+    
+    # 设置dashscope的API密钥
+    dashscope.api_key = Config.QWEN_API_KEY
+    
+    # 初始化LLM模型，使用DashScope专用方式
     llm = ChatOpenAI(
-        base_url=Config.QWEN_API_BASE,  # 用户提供的URL
-        api_key=Config.QWEN_API_KEY,        # 用户提供的Token
-        model=Config.QWEN_MODEL_NAME                    # QWEN3系列模型
+        base_url=Config.OPENAI_API_BASE,
+        api_key=Config.OPENAI_API_KEY,  # 使用原始API密钥
+        model="openai/qwen3-30b-a3b-instruct-2507",  # 指定openai提供商
+        temperature=0.7,
+        streaming=False,
+        max_tokens=2048
     )
     
     # 创建智能体
@@ -70,8 +92,8 @@ def main():
     )
     
     # 执行
-    # result = water_treatment_crew.kickoff()
-    # print(result)
+    result = water_treatment_crew.kickoff()
+    print(result)
 
 if __name__ == "__main__":
     main()
