@@ -21,3 +21,11 @@ class Config:
     
     # 其他配置
     VERBOSE = os.getenv('VERBOSE', 'True').lower() == 'true'
+    
+    # 模型参数配置
+    MODEL_TEMPERATURE = float(os.getenv('MODEL_TEMPERATURE', '0.7'))
+    MODEL_MAX_TOKENS = int(os.getenv('MODEL_MAX_TOKENS', '2048'))
+    
+    # 系统配置
+    PROJECT_NAME = "BioCrew"
+    VERSION = "1.0.0"

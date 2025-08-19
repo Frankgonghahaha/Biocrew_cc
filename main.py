@@ -51,9 +51,9 @@ def main():
         base_url=Config.OPENAI_API_BASE,
         api_key=Config.OPENAI_API_KEY,  # 使用原始API密钥
         model="openai/qwen3-30b-a3b-instruct-2507",  # 指定openai提供商
-        temperature=0.7,
+        temperature=Config.MODEL_TEMPERATURE,
         streaming=False,
-        max_tokens=2048
+        max_tokens=Config.MODEL_MAX_TOKENS
     )
     
     # 创建智能体
