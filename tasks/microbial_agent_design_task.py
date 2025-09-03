@@ -1,30 +1,33 @@
 #!/usr/bin/env python3
 """
-功能菌剂设计任务
+微生物菌剂设计任务
 负责设计和优化功能微生物菌剂配方
 """
 
-class DesignTask:
+class MicrobialAgentDesignTask:
     def __init__(self, llm):
         self.llm = llm
 
-    def create_task(self, agent, context_task=None, feedback=None):
+    def create_task(self, agent, context_task=None, feedback=None, user_requirement=None):
         from crewai import Task
         
         description = """
-        根据生物净化策略和评估反馈设计功能微生物菌剂配方。
+        根据工程微生物组设计功能微生物菌剂配方。
         
         设计步骤：
         1. 分析目标污染物特性和处理要求
-        2. 选择合适的功能微生物组（考虑代谢互补性）
-        3. 优化菌剂配比以确保群落稳定性和结构稳定性
-        4. 考虑物种多样性、代谢相互作用和降解性能的平衡
+        2. 遍历工程微生物组，组合功能菌+互补菌形成候选群落
+        3. 使用ctFBA（协同权衡代谢通量平衡法），以目标污染物为唯一碳源，计算代谢通量（F_take）
+        4. 选择代谢通量最高的候选群落作为最优菌剂
+        5. 优化菌剂配比以确保群落稳定性和结构稳定性
         
-        设计要点：
-        - 确保菌剂具有良好的群落稳定性和结构稳定性
-        - 优化微生物间的协同作用
-        - 满足目标污染物的降解需求
+        关键参数：
+        - 权衡系数（0-1，0=保多样性，1=提降解效率）
         """
+        
+        # 添加用户自定义需求到描述中
+        if user_requirement:
+            description += f"\n\n用户具体需求：{user_requirement}"
         
         if feedback:
             description += f"\n\n根据评估反馈进行优化设计：\n{feedback}"
@@ -35,6 +38,7 @@ class DesignTask:
         2. 设计原理说明
         3. 稳定性保障措施
         4. 预期的净化效果
+        5. 代谢通量计算结果
         """
         
         # 如果有上下文任务，设置依赖关系
