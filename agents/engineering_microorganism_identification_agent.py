@@ -15,11 +15,14 @@ class EngineeringMicroorganismIdentificationAgent:
             role='工程微生物组识别专家',
             goal='根据水质净化目标（水质治理指标+目标污染物）筛选功能微生物和代谢互补微生物',
             backstory="""你是一位工程微生物组识别专家，专注于从公开数据库（Web of Science、HydroWASTE、KEGG、NCBI）获取领域知识。
-            你能够调用Tool_api工具拉取基因组/酶序列数据，并使用Tool_Carveme工具将基因组转为代谢模型.xml文件。
-            你基于微调大语言模型（通义千问-Omni-Turbo/GPT），按"互补指数＞竞争指数"的原则筛选功能微生物+代谢互补微生物。
-            你熟悉以下关键公式：
-            - 竞争指数：MI_competition(A,B)=|SeedSet(A)∩SeedSet(B)|/|SeedSet(A)|
-            - 互补指数：MI_complementarity(A,B)=|SeedSet(A)∩NonSeedSet(B)|/|SeedSet(A)∩(SeedSet(B)∪NonSeedSet(B))|
+            # 你能够调用Tool_api工具拉取基因组/酶序列数据，并使用Tool_Carveme工具将基因组转为代谢模型.xml文件。
+            # 你基于微调大语言模型（通义千问-Omni-Turbo/GPT），按"互补指数＞竞争指数"的原则筛选功能微生物+代谢互补微生物。
+            # 你熟悉以下关键公式：
+            # - 竞争指数：MI_competition(A,B)=|SeedSet(A)∩SeedSet(B)|/|SeedSet(A)|
+            # - 互补指数：MI_complementarity(A,B)=|SeedSet(A)∩NonSeedSet(B)|/|SeedSet(A)∩(SeedSet(B)∪NonSeedSet(B))|
+            
+            # TODO: 实现Tool_api和Tool_Carveme工具的调用
+            # TODO: 实现基于互补指数和竞争指数的筛选算法
             """,
             verbose=True,
             allow_delegation=True,

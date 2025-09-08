@@ -4,7 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a multi-agent system built with the CrewAI framework for wastewater microbial purification technology development and optimization. The system implements a complete automated workflow through 6 AI agents collaborating to "screen functional microorganisms → design microbial agents → evaluate effectiveness → generate implementation plans".
+This is a multi-agent system built with the CrewAI framework for wastewater microbial purification technology development and optimization. The system implements a complete automated workflow through 6 AI agents collaborating to "screen functional microorganisms → design microbial agents → evaluate effectiveness → generate implementation plans". 
+
+Note: The core algorithms (Tool_api, Tool_Carveme, ctFBA, and evaluation formulas) are currently only described in the agent backstories and task descriptions, with actual implementation pending as indicated by TODO comments throughout the codebase.
 
 ## Codebase Architecture
 
@@ -50,24 +52,24 @@ find . -name "*.py" -exec python3 -m py_compile {} \;
 ## Project Structure
 ```
 BioCrew/
-├── main.py                 # Main entry point
+├── main.py                 # Main entry point (fully implemented)
 ├── requirements.txt        # Project dependencies
 ├── .env.example           # Environment variable configuration example
 ├── config/
-│   └── config.py          # Configuration file
-├── agents/                # Agent definitions
+│   └── config.py          # Configuration file (fully implemented)
+├── agents/                # Agent definitions (fully implemented with TODOs for core algorithms)
 │   ├── task_coordination_agent.py
 │   ├── engineering_microorganism_identification_agent.py
 │   ├── microbial_agent_design_agent.py
 │   ├── microbial_agent_evaluation_agent.py
 │   ├── implementation_plan_generation_agent.py
 │   └── knowledge_management_agent.py
-├── tasks/                 # Task definitions
+├── tasks/                 # Task definitions (fully implemented with TODOs for core algorithms)
 │   ├── microorganism_identification_task.py
 │   ├── microbial_agent_design_task.py
 │   ├── microbial_agent_evaluation_task.py
 │   └── implementation_plan_generation_task.py
-├── tools/                 # Custom tools
+├── tools/                 # Custom tools (partially implemented)
 │   └── evaluation_tool.py
 └── models/                # Model configurations (to be completed)
 ```
@@ -79,10 +81,46 @@ BioCrew/
 - Previous agent output → Next agent input
 - Feedback loop: Evaluation failure → Update prompts → Re-identify microorganisms
 
-### Core Algorithms (To be implemented)
+### Core Algorithms (Partially implemented, with TODOs)
 1. **Tool_api and Tool_Carveme** - For retrieving genomic/enzyme sequence data and converting genomes to metabolic models
+   - Currently only described in agent backstories, actual implementation pending
 2. **ctFBA algorithm** - Cooperative trade-off metabolic flux balance method for metabolic flux calculations
+   - Currently only described in agent backstories, actual implementation pending
 3. **Evaluation formulas** - Including competition index, complementarity index, Pianka niche overlap index, species knockout index
+   - Currently only described in agent backstories, actual implementation pending
 
 ### Configuration
 The system supports both DashScope (Qwen) and OpenAI model configurations through environment variables in the `.env` file.
+
+## Development Guidelines
+
+### Code Organization
+- Each agent is defined in its own file in the `agents/` directory
+- Each task is defined in its own file in the `tasks/` directory
+- Shared functionality should be implemented in the `tools/` directory
+- Configuration is managed through the `config/` directory
+
+### Agent Structure
+Agents follow a consistent pattern:
+1. Each agent is implemented as a class with a `create_agent()` method
+2. The `create_agent()` method returns a configured CrewAI Agent instance
+3. Agents define their role, goal, and backstory
+
+### Task Structure
+Tasks follow a consistent pattern:
+1. Each task is implemented as a class with a `create_task()` method
+2. The `create_task()` method returns a configured CrewAI Task instance
+3. Tasks define their description and expected output
+4. Tasks can depend on other tasks through the context parameter
+
+### Adding New Features
+1. To add a new agent, create a new file in the `agents/` directory following the existing pattern
+2. To add a new task, create a new file in the `tasks/` directory following the existing pattern
+3. Register new agents and tasks in `main.py`
+4. Update the Crew configuration in `main.py` to include new agents and tasks
+
+### Testing
+Currently, the project does not have formal unit tests. When adding new functionality:
+1. Manually test the new features by running the application
+2. Verify that the new agents/tasks integrate correctly with existing components
+3. Check that the output format matches expectations

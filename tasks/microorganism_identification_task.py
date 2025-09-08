@@ -15,15 +15,15 @@ class MicroorganismIdentificationTask:
         根据水质净化目标识别工程微生物组，包含功能菌和代谢互补微生物。
         
         识别步骤：
-        1. 分析水质净化目标（水质治理指标+目标污染物）
-        2. 从公开数据库（Web of Science、HydroWASTE、KEGG、NCBI）获取领域知识
-        3. 调用Tool_api工具拉取基因组/酶序列数据
-        4. 使用Tool_Carveme工具将基因组转为代谢模型.xml文件
-        5. 基于微调大语言模型，按"互补指数＞竞争指数"筛选功能微生物+代谢互补微生物
+        # 1. 分析水质净化目标（水质治理指标+目标污染物）
+        # 2. 从公开数据库（Web of Science、HydroWASTE、KEGG、NCBI）获取领域知识
+        # 3. 调用Tool_api工具拉取基因组/酶序列数据
+        # 4. 使用Tool_Carveme工具将基因组转为代谢模型.xml文件
+        # 5. 基于微调大语言模型，按"互补指数＞竞争指数"筛选功能微生物+代谢互补微生物
         
-        关键公式：
-        - 竞争指数：MI_competition(A,B)=|SeedSet(A)∩SeedSet(B)|/|SeedSet(A)|
-        - 互补指数：MI_complementarity(A,B)=|SeedSet(A)∩NonSeedSet(B)|/|SeedSet(A)∩(SeedSet(B)∪NonSeedSet(B))|
+        # 关键公式：
+        # - 竞争指数：MI_competition(A,B)=|SeedSet(A)∩SeedSet(B)|/|SeedSet(A)|
+        # - 互补指数：MI_complementarity(A,B)=|SeedSet(A)∩NonSeedSet(B)|/|SeedSet(A)∩(SeedSet(B)∪NonSeedSet(B))|
         """
         
         # 添加用户自定义需求到描述中
