@@ -167,3 +167,14 @@ cython_debug/
 
 # Windows
 Thumbs.db
+
+# Windows Zone.Identifier files
+*:Zone.Identifier
+
+# Backup files
+*.backup
+*.bak
+*.tmp
+
+# Log files
+*.log
