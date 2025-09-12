@@ -19,7 +19,7 @@
 1. **工程微生物组识别智能体**
    - 输入：水质净化目标（水质治理指标+目标污染物）、匹配提示词
    - 依赖：知识管理智能体（提供领域知识）
-   - 核心功能：从公开数据库获取数据，调用工具筛选功能微生物+代谢互补微生物
+   - 核心功能：从公开数据库和本地数据获取数据，调用工具筛选功能微生物+代谢互补微生物
 
 2. **微生物菌剂设计智能体**
    - 输入：水质净化目标、工程微生物组、菌剂设计提示词
@@ -63,7 +63,22 @@ BioCrew/
 │   ├── microbial_agent_evaluation_task.py      # 菌剂评估任务
 │   └── implementation_plan_generation_task.py  # 实施方案生成任务
 ├── tools/                 # 自定义工具
-│   └── evaluation_tool.py          # 评价工具
+│   ├── evaluation_tool.py                     # 评价工具
+│   ├── local_data_retriever.py               # 本地数据读取工具
+│   ├── smart_data_query_tool.py              # 智能数据查询工具
+│   ├── mandatory_local_data_query_tool.py    # 强制本地数据查询工具
+│   ├── local_data_retriever_usage.md         # 本地数据读取工具使用说明
+│   ├── smart_data_query_tool_usage.md        # 智能数据查询工具使用说明
+│   ├── mandatory_local_data_query_tool_usage.md # 强制本地数据查询工具使用说明
+│   └── smart_data_query_in_agent_example.py  # 智能体中使用数据工具的示例
+├── data/                  # 本地数据文件
+│   ├── Genes/             # 基因数据目录
+│   │   └── Genes/         # 基因数据文件
+│   └── Organism/          # 微生物数据目录
+│       └── Organism/      # 微生物数据文件
+├── tests/                 # 测试文件
+│   ├── test_local_data_query.py              # 本地数据查询测试
+│   └── test_engineering_microorganism_identification.py # 工程微生物识别测试
 └── models/                # 模型配置（待完善）
 ```
 
@@ -78,6 +93,7 @@ BioCrew/
 - **技术创新**：大语言模型+ctFBA模拟+生态学评估结合，理性+数据双驱动
 - **落地性**：方案覆盖全环节，菌剂过生态评估，无工程风险
 - **效率**：全流程自动化，缩短技术开发周期
+- **数据驱动**：集成本地数据查询工具，支持从Excel文件中读取基因和微生物数据
 
 ## 快速开始
 
@@ -125,6 +141,31 @@ pip install -r requirements.txt
 python main.py
 ```
 
+### 测试本地数据工具
+
+项目包含了本地数据查询工具的测试文件，可以单独运行测试：
+
+```bash
+# 测试本地数据查询功能
+python test_local_data_query.py
+
+# 测试工程微生物识别智能体
+python test_engineering_microorganism_identification.py
+```
+
+## 本地数据工具
+
+项目新增了三个本地数据工具，用于从Excel文件中读取基因和微生物数据：
+
+1. **LocalDataRetriever** - 核心数据读取工具
+2. **SmartDataQueryTool** - 智能数据查询工具，可根据文本自动识别相关数据
+3. **MandatoryLocalDataQueryTool** - 强制本地数据查询工具，确保数据来自本地文件
+
+详细使用说明请查看：
+- [LocalDataRetriever使用说明](tools/local_data_retriever_usage.md)
+- [SmartDataQueryTool使用说明](tools/smart_data_query_tool_usage.md)
+- [MandatoryLocalDataQueryTool使用说明](tools/mandatory_local_data_query_tool_usage.md)
+
 ## 系统优化与扩展
 
 ### 当前优化
@@ -132,6 +173,8 @@ python main.py
 - [x] 重构智能体架构，符合6类智能体框架要求
 - [x] 完善任务流程设计，实现完整的协作逻辑
 - [x] 优化菌剂评价体系
+- [x] 集成本地数据查询工具，支持从Excel文件读取数据
+- [x] 优化项目结构，添加测试文件和工具文档
 
 ### 后续开发计划
 
@@ -166,4 +209,4 @@ python main.py
 
 项目维护者: Axl1Huang - [GitHub](https://github.com/Axl1Huang)
 
-项目链接: [https://github.com/Axl1Huang/Bio_Crew](https://github.com/Axl1Huang/Bio_Crew)
+项目链接: [https://github.com/Water-Quality-Risk-Control-Engineering/BioCrew](https://github.com/Water-Quality-Risk-Control-Engineering/BioCrew)
