@@ -67,9 +67,13 @@ BioCrew/
 │   ├── local_data_retriever.py               # 本地数据读取工具
 │   ├── smart_data_query_tool.py              # 智能数据查询工具
 │   ├── mandatory_local_data_query_tool.py    # 强制本地数据查询工具
+│   ├── envipath_tool.py                      # EnviPath数据库访问工具
+│   ├── kegg_tool.py                          # KEGG数据库访问工具
 │   ├── local_data_retriever_usage.md         # 本地数据读取工具使用说明
 │   ├── smart_data_query_tool_usage.md        # 智能数据查询工具使用说明
 │   ├── mandatory_local_data_query_tool_usage.md # 强制本地数据查询工具使用说明
+│   ├── envipath_tool_usage.md                # EnviPath工具使用说明
+│   ├── kegg_tool_usage.md                    # KEGG工具使用说明
 │   └── smart_data_query_in_agent_example.py  # 智能体中使用数据工具的示例
 ├── data/                  # 本地数据文件
 │   ├── Genes/             # 基因数据目录
@@ -78,6 +82,7 @@ BioCrew/
 │       └── Organism/      # 微生物数据文件
 ├── tests/                 # 测试文件
 │   ├── test_local_data_query.py              # 本地数据查询测试
+│   ├── test_database_tools.py                # 数据库工具测试
 │   └── test_engineering_microorganism_identification.py # 工程微生物识别测试
 └── models/                # 模型配置（待完善）
 ```
@@ -161,10 +166,19 @@ python test_engineering_microorganism_identification.py
 2. **SmartDataQueryTool** - 智能数据查询工具，可根据文本自动识别相关数据
 3. **MandatoryLocalDataQueryTool** - 强制本地数据查询工具，确保数据来自本地文件
 
+## 公开数据库工具
+
+项目新增了两个公开数据库访问工具，用于获取环境和生物代谢信息：
+
+1. **EnviPathTool** - 用于查询环境化合物代谢路径信息（当前存在SSL连接问题，建议使用KEGG工具）
+2. **KeggTool** - 用于查询KEGG数据库中的pathway、ko、genome、reaction、enzyme、genes等生物代谢信息
+
 详细使用说明请查看：
 - [LocalDataRetriever使用说明](tools/local_data_retriever_usage.md)
 - [SmartDataQueryTool使用说明](tools/smart_data_query_tool_usage.md)
 - [MandatoryLocalDataQueryTool使用说明](tools/mandatory_local_data_query_tool_usage.md)
+- [EnviPathTool使用说明](tools/envipath_tool_usage.md)
+- [KeggTool使用说明](tools/kegg_tool_usage.md)
 
 ## 系统优化与扩展
 
@@ -184,6 +198,7 @@ python test_engineering_microorganism_identification.py
 4. 完善反馈闭环机制
 5. 添加可视化界面
 6. 实现历史数据存储和分析功能
+7. 修复EnviPath工具的SSL连接问题，完善数据库工具功能
 
 ## 贡献指南
 

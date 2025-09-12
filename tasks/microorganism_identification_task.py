@@ -17,10 +17,12 @@ class MicroorganismIdentificationTask:
         识别步骤：
         # 1. 分析水质净化目标（水质治理指标+目标污染物）
         # 2. 首先从本地数据目录(data/Genes和data/Organism)查询相关基因和微生物数据
-        # 3. 从公开数据库（Web of Science、HydroWASTE、KEGG、NCBI）获取补充领域知识
-        # 4. 调用Tool_api工具拉取基因组/酶序列数据
-        # 5. 使用Tool_Carveme工具将基因组转为代谢模型.xml文件
-        # 6. 基于微调大语言模型，按"互补指数＞竞争指数"筛选功能微生物+代谢互补微生物
+        # 3. 从公开数据库（Web of Science、HydroWASTE、KEGG、NCBI、EnviPath）获取补充领域知识
+        # 4. 使用EnviPath工具查询环境化合物代谢路径信息
+        # 5. 使用KEGG工具查询pathway、ko、genome、reaction、enzyme、genes等生物代谢信息
+        # 6. 调用Tool_api工具拉取基因组/酶序列数据
+        # 7. 使用Tool_Carveme工具将基因组转为代谢模型.xml文件
+        # 8. 基于微调大语言模型，按"互补指数＞竞争指数"筛选功能微生物+代谢互补微生物
         
         # 关键公式：
         # - 竞争指数：MI_competition(A,B)=|SeedSet(A)∩SeedSet(B)|/|SeedSet(A)|

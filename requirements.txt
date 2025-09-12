@@ -4,3 +4,4 @@ langchain-openai
 python-dotenv
 pandas
 xlrd
+envipath
