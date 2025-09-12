@@ -27,6 +27,10 @@ def test_local_data_tools():
     try:
         # 测试LocalDataRetriever
         from tools.local_data_retriever import LocalDataRetriever
+        import os
+        print(f"当前工作目录: {os.getcwd()}")
+        print(f"项目目录是否存在data/Genes/Genes: {os.path.exists('data/Genes/Genes')}")
+        print(f"绝对路径检查: {os.path.abspath('data/Genes/Genes')}")
         data_retriever = LocalDataRetriever(base_path=".")
         
         print("1. 测试LocalDataRetriever工具:")
@@ -78,6 +82,10 @@ def test_smart_data_query_tool():
     try:
         # 测试SmartDataQueryTool
         from tools.smart_data_query_tool import SmartDataQueryTool
+        import os
+        print(f"当前工作目录: {os.getcwd()}")
+        print(f"项目目录是否存在data/Genes/Genes: {os.path.exists('data/Genes/Genes')}")
+        print(f"绝对路径检查: {os.path.abspath('data/Genes/Genes')}")
         smart_query = SmartDataQueryTool(base_path=".")
         
         print("1. 测试SmartDataQueryTool工具:")
