@@ -84,7 +84,8 @@ BioCrew/
 │   ├── local_data_retriever.py          # Local data access tool
 │   ├── smart_data_query_tool.py         # Smart data querying tool
 │   ├── mandatory_local_data_query_tool.py  # Mandatory data querying tool
-│   └── [other tool files]
+│   ├── envipath_tool.py                 # EnviPath database access tool
+│   └── kegg_tool.py                     # KEGG database access tool
 ├── data/                  # Local data files (Genes and Organism directories)
 │   ├── Genes/
 │   └── Organism/
@@ -122,6 +123,27 @@ These tools support:
 - Searching for data files by pollutant names
 - Handling both gene data and organism data
 
+### External Database Access Tools
+
+The system integrates with external databases through the following tools:
+
+4. **EnviPathTool** - Accesses environmental contaminant biotransformation pathway data from the enviPath database
+   - `_run(operation, **kwargs)` - Unified interface for all EnviPath operations
+   - Operations: `search_compound`, `get_pathway_info`, `get_compound_pathways`, `search_pathways_by_keyword`
+   - Also supports direct method calls: `search_compound(compound_name)`, `get_pathway_info(pathway_id)`, etc.
+
+5. **KeggTool** - Accesses biological pathway and genomic data from the KEGG database
+   - `_run(operation, **kwargs)` - Unified interface for all KEGG operations
+   - Operations: `get_database_info`, `list_entries`, `find_entries`, `get_entry`, `link_entries`, `convert_id`, `search_pathway_by_compound`, `search_genes_by_pathway`, `search_enzymes_by_compound`
+   - Also supports direct method calls for each operation
+
+### Evaluation Tool
+
+6. **EvaluationTool** - Analyzes and evaluates microbial agent effectiveness
+   - `_run(operation, **kwargs)` - Unified interface for evaluation operations
+   - Operations: `analyze_evaluation_result`, `check_core_standards`
+   - Also supports direct method calls: `analyze_evaluation_result(evaluation_report)`, `check_core_standards(evaluation_report)`
+
 ## Development Guidelines
 
 ### Code Organization
@@ -130,6 +152,14 @@ These tools support:
 - Shared functionality should be implemented in the `tools/` directory
 - Configuration is managed through the `config/` directory
 - Local data is stored in the `data/` directory
+
+### Tool Structure
+All tools follow a consistent pattern:
+1. Each tool inherits from `crewai.tools.BaseTool` for CrewAI compatibility
+2. Tools implement a unified `_run(operation, **kwargs)` method as the main entry point
+3. Tools provide direct method calls for specific operations for backward compatibility
+4. Tools use `object.__setattr__` and `object.__getattribute__` to handle instance attributes and avoid Pydantic validation issues
+5. Tools return consistent result formats with `status`, `data`, and error information
 
 ### Agent Structure
 Agents follow a consistent pattern:

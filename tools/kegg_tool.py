@@ -4,11 +4,15 @@ KEGG数据库访问工具
 用于查询pathway、ko、genome、reaction、enzyme、genes等信息
 """
 
+from crewai.tools import BaseTool
 import requests
 import json
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any
 
-class KeggTool:
+class KeggTool(BaseTool):
+    name: str = "KEGG数据库访问工具"
+    description: str = "用于查询pathway、ko、genome、reaction、enzyme、genes等生物代谢信息"
+    
     def __init__(self, base_url: str = "https://rest.kegg.jp"):
         """
         初始化KEGG工具
@@ -16,8 +20,91 @@ class KeggTool:
         Args:
             base_url (str): KEGG API的基础URL
         """
-        self.base_url = base_url
-        self.session = requests.Session()
+        super().__init__()  # 调用父类构造函数
+        # 使用object.__setattr__来设置实例属性，避免Pydantic验证错误
+        object.__setattr__(self, 'base_url', base_url)
+        object.__setattr__(self, 'session', requests.Session())
+    
+    def _run(self, operation: str, **kwargs) -> Dict[Any, Any]:
+        """
+        执行指定的KEGG数据库操作
+        
+        Args:
+            operation (str): 要执行的操作名称
+            **kwargs: 操作参数
+            
+        Returns:
+            dict: 操作结果
+        """
+        try:
+            if operation == "get_database_info":
+                database = kwargs.get("database")
+                if not database:
+                    return {"status": "error", "message": "缺少数据库名称参数"}
+                return self.get_database_info(database)
+                
+            elif operation == "list_entries":
+                database = kwargs.get("database")
+                organism = kwargs.get("organism")
+                if not database:
+                    return {"status": "error", "message": "缺少数据库名称参数"}
+                return self.list_entries(database, organism)
+                
+            elif operation == "find_entries":
+                database = kwargs.get("database")
+                keywords = kwargs.get("keywords")
+                if not database or not keywords:
+                    return {"status": "error", "message": "缺少数据库名称或关键词参数"}
+                return self.find_entries(database, keywords)
+                
+            elif operation == "get_entry":
+                entry_id = kwargs.get("entry_id")
+                format_type = kwargs.get("format_type", "json")
+                if not entry_id:
+                    return {"status": "error", "message": "缺少条目ID参数"}
+                return self.get_entry(entry_id, format_type)
+                
+            elif operation == "link_entries":
+                target_db = kwargs.get("target_db")
+                source_db_entries = kwargs.get("source_db_entries")
+                if not target_db or not source_db_entries:
+                    return {"status": "error", "message": "缺少目标数据库或源数据库条目参数"}
+                return self.link_entries(target_db, source_db_entries)
+                
+            elif operation == "convert_id":
+                target_db = kwargs.get("target_db")
+                source_ids = kwargs.get("source_ids")
+                if not target_db or not source_ids:
+                    return {"status": "error", "message": "缺少目标数据库或源ID参数"}
+                return self.convert_id(target_db, source_ids)
+                
+            elif operation == "search_pathway_by_compound":
+                compound_id = kwargs.get("compound_id")
+                if not compound_id:
+                    return {"status": "error", "message": "缺少化合物ID参数"}
+                return self.search_pathway_by_compound(compound_id)
+                
+            elif operation == "search_genes_by_pathway":
+                pathway_id = kwargs.get("pathway_id")
+                if not pathway_id:
+                    return {"status": "error", "message": "缺少路径ID参数"}
+                return self.search_genes_by_pathway(pathway_id)
+                
+            elif operation == "search_enzymes_by_compound":
+                compound_id = kwargs.get("compound_id")
+                if not compound_id:
+                    return {"status": "error", "message": "缺少化合物ID参数"}
+                return self.search_enzymes_by_compound(compound_id)
+                
+            else:
+                return {"status": "error", "message": f"不支持的操作: {operation}"}
+                
+        except Exception as e:
+            return {
+                "status": "error",
+                "message": f"执行操作时出错: {str(e)}",
+                "operation": operation
+            }
     
     def get_database_info(self, database: str) -> Dict:
         """

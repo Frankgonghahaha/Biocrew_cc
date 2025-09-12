@@ -11,6 +11,17 @@ class EngineeringMicroorganismIdentificationAgent:
     def create_agent(self):
         from crewai import Agent
         
+        # 初始化工具变量
+        data_retriever = None
+        smart_query = None
+        mandatory_query = None
+        envipath_tool = None
+        kegg_tool = None
+        available_pollutants_info = ""
+        sheet_info = ""
+        pollutants_info = ""
+        database_tools_info = ""
+        
         # 导入本地数据读取工具
         try:
             from tools.local_data_retriever import LocalDataRetriever
@@ -51,6 +62,19 @@ class EngineeringMicroorganismIdentificationAgent:
             pollutants_info = "无法获取污染物信息"
             database_tools_info = "数据库工具初始化失败"
         
+        # 创建工具列表（只包含成功初始化的工具）
+        tools = []
+        if data_retriever:
+            tools.append(data_retriever)
+        if smart_query:
+            tools.append(smart_query)
+        if mandatory_query:
+            tools.append(mandatory_query)
+        if envipath_tool:
+            tools.append(envipath_tool)
+        if kegg_tool:
+            tools.append(kegg_tool)
+        
         return Agent(
             role='功能微生物组识别专家',
             goal='根据水质净化目标（水质治理指标+目标污染物）筛选功能微生物和代谢互补微生物',
@@ -70,6 +94,7 @@ class EngineeringMicroorganismIdentificationAgent:
             # TODO: 实现Tool_api和Tool_Carveme工具的调用
             # TODO: 实现基于互补指数和竞争指数的筛选算法
             """,
+            tools=tools,
             verbose=True,
             allow_delegation=True,
             llm=self.llm

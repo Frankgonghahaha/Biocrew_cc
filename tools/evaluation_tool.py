@@ -4,7 +4,55 @@
 实现基于核心标准的评价结果判断逻辑
 """
 
-class EvaluationTool:
+from crewai.tools import BaseTool
+from typing import Dict, Any
+
+class EvaluationTool(BaseTool):
+    name: str = "评价工具"
+    description: str = "实现基于核心标准的评价结果判断逻辑"
+    
+    def __init__(self):
+        """
+        初始化评价工具
+        """
+        super().__init__()  # 调用父类构造函数
+    
+    def _run(self, operation: str, **kwargs) -> Dict[Any, Any]:
+        """
+        执行指定的评价操作
+        
+        Args:
+            operation (str): 要执行的操作名称
+            **kwargs: 操作参数
+            
+        Returns:
+            dict: 操作结果
+        """
+        try:
+            if operation == "analyze_evaluation_result":
+                evaluation_report = kwargs.get("evaluation_report")
+                if not evaluation_report:
+                    return {"status": "error", "message": "缺少评价报告参数"}
+                result = self.analyze_evaluation_result(evaluation_report)
+                return {"status": "success", "data": result}
+                
+            elif operation == "check_core_standards":
+                evaluation_report = kwargs.get("evaluation_report")
+                if not evaluation_report:
+                    return {"status": "error", "message": "缺少评价报告参数"}
+                result = self.check_core_standards(evaluation_report)
+                return {"status": "success", "data": result}
+                
+            else:
+                return {"status": "error", "message": f"不支持的操作: {operation}"}
+                
+        except Exception as e:
+            return {
+                "status": "error",
+                "message": f"执行操作时出错: {str(e)}",
+                "operation": operation
+            }
+    
     @staticmethod
     def analyze_evaluation_result(evaluation_report):
         """

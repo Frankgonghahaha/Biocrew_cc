@@ -4,12 +4,17 @@
 能够在Agent思考过程中自动识别和查询相关基因或微生物数据
 """
 
+from crewai.tools import BaseTool
 import pandas as pd
 import re
 from pathlib import Path
 from tools.local_data_retriever import LocalDataRetriever
+from typing import Dict, Any
 
-class SmartDataQueryTool:
+class SmartDataQueryTool(BaseTool):
+    name: str = "智能数据查询工具"
+    description: str = "能够在Agent思考过程中自动识别和查询相关基因或微生物数据"
+    
     def __init__(self, base_path="."):
         """
         初始化智能数据查询工具
@@ -17,8 +22,47 @@ class SmartDataQueryTool:
         Args:
             base_path (str): 项目根路径，默认为当前目录
         """
-        self.data_retriever = LocalDataRetriever(base_path)
-        self.base_path = base_path
+        super().__init__()  # 调用父类构造函数
+        # 使用object.__setattr__来设置实例属性，避免Pydantic验证错误
+        object.__setattr__(self, 'data_retriever', LocalDataRetriever(base_path))
+        object.__setattr__(self, 'base_path', base_path)
+    
+    def _run(self, operation: str, **kwargs) -> Dict[Any, Any]:
+        """
+        执行指定的智能数据查询操作
+        
+        Args:
+            operation (str): 要执行的操作名称
+            **kwargs: 操作参数
+            
+        Returns:
+            dict: 操作结果
+        """
+        try:
+            if operation == "query_related_data":
+                query_text = kwargs.get("query_text")
+                data_type = kwargs.get("data_type", "both")
+                sheet_name = kwargs.get("sheet_name", 0)
+                if not query_text:
+                    return {"status": "error", "message": "缺少查询文本参数"}
+                return self.query_related_data(query_text, data_type, sheet_name)
+                
+            elif operation == "get_data_summary":
+                pollutant_name = kwargs.get("pollutant_name")
+                data_type = kwargs.get("data_type", "both")
+                if not pollutant_name:
+                    return {"status": "error", "message": "缺少污染物名称参数"}
+                return self.get_data_summary(pollutant_name, data_type)
+                
+            else:
+                return {"status": "error", "message": f"不支持的操作: {operation}"}
+                
+        except Exception as e:
+            return {
+                "status": "error",
+                "message": f"执行操作时出错: {str(e)}",
+                "operation": operation
+            }
     
     def _extract_pollutant_names(self, text):
         """

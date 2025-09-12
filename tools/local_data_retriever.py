@@ -4,12 +4,17 @@
 用于从data/Genes和data/Organism目录中获取表格数据
 """
 
+from crewai.tools import BaseTool
 import os
 import pandas as pd
 import re
 from pathlib import Path
+from typing import Dict, Any
 
-class LocalDataRetriever:
+class LocalDataRetriever(BaseTool):
+    name: str = "本地数据读取工具"
+    description: str = "用于从data/Genes和data/Organism目录中获取表格数据"
+    
     def __init__(self, base_path="."):
         """
         初始化本地数据读取工具
@@ -17,15 +22,66 @@ class LocalDataRetriever:
         Args:
             base_path (str): 项目根路径，默认为当前目录
         """
-        self.base_path = Path(base_path)
-        self.genes_path = self.base_path / "data" / "Genes" / "Genes"
-        self.organism_path = self.base_path / "data" / "Organism" / "Organism"
+        super().__init__()  # 调用父类构造函数
+        # 使用object.__setattr__来设置实例属性，避免Pydantic验证错误
+        object.__setattr__(self, 'base_path', Path(base_path))
+        object.__setattr__(self, 'genes_path', Path(base_path) / "data" / "Genes" / "Genes")
+        object.__setattr__(self, 'organism_path', Path(base_path) / "data" / "Organism" / "Organism")
         
         # 验证路径是否存在
-        if not self.genes_path.exists():
-            raise FileNotFoundError(f"基因数据路径不存在: {self.genes_path}")
-        if not self.organism_path.exists():
-            raise FileNotFoundError(f"微生物数据路径不存在: {self.organism_path}")
+        genes_path = object.__getattribute__(self, 'genes_path')
+        organism_path = object.__getattribute__(self, 'organism_path')
+        if not genes_path.exists():
+            raise FileNotFoundError(f"基因数据路径不存在: {genes_path}")
+        if not organism_path.exists():
+            raise FileNotFoundError(f"微生物数据路径不存在: {organism_path}")
+    
+    def _run(self, operation: str, **kwargs) -> Dict[Any, Any]:
+        """
+        执行指定的本地数据读取操作
+        
+        Args:
+            operation (str): 要执行的操作名称
+            **kwargs: 操作参数
+            
+        Returns:
+            dict: 操作结果
+        """
+        try:
+            if operation == "get_gene_data":
+                pollutant_name = kwargs.get("pollutant_name")
+                sheet_name = kwargs.get("sheet_name", 0)
+                if not pollutant_name:
+                    return {"status": "error", "message": "缺少污染物名称参数"}
+                return self.get_gene_data(pollutant_name, sheet_name)
+                
+            elif operation == "get_organism_data":
+                pollutant_name = kwargs.get("pollutant_name")
+                sheet_name = kwargs.get("sheet_name", 0)
+                if not pollutant_name:
+                    return {"status": "error", "message": "缺少污染物名称参数"}
+                return self.get_organism_data(pollutant_name, sheet_name)
+                
+            elif operation == "list_available_pollutants":
+                result = self.list_available_pollutants()
+                return {"status": "success", "data": result}
+                
+            elif operation == "list_sheet_names":
+                pollutant_name = kwargs.get("pollutant_name")
+                data_type = kwargs.get("data_type", "gene")
+                if not pollutant_name:
+                    return {"status": "error", "message": "缺少污染物名称参数"}
+                return self.list_sheet_names(pollutant_name, data_type)
+                
+            else:
+                return {"status": "error", "message": f"不支持的操作: {operation}"}
+                
+        except Exception as e:
+            return {
+                "status": "error",
+                "message": f"执行操作时出错: {str(e)}",
+                "operation": operation
+            }
     
     def _normalize_filename(self, filename):
         """
