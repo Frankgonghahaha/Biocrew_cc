@@ -16,14 +16,18 @@ class MicroorganismIdentificationTask:
         
         识别步骤：
         # 1. 分析水质净化目标（水质治理指标+目标污染物）
-        # 2. 从公开数据库（Web of Science、HydroWASTE、KEGG、NCBI）获取领域知识
-        # 3. 调用Tool_api工具拉取基因组/酶序列数据
-        # 4. 使用Tool_Carveme工具将基因组转为代谢模型.xml文件
-        # 5. 基于微调大语言模型，按"互补指数＞竞争指数"筛选功能微生物+代谢互补微生物
+        # 2. 首先从本地数据目录(data/Genes和data/Organism)查询相关基因和微生物数据
+        # 3. 从公开数据库（Web of Science、HydroWASTE、KEGG、NCBI）获取补充领域知识
+        # 4. 调用Tool_api工具拉取基因组/酶序列数据
+        # 5. 使用Tool_Carveme工具将基因组转为代谢模型.xml文件
+        # 6. 基于微调大语言模型，按"互补指数＞竞争指数"筛选功能微生物+代谢互补微生物
         
         # 关键公式：
         # - 竞争指数：MI_competition(A,B)=|SeedSet(A)∩SeedSet(B)|/|SeedSet(A)|
         # - 互补指数：MI_complementarity(A,B)=|SeedSet(A)∩NonSeedSet(B)|/|SeedSet(A)∩(SeedSet(B)∪NonSeedSet(B))|
+        
+        # 重要：必须优先使用本地数据查询工具(LocalDataRetriever和SmartDataQueryTool)获取具体数据，
+        # 并在最终报告中明确体现查询到的微生物名称、基因数据等具体内容，不能仅依赖预训练知识。
         """
         
         # 添加用户自定义需求到描述中
@@ -35,10 +39,11 @@ class MicroorganismIdentificationTask:
         
         expected_output = """
         提供完整的工程微生物组识别报告，包括：
-        1. 识别的功能微生物列表
-        2. 代谢互补微生物列表
-        3. 竞争指数和互补指数计算结果
+        1. 识别的功能微生物列表（必须包含从本地数据查询到的具体微生物名称）
+        2. 代谢互补微生物列表（必须包含从本地数据查询到的具体微生物名称）
+        3. 竞争指数和互补指数计算结果（基于本地数据）
         4. 微生物组选择的科学依据
+        5. 本地数据查询的具体结果（包括查询到的基因数据、微生物数据等详细信息）
         """
         
         # 如果有上下文任务，设置依赖关系
