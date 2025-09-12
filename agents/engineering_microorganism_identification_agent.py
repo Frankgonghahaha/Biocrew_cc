@@ -16,9 +16,9 @@ class EngineeringMicroorganismIdentificationAgent:
             from tools.local_data_retriever import LocalDataRetriever
             from tools.smart_data_query_tool import SmartDataQueryTool
             from tools.mandatory_local_data_query_tool import MandatoryLocalDataQueryTool
-            data_retriever = LocalDataRetriever()
-            smart_query = SmartDataQueryTool()
-            mandatory_query = MandatoryLocalDataQueryTool()
+            data_retriever = LocalDataRetriever(base_path=".")
+            smart_query = SmartDataQueryTool(base_path=".")
+            mandatory_query = MandatoryLocalDataQueryTool(base_path=".")
             
             # 获取可用污染物列表
             pollutants = data_retriever.list_available_pollutants()

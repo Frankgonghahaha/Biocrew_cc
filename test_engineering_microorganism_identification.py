@@ -27,7 +27,7 @@ def test_local_data_tools():
     try:
         # 测试LocalDataRetriever
         from tools.local_data_retriever import LocalDataRetriever
-        data_retriever = LocalDataRetriever()
+        data_retriever = LocalDataRetriever(base_path=".")
         
         print("1. 测试LocalDataRetriever工具:")
         # 列出可用污染物
@@ -78,7 +78,7 @@ def test_smart_data_query_tool():
     try:
         # 测试SmartDataQueryTool
         from tools.smart_data_query_tool import SmartDataQueryTool
-        smart_query = SmartDataQueryTool()
+        smart_query = SmartDataQueryTool(base_path=".")
         
         print("1. 测试SmartDataQueryTool工具:")
         
