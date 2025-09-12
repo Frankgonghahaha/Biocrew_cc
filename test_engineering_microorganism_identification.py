@@ -5,7 +5,11 @@
 
 import sys
 import os
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
+# 确保在项目根目录运行
+project_root = os.path.dirname(os.path.abspath(__file__))
+os.chdir(project_root)
+sys.path.append(project_root)
 
 # 确保环境变量已加载
 from dotenv import load_dotenv
