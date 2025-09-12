@@ -49,6 +49,16 @@ python3 -m py_compile main.py
 find . -name "*.py" -exec python3 -m py_compile {} \;
 ```
 
+### Testing
+```bash
+# Run specific test files
+python test_local_data_query.py
+python test_smart_query_detailed.py
+python test_final_smart_query.py
+python test_smx_degradation.py
+python test_identification_agent.py
+```
+
 ## Project Structure
 ```
 BioCrew/
@@ -70,7 +80,14 @@ BioCrew/
 │   ├── microbial_agent_evaluation_task.py
 │   └── implementation_plan_generation_task.py
 ├── tools/                 # Custom tools (partially implemented)
-│   └── evaluation_tool.py
+│   ├── evaluation_tool.py
+│   ├── local_data_retriever.py          # Local data access tool
+│   ├── smart_data_query_tool.py         # Smart data querying tool
+│   ├── mandatory_local_data_query_tool.py  # Mandatory data querying tool
+│   └── [other tool files]
+├── data/                  # Local data files (Genes and Organism directories)
+│   ├── Genes/
+│   └── Organism/
 └── models/                # Model configurations (to be completed)
 ```
 
@@ -92,6 +109,19 @@ BioCrew/
 ### Configuration
 The system supports both DashScope (Qwen) and OpenAI model configurations through environment variables in the `.env` file.
 
+### Local Data Access
+The system uses local Excel data files stored in `data/Genes` and `data/Organism` directories. Several tools have been implemented to access this data:
+
+1. **LocalDataRetriever** - Core tool for reading Excel files from local directories
+2. **SmartDataQueryTool** - Intelligent querying tool that can automatically identify and retrieve relevant data based on text input
+3. **MandatoryLocalDataQueryTool** - Ensures data is always retrieved from local sources
+
+These tools support:
+- Reading data for specific pollutants
+- Accessing multiple worksheets within Excel files
+- Searching for data files by pollutant names
+- Handling both gene data and organism data
+
 ## Development Guidelines
 
 ### Code Organization
@@ -99,12 +129,14 @@ The system supports both DashScope (Qwen) and OpenAI model configurations throug
 - Each task is defined in its own file in the `tasks/` directory
 - Shared functionality should be implemented in the `tools/` directory
 - Configuration is managed through the `config/` directory
+- Local data is stored in the `data/` directory
 
 ### Agent Structure
 Agents follow a consistent pattern:
 1. Each agent is implemented as a class with a `create_agent()` method
 2. The `create_agent()` method returns a configured CrewAI Agent instance
 3. Agents define their role, goal, and backstory
+4. Agents can use custom tools for specialized functionality
 
 ### Task Structure
 Tasks follow a consistent pattern:
@@ -118,9 +150,18 @@ Tasks follow a consistent pattern:
 2. To add a new task, create a new file in the `tasks/` directory following the existing pattern
 3. Register new agents and tasks in `main.py`
 4. Update the Crew configuration in `main.py` to include new agents and tasks
+5. For data access functionality, implement new tools in the `tools/` directory
 
 ### Testing
-Currently, the project does not have formal unit tests. When adding new functionality:
+The project includes several test files for validating functionality:
+1. `test_local_data_query.py` - Tests local data retrieval functionality
+2. `test_smart_query_detailed.py` - Tests smart data querying features
+3. `test_final_smart_query.py` - Comprehensive testing of smart querying
+4. `test_smx_degradation.py` - Tests specific pollutant handling
+5. `test_identification_agent.py` - Tests the identification agent functionality
+
+When adding new functionality:
 1. Manually test the new features by running the application
 2. Verify that the new agents/tasks integrate correctly with existing components
 3. Check that the output format matches expectations
+4. Consider adding specific test files for new functionality
