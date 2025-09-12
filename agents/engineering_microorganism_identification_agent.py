@@ -52,11 +52,6 @@ class EngineeringMicroorganismIdentificationAgent:
             # {sheet_info}，可以根据需要读取特定工作表的数据。
             # 你还具备智能数据查询能力，能够自动识别用户请求中的污染物名称并查询相关数据。
             # {pollutants_info}，这些是系统中可用的污染物数据。
-            # 你基于微调大语言模型（通义千问-Omni-Turbo/GPT），按"互补指数＞竞争指数"的原则筛选功能微生物+代谢互补微生物。
-            # 你熟悉以下关键公式：
-            # - 竞争指数：MI_competition(A,B)=|SeedSet(A)∩SeedSet(B)|/|SeedSet(A)|
-            # - 互补指数：MI_complementarity(A,B)=|SeedSet(A)∩NonSeedSet(B)|/|SeedSet(A)∩(SeedSet(B)∪NonSeedSet(B))|
-            
             # 重要：在分析和回复过程中，你必须明确体现本地数据查询的结果，包括具体的微生物名称、基因数据等，
             # 不能仅依赖预训练知识。你的回复需要包含从本地Excel文件中查询到的具体数据。
             # 你必须使用MandatoryLocalDataQueryTool来确保查询本地数据。
