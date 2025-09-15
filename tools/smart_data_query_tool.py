@@ -197,13 +197,24 @@ class SmartDataQueryTool(BaseTool):
         if data_type in ["gene", "both"]:
             for pollutant in pollutant_names:
                 try:
-                    gene_data = self.data_retriever.get_gene_data(pollutant, sheet_name)
-                    if gene_data is not None:
-                        results["gene_data"][pollutant] = {
-                            "shape": gene_data.shape,
-                            "columns": list(gene_data.columns)[:10],  # 只显示前10列
-                            "sample_data": gene_data.head(3).to_dict('records')  # 显示前3行示例
-                        }
+                    # 先检查文件是否存在
+                    file_path = self.data_retriever._find_file_by_pollutant(
+                        self.data_retriever.genes_path, pollutant)
+                    if file_path is not None:
+                        gene_data = self.data_retriever.get_gene_data(pollutant, sheet_name)
+                        if gene_data is not None:
+                            results["gene_data"][pollutant] = {
+                                "shape": gene_data.shape,
+                                "columns": list(gene_data.columns)[:10],  # 只显示前10列
+                                "sample_data": gene_data.head(3).to_dict('records')  # 显示前3行示例
+                            }
+                        else:
+                            results["gene_data"][pollutant] = {
+                                "error": "无法读取基因数据"
+                            }
+                    else:
+                        # 文件不存在，跳过
+                        pass
                 except Exception as e:
                     results["gene_data"][pollutant] = {
                         "error": str(e)
@@ -213,13 +224,24 @@ class SmartDataQueryTool(BaseTool):
         if data_type in ["organism", "both"]:
             for pollutant in pollutant_names:
                 try:
-                    organism_data = self.data_retriever.get_organism_data(pollutant, sheet_name)
-                    if organism_data is not None:
-                        results["organism_data"][pollutant] = {
-                            "shape": organism_data.shape,
-                            "columns": list(organism_data.columns)[:10],  # 只显示前10列
-                            "sample_data": organism_data.head(3).to_dict('records')  # 显示前3行示例
-                        }
+                    # 先检查文件是否存在
+                    file_path = self.data_retriever._find_file_by_pollutant(
+                        self.data_retriever.organism_path, pollutant)
+                    if file_path is not None:
+                        organism_data = self.data_retriever.get_organism_data(pollutant, sheet_name)
+                        if organism_data is not None:
+                            results["organism_data"][pollutant] = {
+                                "shape": organism_data.shape,
+                                "columns": list(organism_data.columns)[:10],  # 只显示前10列
+                                "sample_data": organism_data.head(3).to_dict('records')  # 显示前3行示例
+                            }
+                        else:
+                            results["organism_data"][pollutant] = {
+                                "error": "无法读取微生物数据"
+                            }
+                    else:
+                        # 文件不存在，跳过
+                        pass
                 except Exception as e:
                     results["organism_data"][pollutant] = {
                         "error": str(e)
