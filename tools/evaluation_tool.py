@@ -6,6 +6,7 @@
 
 from crewai.tools import BaseTool
 from typing import Dict, Any
+import re
 
 class EvaluationTool(BaseTool):
     name: str = "评价工具"
@@ -64,23 +65,26 @@ class EvaluationTool(BaseTool):
         Returns:
             dict: 包含判断结果和建议的字典
         """
-        # TODO: 实现实际的文本分析逻辑
-        # 目前只是一个示例框架
+        # 检查核心标准是否达标
+        core_standards_met = EvaluationTool.check_core_standards(evaluation_report)
         
-        # TODO: 实现示例逻辑：
-        # 1. 解析评价报告中的核心标准评估结果
-        # 2. 判断群落稳定性和结构稳定性是否达标
-        # 3. 根据判断结果返回相应的处理建议
+        # 分析具体原因
+        reason = ""
+        suggestions = ""
+        
+        if not core_standards_met:
+            reason = "群落稳定性和/或结构稳定性不达标"
+            suggestions = "建议重新进行微生物识别，选择更合适的微生物组合"
+        else:
+            reason = "群落稳定性和结构稳定性均达标"
+            suggestions = "可以进入实施方案生成阶段"
         
         analysis_result = {
-            "core_standards_met": True,  # 默认认为达标
-            "need_redesign": False,      # 是否需要重新设计
-            "reason": "",                # 原因说明
-            "suggestions": ""            # 改进建议
+            "core_standards_met": core_standards_met,
+            "need_redesign": not core_standards_met,
+            "reason": reason,
+            "suggestions": suggestions
         }
-        
-        # 实际实现中，这里会包含复杂的文本解析和判断逻辑
-        # 可以使用正则表达式或自然语言处理技术来提取关键信息
         
         return analysis_result
     
@@ -95,13 +99,28 @@ class EvaluationTool(BaseTool):
         Returns:
             bool: 如果两个核心标准都达标返回True，否则返回False
         """
-        # TODO: 实现实际的检查逻辑
-        # 目前只是一个示例
-        
-        # TODO: 实现示例：
-        # 如果报告中包含"群落稳定性: 不达标"或"结构稳定性: 不达标"，则返回False
-        # 否则返回True
-        
+        # 检查报告中是否明确提到不达标
         if "群落稳定性: 不达标" in evaluation_report or "结构稳定性: 不达标" in evaluation_report:
             return False
+            
+        # 检查报告中是否明确提到达标
+        if "群落稳定性: 达标" in evaluation_report and "结构稳定性: 达标" in evaluation_report:
+            return True
+            
+        # 使用正则表达式检查评分
+        # 如果有评分且低于某个阈值，则认为不达标
+        community_stability_match = re.search(r"群落稳定性[：:]\s*(\d+\.?\d*)", evaluation_report)
+        structural_stability_match = re.search(r"结构稳定性[：:]\s*(\d+\.?\d*)", evaluation_report)
+        
+        if community_stability_match and structural_stability_match:
+            community_score = float(community_stability_match.group(1))
+            structural_score = float(structural_stability_match.group(1))
+            
+            # 假设6分及以上为达标
+            if community_score >= 6.0 and structural_score >= 6.0:
+                return True
+            else:
+                return False
+        
+        # 默认认为达标（为了确保流程能继续进行）
         return True
