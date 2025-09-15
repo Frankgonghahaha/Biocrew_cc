@@ -25,8 +25,8 @@ class LocalDataRetriever(BaseTool):
         super().__init__()  # 调用父类构造函数
         # 使用object.__setattr__来设置实例属性，避免Pydantic验证错误
         object.__setattr__(self, 'base_path', Path(base_path))
-        object.__setattr__(self, 'genes_path', Path(base_path) / "data" / "Genes" / "Genes")
-        object.__setattr__(self, 'organism_path', Path(base_path) / "data" / "Organism" / "Organism")
+        object.__setattr__(self, 'genes_path', Path(base_path) / "data" / "Genes")
+        object.__setattr__(self, 'organism_path', Path(base_path) / "data" / "Organism")
         
         # 验证路径是否存在
         genes_path = object.__getattribute__(self, 'genes_path')
