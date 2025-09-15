@@ -1,6 +1,13 @@
 #!/usr/bin/env python3
 """
 基于CrewAI的水质生物净化技术开发多智能体系统框架
+
+该系统支持两种任务处理模式：
+1. 链式处理模式（Process.sequential）- 按固定顺序执行智能体
+2. 自主选择模式（Process.hierarchical）- 智能体根据情况自主选择需要调度的智能体
+
+在自主选择模式中，任务协调智能体作为管理者，根据工作流程状态和评估结果，
+智能地决定下一步应该执行哪个智能体，实现动态任务调度。
 """
 
 import sys
@@ -64,6 +71,11 @@ def analyze_evaluation_result(evaluation_result):
 def run_autonomous_workflow(user_requirement, llm):
     """
     自主执行工作流，智能体根据情况自主选择需要调度的智能体
+    
+    使用CrewAI的分层处理模式（Process.hierarchical）实现智能体自主调度：
+    - 任务协调智能体作为管理者，负责根据任务执行情况和评估结果决定下一步执行哪个智能体
+    - 其他智能体作为执行者，负责执行具体的任务
+    - 管理者可以将任务委托给适当的执行者智能体
     """
     print("开始自主任务执行流程...")
     
