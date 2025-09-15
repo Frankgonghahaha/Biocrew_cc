@@ -51,12 +51,15 @@ find . -name "*.py" -exec python3 -m py_compile {} \;
 
 ### Testing
 ```bash
-# Run specific test files
-python test_local_data_query.py
-python test_smart_query_detailed.py
-python test_final_smart_query.py
-python test_smx_degradation.py
-python test_identification_agent.py
+# Run specific test files (note: some tests require proper data directory structure)
+python tests/test_local_data_query.py
+python tests/test_engineering_microorganism_identification.py
+python tests/test_database_tools.py
+python tests/test_envipath_tool.py
+python tests/test_autonomous_agent.py
+
+# Run a single test function (if the test file supports it)
+python -c "from tests.test_local_data_query import test_local_data_query; test_local_data_query()"
 ```
 
 ## Project Structure
@@ -89,6 +92,12 @@ BioCrew/
 ├── data/                  # Local data files (Genes and Organism directories)
 │   ├── Genes/
 │   └── Organism/
+├── tests/                 # Test files for all components
+│   ├── test_autonomous_agent.py
+│   ├── test_database_tools.py
+│   ├── test_engineering_microorganism_identification.py
+│   ├── test_envipath_tool.py
+│   └── test_local_data_query.py
 └── models/                # Model configurations (to be completed)
 ```
 
@@ -152,6 +161,7 @@ The system integrates with external databases through the following tools:
 - Shared functionality should be implemented in the `tools/` directory
 - Configuration is managed through the `config/` directory
 - Local data is stored in the `data/` directory
+- Tests are located in the `tests/` directory
 
 ### Tool Structure
 All tools follow a consistent pattern:
@@ -181,17 +191,21 @@ Tasks follow a consistent pattern:
 3. Register new agents and tasks in `main.py`
 4. Update the Crew configuration in `main.py` to include new agents and tasks
 5. For data access functionality, implement new tools in the `tools/` directory
+6. Add corresponding test files in the `tests/` directory
 
 ### Testing
 The project includes several test files for validating functionality:
-1. `test_local_data_query.py` - Tests local data retrieval functionality
-2. `test_smart_query_detailed.py` - Tests smart data querying features
-3. `test_final_smart_query.py` - Comprehensive testing of smart querying
-4. `test_smx_degradation.py` - Tests specific pollutant handling
-5. `test_identification_agent.py` - Tests the identification agent functionality
+1. `tests/test_local_data_query.py` - Tests local data retrieval functionality
+2. `tests/test_engineering_microorganism_identification.py` - Tests the identification agent functionality
+3. `tests/test_database_tools.py` - Tests database tool functionality (EnviPath and KEGG)
+4. `tests/test_envipath_tool.py` - Tests EnviPath tool specifically
+5. `tests/test_autonomous_agent.py` - Tests autonomous agent functionality
 
 When adding new functionality:
 1. Manually test the new features by running the application
 2. Verify that the new agents/tasks integrate correctly with existing components
 3. Check that the output format matches expectations
-4. Consider adding specific test files for new functionality
+4. Add specific test files for new functionality in the `tests/` directory
+5. Run existing tests to ensure no regressions were introduced
+
+Note: Some tests may require the proper data directory structure to run successfully. The data files should be located in `data/Genes` and `data/Organism` directories.
