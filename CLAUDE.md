@@ -37,7 +37,7 @@ cp .env.example .env
 ### Running the Application
 ```bash
 # Run the main application
-python main.py
+python3 main.py
 ```
 
 ### Code Validation
@@ -52,14 +52,14 @@ find . -name "*.py" -exec python3 -m py_compile {} \;
 ### Testing
 ```bash
 # Run specific test files (note: some tests require proper data directory structure)
-python tests/test_local_data_query.py
-python tests/test_engineering_microorganism_identification.py
-python tests/test_database_tools.py
-python tests/test_envipath_tool.py
-python tests/test_autonomous_agent.py
+python3 tests/test_local_data_query.py
+python3 tests/test_engineering_microorganism_identification.py
+python3 tests/test_database_tools.py
+python3 tests/test_envipath_tool.py
+python3 tests/test_autonomous_agent.py
 
 # Run a single test function (if the test file supports it)
-python -c "from tests.test_local_data_query import test_local_data_query; test_local_data_query()"
+python3 -c "from tests.test_local_data_query import test_local_data_query; test_local_data_query()"
 ```
 
 ## Project Structure
