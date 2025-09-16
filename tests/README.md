@@ -28,7 +28,7 @@
 
 ### 4. test_task_coordination.py
 **任务协调专家测试**
-- 测试任务协调专家的决策能力
+- 测试任务协调专家的基本功能
 - 验证任务协调逻辑的正确性
 - 运行方式: `python3 tests/test_task_coordination.py`
 
@@ -37,6 +37,12 @@
 - 测试main.py中修复的问题
 - 验证CrewAI配置的正确性
 - 运行方式: `python3 tests/test_main_fixes.py`
+
+### 6. test_task_coordination_fix.py
+**任务协调功能修复测试**
+- 测试任务协调智能体的改进功能
+- 验证循环检测和重复执行防止机制
+- 运行方式: `python3 tests/test_task_coordination_fix.py`
 # 运行所有测试文件
 python3 -m pytest tests/
 

@@ -224,6 +224,7 @@ The project includes several test files for validating functionality:
 3. `tests/test_data_integrity_handling.py` - Tests data integrity handling capabilities
 4. `tests/test_task_coordination.py` - Tests task coordination agent functionality
 5. `tests/test_main_fixes.py` - Tests main.py fixes and CrewAI configuration
+6. `tests/test_task_coordination_fix.py` - Tests task coordination improvements and loop detection
 
 #### Running Tests
 To run all tests:
@@ -236,6 +237,8 @@ python3 tests/test_microorganism_identification_agent.py
 python3 tests/test_data_integrity_handling.py
 python3 tests/test_database_tools.py
 python3 tests/test_task_coordination.py
+python3 tests/test_main_fixes.py
+python3 tests/test_task_coordination_fix.py
 ```
 
 #### Test Data Requirements
