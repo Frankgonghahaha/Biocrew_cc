@@ -90,14 +90,15 @@ BioCrew/
 │   ├── envipath_tool.py                 # EnviPath database access tool
 │   └── kegg_tool.py                     # KEGG database access tool
 ├── data/                  # Local data files (Genes and Organism directories)
-│   ├── Genes/
-│   └── Organism/
+│   ├── Genes/             # 22 gene data files for different pollutants
+│   └── Organism/          # 33 organism data files for different pollutants
 ├── tests/                 # Test files for all components
 │   ├── test_autonomous_agent.py
 │   ├── test_database_tools.py
 │   ├── test_engineering_microorganism_identification.py
 │   ├── test_envipath_tool.py
-│   └── test_local_data_query.py
+│   ├── test_local_data_query.py
+│   └── test_aldrin_data_query.py      # Test for Aldrin data querying
 └── models/                # Model configurations (to be completed)
 ```
 
@@ -131,6 +132,29 @@ These tools support:
 - Accessing multiple worksheets within Excel files
 - Searching for data files by pollutant names
 - Handling both gene data and organism data
+
+#### Data Query Logic
+When a user inputs a request like "处理含有 Aldrin 的污水" (treat wastewater containing Aldrin), the system:
+1. Uses SmartDataQueryTool to extract the pollutant name "Aldrin" from the text
+2. Performs fuzzy matching to find related data files in the local data directories
+3. Retrieves gene and organism data for the matched pollutants
+4. Returns structured data including pollutant names, microbial information, and research links
+
+The data query logic has been tested and verified to work correctly with Aldrin and other pollutants. The system currently contains:
+- 22 gene data files for different pollutants in `data/Genes/`
+- 33 organism data files for different pollutants in `data/Organism/`
+
+#### Response Logic
+The system follows a specific response logic to ensure comprehensive and accurate information delivery:
+1. **Data Priority**: Always prioritize local data from `data/Genes` and `data/Organism` directories over external sources
+2. **Complete Information**: Provide complete information including:
+   - Identified pollutant names
+   - Gene data (when available)
+   - Microorganism data with scientific names and research links
+   - Relevant research references
+3. **Structured Output**: Return data in structured formats with clear headings and organized information
+4. **Error Handling**: Gracefully handle missing data by clearly indicating what information is unavailable
+5. **Cross-Reference**: When possible, cross-reference information between gene data and organism data for the same pollutant
 
 ### External Database Access Tools
 
@@ -200,12 +224,34 @@ The project includes several test files for validating functionality:
 3. `tests/test_database_tools.py` - Tests database tool functionality (EnviPath and KEGG)
 4. `tests/test_envipath_tool.py` - Tests EnviPath tool specifically
 5. `tests/test_autonomous_agent.py` - Tests autonomous agent functionality
+6. `tests/test_aldrin_data_query.py` - Tests Aldrin data querying functionality
 
+#### Running Tests
+To run all tests:
+```bash
+# Run all test files
+python3 -m pytest tests/
+
+# Or run individual test files
+python3 tests/test_local_data_query.py
+python3 tests/test_aldrin_data_query.py
+```
+
+#### Test Data Requirements
+Note: Some tests may require the proper data directory structure to run successfully. The data files should be located in `data/Genes` and `data/Organism` directories. The system currently contains:
+- 22 gene data files for different pollutants in `data/Genes/`
+- 33 organism data files for different pollutants in `data/Organism/`
+
+#### Creating New Tests
 When adding new functionality:
-1. Manually test the new features by running the application
-2. Verify that the new agents/tasks integrate correctly with existing components
-3. Check that the output format matches expectations
-4. Add specific test files for new functionality in the `tests/` directory
-5. Run existing tests to ensure no regressions were introduced
-
-Note: Some tests may require the proper data directory structure to run successfully. The data files should be located in `data/Genes` and `data/Organism` directories.
+1. Create a new test file in the `tests/` directory following the naming pattern `test_*.py`
+2. Use the same project root setup pattern as existing tests:
+   ```python
+   import sys
+   import os
+   project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+   os.chdir(project_root)
+   sys.path.append(project_root)
+   ```
+3. Write tests that verify the specific functionality of your new features
+4. Run existing tests to ensure no regressions were introduced

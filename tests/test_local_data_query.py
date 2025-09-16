@@ -28,39 +28,41 @@ def test_local_data_query():
         print(f"   可用基因数据污染物数量: {len(pollutants['genes_pollutants'])}")
         print(f"   可用微生物数据污染物数量: {len(pollutants['organism_pollutants'])}")
         
-        # 测试SMX相关数据查询
-        print("\n2. 测试SMX相关数据查询:")
-        # 尝试查找与SMX相关的数据
-        smx_related_genes = []
-        smx_related_organisms = []
+        # 测试含硫化合物相关数据查询（使用实际存在的数据）
+        print("\n2. 测试含硫化合物相关数据查询:")
+        # 尝试查找与含硫化合物相关的数据（如Perfluorooctane_Sulfonate）
+        sulfur_related_genes = []
+        sulfur_related_organisms = []
         
         for pollutant in pollutants['genes_pollutants']:
-            if 'sulf' in pollutant.lower() or 'smx' in pollutant.lower() or 'sulfam' in pollutant.lower():
-                smx_related_genes.append(pollutant)
+            if 'sulf' in pollutant.lower() or 'sulfonate' in pollutant.lower():
+                sulfur_related_genes.append(pollutant)
         
         for pollutant in pollutants['organism_pollutants']:
-            if 'sulf' in pollutant.lower() or 'smx' in pollutant.lower() or 'sulfam' in pollutant.lower():
-                smx_related_organisms.append(pollutant)
+            if 'sulf' in pollutant.lower() or 'sulfonate' in pollutant.lower():
+                sulfur_related_organisms.append(pollutant)
         
-        print(f"   与SMX相关的基因数据文件: {smx_related_genes}")
-        print(f"   与SMX相关的微生物数据文件: {smx_related_organisms}")
+        print(f"   与含硫化合物相关的基因数据文件: {sulfur_related_genes}")
+        print(f"   与含硫化合物相关的微生物数据文件: {sulfur_related_organisms}")
         
         # 如果找到了相关数据，尝试读取
-        if smx_related_genes:
-            print(f"\n3. 尝试读取{smx_related_genes[0]}的基因数据:")
-            gene_data = data_retriever.get_gene_data(smx_related_genes[0])
+        if sulfur_related_genes:
+            print(f"\n3. 尝试读取{sulfur_related_genes[0]}的基因数据:")
+            gene_data = data_retriever.get_gene_data(sulfur_related_genes[0])
             if gene_data is not None:
                 print(f"   成功读取数据，形状: {gene_data.shape}")
                 print(f"   列名: {list(gene_data.columns)[:5]}...")
             else:
                 print("   读取数据失败")
+        else:
+            print("   未找到含硫化合物相关的基因数据文件")
         
         # 测试SmartDataQueryTool
         print("\n4. 测试SmartDataQueryTool工具:")
         smart_query = SmartDataQueryTool()
         
-        # 测试查询SMX相关数据
-        test_query = "处理含有磺胺甲恶唑(SMX)的制药废水"
+        # 测试查询含硫化合物相关数据（使用实际存在的数据）
+        test_query = "处理含有全氟辛烷磺酸盐的废水"
         result = smart_query.query_related_data(test_query)
         
         if result["status"] == "success":
