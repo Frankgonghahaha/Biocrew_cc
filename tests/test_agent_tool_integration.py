@@ -10,7 +10,7 @@ import os
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(project_root)
 
-from agents.engineering_microorganism_identification_agent_enhanced import EngineeringMicroorganismIdentificationAgentEnhanced
+from agents.engineering_microorganism_identification_agent import EngineeringMicroorganismIdentificationAgent
 from tools.local_data_retriever import LocalDataRetriever
 from tools.smart_data_query_tool import SmartDataQueryTool
 from tools.mandatory_local_data_query_tool import MandatoryLocalDataQueryTool
@@ -33,7 +33,7 @@ def test_agent_tool_integration():
     )
     
     # 创建Agent实例
-    agent_instance = EngineeringMicroorganismIdentificationAgentEnhanced(llm)
+    agent_instance = EngineeringMicroorganismIdentificationAgent(llm)
     agent = agent_instance.create_agent()
     
     print(f"Agent角色: {agent.role}")
