@@ -138,6 +138,10 @@ class SmartDataQueryTool(BaseTool):
         Returns:
             list: 提取到的污染物名称列表
         """
+        # 检查输入文本是否为None
+        if text is None:
+            return []
+        
         # 获取所有可用的污染物名称
         available_pollutants = self.data_retriever.list_available_pollutants()
         all_pollutants = (available_pollutants["genes_pollutants"] + 
@@ -199,6 +203,10 @@ class SmartDataQueryTool(BaseTool):
         Returns:
             bool: 是否匹配
         """
+        # 检查输入参数是否为None
+        if pollutant_name is None or text is None:
+            return False
+            
         # 移除空格和特殊字符进行比较
         clean_pollutant = re.sub(r'[^a-zA-Z0-9\u4e00-\u9fff]', '', pollutant_name.lower())
         clean_text = re.sub(r'[^a-zA-Z0-9\u4e00-\u9fff]', '', text.lower())

@@ -84,9 +84,8 @@ class EngineeringMicroorganismIdentificationAgent:
             
             # 外部数据库工具：
             # {database_tools_info}，包括：
-            #   1. 外部数据库访问工具：统一管理EnviPath和KEGG数据库访问，提供一致的外部数据查询接口
-            #   2. 数据查询协调器：协调本地和外部数据查询，提供智能查询功能，确保数据查询的完整性和一致性
-            #   3. 工具协调器：管理工具间的协作，确保工具调用的顺序和依赖关系，避免重复查询和冲突
+            #   1. EnviPath工具：访问环境污染物生物转化路径数据
+            #   2. KEGG工具：访问生物代谢路径和基因组数据
             
             # 工具使用规范：
             # - 必须使用MandatoryLocalDataQueryTool来确保查询本地数据，调用方式：mandatory_query._run("query_required_data", query_text="用户需求")
