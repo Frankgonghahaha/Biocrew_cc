@@ -65,7 +65,8 @@ def analyze_evaluation_result(evaluation_result):
     """
     # 使用EvaluationTool来分析评估结果
     eval_tool = EvaluationTool()
-    analysis = eval_tool.check_core_standards(evaluation_result)
+    # 使用更详细的分析方法
+    analysis = eval_tool.analyze_evaluation_result(evaluation_result)
     return analysis
 
 def run_autonomous_workflow(user_requirement, llm):
@@ -87,7 +88,10 @@ def run_autonomous_workflow(user_requirement, llm):
     knowledge_agent = KnowledgeManagementAgent(llm).create_agent()
     coordination_agent = TaskCoordinationAgent(llm).create_agent()
     
-    # 创建任务
+    # 创建任务协调任务
+    coordination_task = TaskCoordinationTask(llm).create_task(coordination_agent)
+    
+    # 创建其他任务
     identification_task = MicroorganismIdentificationTask(llm).create_task(
         identification_agent, 
         user_requirement=user_requirement
@@ -111,16 +115,17 @@ def run_autonomous_workflow(user_requirement, llm):
     
     # 使用分层处理模式执行任务
     # 任务协调智能体作为管理器来控制其他智能体的执行
+    # 注意：在分层处理模式中，管理器智能体不应包含在agents列表中
     autonomous_crew = Crew(
         agents=[
-            coordination_agent,
             identification_agent, 
             design_agent, 
             evaluation_agent, 
-            plan_agent, 
+            plan_agent,
             knowledge_agent
         ],
         tasks=[
+            coordination_task,
             identification_task,
             design_task,
             evaluation_task,
@@ -146,6 +151,9 @@ def run_dynamic_workflow(user_requirement, llm):
     evaluation_agent = MicrobialAgentEvaluationAgent(llm).create_agent()
     plan_agent = ImplementationPlanGenerationAgent(llm).create_agent()
     knowledge_agent = KnowledgeManagementAgent(llm).create_agent()
+    
+    # 创建包含知识管理智能体的Crew配置
+    crew_agents = [identification_agent, design_agent, evaluation_agent, plan_agent, knowledge_agent]
     
     # 初始化任务结果
     identification_result = None
@@ -176,7 +184,7 @@ def run_dynamic_workflow(user_requirement, llm):
         
         # 执行识别任务
         identification_crew = Crew(
-            agents=[identification_agent, knowledge_agent],
+            agents=crew_agents,
             tasks=[identification_task],
             process=Process.sequential,
             verbose=Config.VERBOSE
@@ -193,7 +201,7 @@ def run_dynamic_workflow(user_requirement, llm):
         
         # 执行设计任务
         design_crew = Crew(
-            agents=[design_agent, knowledge_agent],
+            agents=crew_agents,
             tasks=[design_task],
             process=Process.sequential,
             verbose=Config.VERBOSE
@@ -209,7 +217,7 @@ def run_dynamic_workflow(user_requirement, llm):
         
         # 执行评估任务
         evaluation_crew = Crew(
-            agents=[evaluation_agent, knowledge_agent],
+            agents=crew_agents,
             tasks=[evaluation_task],
             process=Process.sequential,
             verbose=Config.VERBOSE
@@ -218,7 +226,8 @@ def run_dynamic_workflow(user_requirement, llm):
         print(f"评估任务完成: {evaluation_result}")
         
         # 分析评估结果
-        core_standards_met = analyze_evaluation_result(str(evaluation_result))
+        analysis_result = analyze_evaluation_result(str(evaluation_result))
+        core_standards_met = analysis_result.get("core_standards_met", False) if isinstance(analysis_result, dict) else analysis_result
         
         if core_standards_met:
             print("评估结果达标，进入方案生成阶段...")
@@ -230,7 +239,7 @@ def run_dynamic_workflow(user_requirement, llm):
             
             # 执行方案生成任务
             plan_crew = Crew(
-                agents=[plan_agent, knowledge_agent],
+                agents=crew_agents,
                 tasks=[plan_task],
                 process=Process.sequential,
                 verbose=Config.VERBOSE
@@ -240,6 +249,9 @@ def run_dynamic_workflow(user_requirement, llm):
             break  # 退出循环
         else:
             print("评估结果不达标，需要重新进行微生物识别和设计...")
+            # 获取具体的改进建议
+            if isinstance(analysis_result, dict) and "suggestions" in analysis_result:
+                print(f"改进建议: {analysis_result['suggestions']}")
             if iteration >= max_iterations:
                 print(f"已达到最大迭代次数 ({max_iterations})，停止循环。")
                 break

@@ -219,12 +219,11 @@ Tasks follow a consistent pattern:
 
 ### Testing
 The project includes several test files for validating functionality:
-1. `tests/test_local_data_query.py` - Tests local data retrieval functionality
-2. `tests/test_engineering_microorganism_identification.py` - Tests the identification agent functionality
-3. `tests/test_database_tools.py` - Tests database tool functionality (EnviPath and KEGG)
-4. `tests/test_envipath_tool.py` - Tests EnviPath tool specifically
-5. `tests/test_autonomous_agent.py` - Tests autonomous agent functionality
-6. `tests/test_aldrin_data_query.py` - Tests Aldrin data querying functionality
+1. `tests/test_database_tools.py` - Tests database tool functionality (EnviPath and KEGG)
+2. `tests/test_microorganism_identification_agent.py` - Comprehensive unit tests for the identification agent
+3. `tests/test_data_integrity_handling.py` - Tests data integrity handling capabilities
+4. `tests/test_task_coordination.py` - Tests task coordination agent functionality
+5. `tests/test_main_fixes.py` - Tests main.py fixes and CrewAI configuration
 
 #### Running Tests
 To run all tests:
@@ -233,8 +232,10 @@ To run all tests:
 python3 -m pytest tests/
 
 # Or run individual test files
-python3 tests/test_local_data_query.py
-python3 tests/test_aldrin_data_query.py
+python3 tests/test_microorganism_identification_agent.py
+python3 tests/test_data_integrity_handling.py
+python3 tests/test_database_tools.py
+python3 tests/test_task_coordination.py
 ```
 
 #### Test Data Requirements

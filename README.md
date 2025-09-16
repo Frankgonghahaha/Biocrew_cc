@@ -48,6 +48,7 @@ BioCrew/
 ├── main.py                 # 主程序入口
 ├── requirements.txt        # 项目依赖
 ├── .env.example           # 环境变量配置示例
+├── CHANGELOG.md           # 更新日志
 ├── config/
 │   └── config.py          # 配置文件
 ├── agents/                # 智能体定义
@@ -68,22 +69,17 @@ BioCrew/
 │   ├── smart_data_query_tool.py              # 智能数据查询工具
 │   ├── mandatory_local_data_query_tool.py    # 强制本地数据查询工具
 │   ├── envipath_tool.py                      # EnviPath数据库访问工具
-│   ├── kegg_tool.py                          # KEGG数据库访问工具
-│   ├── local_data_retriever_usage.md         # 本地数据读取工具使用说明
-│   ├── smart_data_query_tool_usage.md        # 智能数据查询工具使用说明
-│   ├── mandatory_local_data_query_tool_usage.md # 强制本地数据查询工具使用说明
-│   ├── envipath_tool_usage.md                # EnviPath工具使用说明
-│   ├── kegg_tool_usage.md                    # KEGG工具使用说明
-│   └── smart_data_query_in_agent_example.py  # 智能体中使用数据工具的示例
+│   └── kegg_tool.py                          # KEGG数据库访问工具
 ├── data/                  # 本地数据文件
 │   ├── Genes/             # 基因数据文件
 │   └── Organism/          # 微生物数据文件
 ├── tests/                 # 测试文件
-│   ├── test_autonomous_agent.py              # 自主智能体测试
-│   ├── test_envipath_tool.py                 # EnviPath工具测试
-│   ├── test_local_data_query.py              # 本地数据查询测试
+│   ├── README.md                              # 测试文件说明
 │   ├── test_database_tools.py                # 数据库工具测试
-│   └── test_engineering_microorganism_identification.py # 工程微生物识别测试
+│   ├── test_data_integrity_handling.py       # 数据完整性处理测试
+│   ├── test_main_fixes.py                    # main.py修复功能测试
+│   ├── test_microorganism_identification_agent.py # 功能微生物识别智能体测试
+│   └── test_task_coordination.py             # 任务协调专家测试
 └── models/                # 模型配置（待完善）
 ```
 
@@ -168,21 +164,27 @@ python main.py
 
 用户可以根据需求选择相应的模式。
 
-### 测试本地数据工具
+### 运行测试
 
-项目包含了本地数据查询工具的测试文件，可以单独运行测试：
+项目包含了全面的测试文件，可以单独运行测试：
 
 ```bash
-# 测试本地数据查询功能
-python test_local_data_query.py
+# 运行所有测试
+python -m pytest tests/
 
-# 测试工程微生物识别智能体
-python test_engineering_microorganism_identification.py
+# 运行特定测试文件
+python tests/test_microorganism_identification_agent.py
+python tests/test_data_integrity_handling.py
+python tests/test_database_tools.py
+python tests/test_task_coordination.py
+python tests/test_main_fixes.py
 ```
+
+详细测试文件说明请查看 [tests/README.md](tests/README.md)
 
 ## 本地数据工具
 
-项目新增了三个本地数据工具，用于从Excel文件中读取基因和微生物数据：
+项目包含三个本地数据工具，用于从Excel文件中读取基因和微生物数据：
 
 1. **LocalDataRetriever** - 核心数据读取工具
 2. **SmartDataQueryTool** - 智能数据查询工具，可根据文本自动识别相关数据
@@ -190,17 +192,10 @@ python test_engineering_microorganism_identification.py
 
 ## 公开数据库工具
 
-项目新增了两个公开数据库访问工具，用于获取环境和生物代谢信息：
+项目包含两个公开数据库访问工具，用于获取环境和生物代谢信息：
 
-1. **EnviPathTool** - 用于查询环境化合物代谢路径信息（当前存在SSL连接问题，建议使用KEGG工具）
+1. **EnviPathTool** - 用于查询环境化合物代谢路径信息
 2. **KeggTool** - 用于查询KEGG数据库中的pathway、ko、genome、reaction、enzyme、genes等生物代谢信息
-
-详细使用说明请查看：
-- [LocalDataRetriever使用说明](tools/local_data_retriever_usage.md)
-- [SmartDataQueryTool使用说明](tools/smart_data_query_tool_usage.md)
-- [MandatoryLocalDataQueryTool使用说明](tools/mandatory_local_data_query_tool_usage.md)
-- [EnviPathTool使用说明](tools/envipath_tool_usage.md)
-- [KeggTool使用说明](tools/kegg_tool_usage.md)
 
 ## 系统优化与扩展
 
@@ -223,6 +218,8 @@ python test_engineering_microorganism_identification.py
 4. 添加可视化界面
 5. 实现历史数据存储和分析功能
 6. 进一步优化工具类性能和错误处理机制
+7. 增强测试覆盖度和自动化测试流程
+8. 优化文档和用户指南
 
 ## 贡献指南
 
