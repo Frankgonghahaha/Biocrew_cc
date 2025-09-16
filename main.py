@@ -168,18 +168,18 @@ def run_dynamic_workflow(user_requirement, llm):
         iteration += 1
         print(f"执行第 {iteration} 轮任务流程...")
         
-        # 创建识别任务
+        # 创建识别任务，添加数据完整性处理指导
         identification_task = MicroorganismIdentificationTask(llm).create_task(
             identification_agent, 
-            user_requirement=user_requirement
+            user_requirement=f"{user_requirement}\n\n重要数据处理指导：\n1. 必须优先使用本地数据查询工具(LocalDataRetriever和SmartDataQueryTool)获取具体数据\n2. 当某些类型的数据缺失时（如只有微生物数据而无基因数据），应基于现有数据继续分析并明确指出数据缺失情况\n3. 利用外部数据库工具(EnviPath、KEGG等)获取补充信息以完善分析\n4. 在最终报告中明确体现查询到的微生物名称、基因数据等具体内容，不能仅依赖预训练知识"
         )
         
-        # 如果不是第一轮，添加反馈信息
+        # 如果不是第一轮，添加反馈信息和数据完整性处理指导
         if identification_result:
             identification_task = MicroorganismIdentificationTask(llm).create_task(
                 identification_agent, 
                 user_requirement=user_requirement,
-                feedback=f"根据上一轮评估结果，需要重新进行微生物识别。之前的识别结果: {identification_result}"
+                feedback=f"根据上一轮评估结果，需要重新进行微生物识别。之前的识别结果: {identification_result}\n\n重要数据处理指导：\n1. 必须优先使用本地数据查询工具(LocalDataRetriever和SmartDataQueryTool)获取具体数据\n2. 当某些类型的数据缺失时（如只有微生物数据而无基因数据），应基于现有数据继续分析并明确指出数据缺失情况\n3. 利用外部数据库工具(EnviPath、KEGG等)获取补充信息以完善分析\n4. 在最终报告中明确体现查询到的微生物名称、基因数据等具体内容，不能仅依赖预训练知识"
             )
         
         # 执行识别任务
