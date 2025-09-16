@@ -48,25 +48,83 @@ class LocalDataRetriever(BaseTool):
             dict: 操作结果
         """
         try:
-            if operation == "get_gene_data":
+            # 如果operation是JSON字符串，解析它
+            if isinstance(operation, str) and operation.startswith('{'):
+                import json
+                try:
+                    params = json.loads(operation)
+                    operation = params.get('operation', operation)
+                    # 合并参数
+                    kwargs.update({k: v for k, v in params.items() if k != 'operation'})
+                except json.JSONDecodeError:
+                    pass  # 如果解析失败，继续使用原始参数
+            
+            # 支持中文操作名称映射
+            operation_mapping = {
+                "get_gene_data": ["获取基因数据", "查询基因数据", "读取基因数据"],
+                "get_organism_data": ["获取微生物数据", "查询微生物数据", "读取微生物数据", "查询data/Organism目录下与aldrin相关的微生物数据"],
+                "list_available_pollutants": ["列出可用污染物", "查询可用污染物"],
+                "list_sheet_names": ["列出工作表名称", "获取工作表名称"]
+            }
+            
+            # 将中文操作名称映射到英文操作名称
+            actual_operation = operation
+            for eng_op, chi_ops in operation_mapping.items():
+                if operation == eng_op or operation in chi_ops:
+                    actual_operation = eng_op
+                    break
+            
+            if actual_operation == "get_gene_data":
                 pollutant_name = kwargs.get("pollutant_name")
                 sheet_name = kwargs.get("sheet_name", 0)
                 if not pollutant_name:
                     return {"status": "error", "message": "缺少污染物名称参数"}
-                return self.get_gene_data(pollutant_name, sheet_name)
+                data = self.get_gene_data(pollutant_name, sheet_name)
+                if data is not None:
+                    return {
+                        "status": "success",
+                        "data": {
+                            "shape": data.shape,
+                            "columns": list(data.columns),
+                            "sample_data": data.head(5).to_dict('records')
+                        },
+                        "pollutant_name": pollutant_name
+                    }
+                else:
+                    return {
+                        "status": "error",
+                        "message": f"未找到污染物 '{pollutant_name}' 的基因数据",
+                        "pollutant_name": pollutant_name
+                    }
                 
-            elif operation == "get_organism_data":
+            elif actual_operation == "get_organism_data":
                 pollutant_name = kwargs.get("pollutant_name")
                 sheet_name = kwargs.get("sheet_name", 0)
                 if not pollutant_name:
                     return {"status": "error", "message": "缺少污染物名称参数"}
-                return self.get_organism_data(pollutant_name, sheet_name)
+                data = self.get_organism_data(pollutant_name, sheet_name)
+                if data is not None:
+                    return {
+                        "status": "success",
+                        "data": {
+                            "shape": data.shape,
+                            "columns": list(data.columns),
+                            "sample_data": data.head(5).to_dict('records')
+                        },
+                        "pollutant_name": pollutant_name
+                    }
+                else:
+                    return {
+                        "status": "error",
+                        "message": f"未找到污染物 '{pollutant_name}' 的微生物数据",
+                        "pollutant_name": pollutant_name
+                    }
                 
-            elif operation == "list_available_pollutants":
+            elif actual_operation == "list_available_pollutants":
                 result = self.list_available_pollutants()
                 return {"status": "success", "data": result}
                 
-            elif operation == "list_sheet_names":
+            elif actual_operation == "list_sheet_names":
                 pollutant_name = kwargs.get("pollutant_name")
                 data_type = kwargs.get("data_type", "gene")
                 if not pollutant_name:

@@ -93,11 +93,21 @@ class EngineeringMicroorganismIdentificationAgent:
             #   2. KEGG工具：用于查询pathway、ko、genome、reaction、enzyme、genes等生物代谢信息，适用于基因功能和代谢通路分析
             
             # 工具使用规范：
-            # - 必须使用MandatoryLocalDataQueryTool来确保查询本地数据
+            # - 必须使用MandatoryLocalDataQueryTool来确保查询本地数据，调用方式：mandatory_query._run("query_required_data", query_text="用户需求")
             # - 当本地数据不足时，可以使用EnviPath和KEGG工具获取补充信息
+            # - 使用本地数据读取工具查询微生物数据：data_retriever._run("get_organism_data", pollutant_name="aldrin")
+            # - 使用本地数据读取工具查询基因数据：data_retriever._run("get_gene_data", pollutant_name="aldrin")
+            # - 使用智能数据查询工具：smart_query._run("query_related_data", query_text="如何降解含有aldrin的废水？")
+            # - 使用数据完整性评估功能：mandatory_query._run("assess_data_integrity", query_text="用户需求")
+            # - 查询外部数据库获取补充信息：smart_query._run("query_external_databases", query_text="用户需求")
             # - 在分析和回复过程中，必须明确体现查询到的具体数据，包括微生物名称、基因数据等
             # - 不能仅依赖预训练知识，所有结论都必须基于实际查询到的数据
             # - 当某些类型的数据缺失时（如只有微生物数据而无基因数据），应基于现有数据继续分析并明确指出数据缺失情况
+            
+            # 数据完整性评估：
+            # - 使用MandatoryLocalDataQueryTool的assess_data_integrity功能评估数据完整性
+            # - 完整性评分低于70时，需要调用外部数据库工具获取补充信息
+            # - 根据评估结果的推荐，调整查询策略以获取更完整的数据
             
             # 筛选原则：
             # - 基于微调大语言模型，按"互补指数＞竞争指数"筛选功能微生物+代谢互补微生物

@@ -124,14 +124,16 @@ The system supports both DashScope (Qwen) and OpenAI model configurations throug
 The system uses local Excel data files stored in `data/Genes` and `data/Organism` directories. Several tools have been implemented to access this data:
 
 1. **LocalDataRetriever** - Core tool for reading Excel files from local directories
-2. **SmartDataQueryTool** - Intelligent querying tool that can automatically identify and retrieve relevant data based on text input
-3. **MandatoryLocalDataQueryTool** - Ensures data is always retrieved from local sources
+2. **SmartDataQueryTool** - Intelligent querying tool that can automatically identify and retrieve relevant data based on text input, now enhanced with external database query capabilities
+3. **MandatoryLocalDataQueryTool** - Ensures data is always retrieved from local sources, now enhanced with data integrity assessment capabilities
 
 These tools support:
 - Reading data for specific pollutants
 - Accessing multiple worksheets within Excel files
 - Searching for data files by pollutant names
 - Handling both gene data and organism data
+- Assessing data integrity and providing completeness scores
+- Automatically querying external databases when local data is insufficient
 
 #### Data Query Logic
 When a user inputs a request like "处理含有 Aldrin 的污水" (treat wastewater containing Aldrin), the system:
@@ -155,6 +157,8 @@ The system follows a specific response logic to ensure comprehensive and accurat
 3. **Structured Output**: Return data in structured formats with clear headings and organized information
 4. **Error Handling**: Gracefully handle missing data by clearly indicating what information is unavailable
 5. **Cross-Reference**: When possible, cross-reference information between gene data and organism data for the same pollutant
+6. **Data Integrity Assessment**: Assess the completeness of retrieved data and automatically query external databases when local data is insufficient
+7. **Multi-Source Integration**: Integrate information from local data sources, KEGG database, and EnviPath database for comprehensive analysis
 
 ### External Database Access Tools
 

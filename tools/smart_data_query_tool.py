@@ -9,6 +9,8 @@ import pandas as pd
 import re
 from pathlib import Path
 from tools.local_data_retriever import LocalDataRetriever
+from tools.kegg_tool import KeggTool
+from tools.envipath_tool import EnviPathTool
 from typing import Dict, Any
 
 class SmartDataQueryTool(BaseTool):
@@ -25,6 +27,8 @@ class SmartDataQueryTool(BaseTool):
         super().__init__()  # 调用父类构造函数
         # 使用object.__setattr__来设置实例属性，避免Pydantic验证错误
         object.__setattr__(self, 'data_retriever', LocalDataRetriever(base_path))
+        object.__setattr__(self, 'kegg_tool', KeggTool())
+        object.__setattr__(self, 'envipath_tool', EnviPathTool())
         object.__setattr__(self, 'base_path', base_path)
     
     def _run(self, operation: str, **kwargs) -> Dict[Any, Any]:
@@ -39,7 +43,32 @@ class SmartDataQueryTool(BaseTool):
             dict: 操作结果
         """
         try:
-            if operation == "query_related_data":
+            # 如果operation是JSON字符串，解析它
+            if isinstance(operation, str) and operation.startswith('{'):
+                import json
+                try:
+                    params = json.loads(operation)
+                    operation = params.get('operation', operation)
+                    # 合并参数
+                    kwargs.update({k: v for k, v in params.items() if k != 'operation'})
+                except json.JSONDecodeError:
+                    pass  # 如果解析失败，继续使用原始参数
+            
+            # 支持中文操作名称映射
+            operation_mapping = {
+                "query_related_data": ["查询相关数据", "识别与aldrin降解相关的微生物和基因"],
+                "get_data_summary": ["获取数据摘要"],
+                "query_external_databases": ["查询外部数据库", "查询KEGG和EnviPath数据库"]
+            }
+            
+            # 将中文操作名称映射到英文操作名称
+            actual_operation = operation
+            for eng_op, chi_ops in operation_mapping.items():
+                if operation == eng_op or operation in chi_ops:
+                    actual_operation = eng_op
+                    break
+            
+            if actual_operation == "query_related_data":
                 query_text = kwargs.get("query_text")
                 data_type = kwargs.get("data_type", "both")
                 sheet_name = kwargs.get("sheet_name", 0)
@@ -47,12 +76,18 @@ class SmartDataQueryTool(BaseTool):
                     return {"status": "error", "message": "缺少查询文本参数"}
                 return self.query_related_data(query_text, data_type, sheet_name)
                 
-            elif operation == "get_data_summary":
+            elif actual_operation == "get_data_summary":
                 pollutant_name = kwargs.get("pollutant_name")
                 data_type = kwargs.get("data_type", "both")
                 if not pollutant_name:
                     return {"status": "error", "message": "缺少污染物名称参数"}
                 return self.get_data_summary(pollutant_name, data_type)
+                
+            elif actual_operation == "query_external_databases":
+                query_text = kwargs.get("query_text")
+                if not query_text:
+                    return {"status": "error", "message": "缺少查询文本参数"}
+                return self.query_external_databases(query_text)
                 
             else:
                 return {"status": "error", "message": f"不支持的操作: {operation}"}
@@ -247,6 +282,17 @@ class SmartDataQueryTool(BaseTool):
                         "error": str(e)
                     }
         
+        # 如果本地数据查询结果不完整，自动查询外部数据库获取补充信息
+        if results.get("status") == "success":
+            # 检查是否有数据缺失
+            has_gene_data = len(results.get("gene_data", {})) > 0
+            has_organism_data = len(results.get("organism_data", {})) > 0
+            
+            # 如果数据不完整，查询外部数据库
+            if not has_gene_data or not has_organism_data:
+                external_results = self.query_external_databases(query_text)
+                results["external_data"] = external_results
+        
         return results
     
     def query_all_sheets_for_pollutant(self, pollutant_name, data_type="both"):
@@ -343,6 +389,80 @@ class SmartDataQueryTool(BaseTool):
                 summary["organism_summary"] = {"error": str(e)}
         
         return summary
+    
+    def query_external_databases(self, query_text):
+        """
+        查询外部数据库(KEGG和EnviPath)获取补充信息
+        
+        Args:
+            query_text (str): 查询文本
+            
+        Returns:
+            dict: 包含外部数据库查询结果的字典
+        """
+        # 使用object.__getattribute__获取实例属性
+        kegg_tool = object.__getattribute__(self, 'kegg_tool')
+        envipath_tool = object.__getattribute__(self, 'envipath_tool')
+        
+        results = {
+            "status": "success",
+            "query_text": query_text,
+            "kegg_data": {},
+            "envipath_data": {}
+        }
+        
+        # 提取污染物名称用于外部数据库查询
+        pollutant_names = self._extract_pollutant_names(query_text)
+        search_keywords = pollutant_names if pollutant_names else [query_text]
+        
+        try:
+            # 查询KEGG数据库
+            kegg_results = {}
+            for keyword in search_keywords:
+                # 查询相关基因
+                genes_result = kegg_tool.find_entries("genes", keyword)
+                if genes_result.get("status") == "success" and genes_result.get("count", 0) > 0:
+                    kegg_results[f"{keyword}_genes"] = {
+                        "count": genes_result["count"],
+                        "sample_data": genes_result["data"][:5]  # 只取前5个结果
+                    }
+                
+                # 查询相关pathway
+                pathway_result = kegg_tool.find_entries("pathway", keyword)
+                if pathway_result.get("status") == "success" and pathway_result.get("count", 0) > 0:
+                    kegg_results[f"{keyword}_pathway"] = {
+                        "count": pathway_result["count"],
+                        "sample_data": pathway_result["data"][:5]  # 只取前5个结果
+                    }
+            
+            results["kegg_data"] = kegg_results
+            
+            # 查询EnviPath数据库
+            envipath_results = {}
+            for keyword in search_keywords:
+                # 搜索化合物
+                compound_result = envipath_tool.search_compound(keyword)
+                if compound_result.get("status") == "success":
+                    envipath_results[f"{keyword}_compound"] = {
+                        "query": compound_result.get("query", keyword),
+                        "status": "success"
+                    }
+                
+                # 根据关键词搜索pathway
+                pathway_result = envipath_tool.search_pathways_by_keyword(keyword)
+                if pathway_result.get("status") == "success":
+                    envipath_results[f"{keyword}_pathway"] = {
+                        "keyword": pathway_result.get("keyword", keyword),
+                        "status": "success"
+                    }
+            
+            results["envipath_data"] = envipath_results
+            
+        except Exception as e:
+            results["status"] = "partial_success"  # 即使部分查询失败，也返回已获取的数据
+            results["error"] = str(e)
+        
+        return results
 
 # 使用示例
 if __name__ == "__main__":

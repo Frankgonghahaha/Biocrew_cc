@@ -187,8 +187,8 @@ python tests/test_main_fixes.py
 项目包含三个本地数据工具，用于从Excel文件中读取基因和微生物数据：
 
 1. **LocalDataRetriever** - 核心数据读取工具
-2. **SmartDataQueryTool** - 智能数据查询工具，可根据文本自动识别相关数据
-3. **MandatoryLocalDataQueryTool** - 强制本地数据查询工具，确保数据来自本地文件
+2. **SmartDataQueryTool** - 智能数据查询工具，可根据文本自动识别相关数据，现已增强支持外部数据库查询
+3. **MandatoryLocalDataQueryTool** - 强制本地数据查询工具，确保数据来自本地文件，现已增强支持数据完整性评估
 
 ## 公开数据库工具
 
@@ -209,6 +209,7 @@ python tests/test_main_fixes.py
 - [x] 重构所有自定义工具类以兼容CrewAI框架，提供统一接口和向后兼容性
 - [x] 实现智能体调度模式：支持链式处理和自主选择两种模式
 - [x] 优化项目结构和注释：移除冗余文件，整理测试文件，简化数据目录结构，增强注释
+- [x] 增强工具调用功能：实现多元化数据源调用，支持数据完整性评估和外部数据库查询
 
 ### 后续开发计划
 

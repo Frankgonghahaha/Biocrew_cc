@@ -37,60 +37,91 @@ class KeggTool(BaseTool):
             dict: 操作结果
         """
         try:
-            if operation == "get_database_info":
+            # 如果operation是JSON字符串，解析它
+            if isinstance(operation, str) and operation.startswith('{'):
+                import json
+                try:
+                    params = json.loads(operation)
+                    operation = params.get('operation', operation)
+                    # 合并参数
+                    kwargs.update({k: v for k, v in params.items() if k != 'operation'})
+                except json.JSONDecodeError:
+                    pass  # 如果解析失败，继续使用原始参数
+            
+            # 支持中文操作名称映射
+            operation_mapping = {
+                "get_database_info": ["获取数据库信息"],
+                "list_entries": ["列出条目"],
+                "find_entries": ["查找条目", "查询aldrin代谢相关的pathway和基因信息"],
+                "get_entry": ["获取条目"],
+                "link_entries": ["关联条目"],
+                "convert_id": ["转换ID"],
+                "search_pathway_by_compound": ["根据化合物搜索路径", "查询aldrin的代谢路径信息"],
+                "search_genes_by_pathway": ["根据路径搜索基因"],
+                "search_enzymes_by_compound": ["根据化合物搜索酶"]
+            }
+            
+            # 将中文操作名称映射到英文操作名称
+            actual_operation = operation
+            for eng_op, chi_ops in operation_mapping.items():
+                if operation == eng_op or operation in chi_ops:
+                    actual_operation = eng_op
+                    break
+            
+            if actual_operation == "get_database_info":
                 database = kwargs.get("database")
                 if not database:
                     return {"status": "error", "message": "缺少数据库名称参数"}
                 return self.get_database_info(database)
                 
-            elif operation == "list_entries":
+            elif actual_operation == "list_entries":
                 database = kwargs.get("database")
                 organism = kwargs.get("organism")
                 if not database:
                     return {"status": "error", "message": "缺少数据库名称参数"}
                 return self.list_entries(database, organism)
                 
-            elif operation == "find_entries":
+            elif actual_operation == "find_entries":
                 database = kwargs.get("database")
                 keywords = kwargs.get("keywords")
                 if not database or not keywords:
                     return {"status": "error", "message": "缺少数据库名称或关键词参数"}
                 return self.find_entries(database, keywords)
                 
-            elif operation == "get_entry":
+            elif actual_operation == "get_entry":
                 entry_id = kwargs.get("entry_id")
                 format_type = kwargs.get("format_type", "json")
                 if not entry_id:
                     return {"status": "error", "message": "缺少条目ID参数"}
                 return self.get_entry(entry_id, format_type)
                 
-            elif operation == "link_entries":
+            elif actual_operation == "link_entries":
                 target_db = kwargs.get("target_db")
                 source_db_entries = kwargs.get("source_db_entries")
                 if not target_db or not source_db_entries:
                     return {"status": "error", "message": "缺少目标数据库或源数据库条目参数"}
                 return self.link_entries(target_db, source_db_entries)
                 
-            elif operation == "convert_id":
+            elif actual_operation == "convert_id":
                 target_db = kwargs.get("target_db")
                 source_ids = kwargs.get("source_ids")
                 if not target_db or not source_ids:
                     return {"status": "error", "message": "缺少目标数据库或源ID参数"}
                 return self.convert_id(target_db, source_ids)
                 
-            elif operation == "search_pathway_by_compound":
+            elif actual_operation == "search_pathway_by_compound":
                 compound_id = kwargs.get("compound_id")
                 if not compound_id:
                     return {"status": "error", "message": "缺少化合物ID参数"}
                 return self.search_pathway_by_compound(compound_id)
                 
-            elif operation == "search_genes_by_pathway":
+            elif actual_operation == "search_genes_by_pathway":
                 pathway_id = kwargs.get("pathway_id")
                 if not pathway_id:
                     return {"status": "error", "message": "缺少路径ID参数"}
                 return self.search_genes_by_pathway(pathway_id)
                 
-            elif operation == "search_enzymes_by_compound":
+            elif actual_operation == "search_enzymes_by_compound":
                 compound_id = kwargs.get("compound_id")
                 if not compound_id:
                     return {"status": "error", "message": "缺少化合物ID参数"}

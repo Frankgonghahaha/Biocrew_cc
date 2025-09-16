@@ -41,6 +41,17 @@ class EnviPathTool(BaseTool):
         Returns:
             dict: 操作结果
         """
+        # 如果operation是JSON字符串，解析它
+        if isinstance(operation, str) and operation.startswith('{'):
+            import json
+            try:
+                params = json.loads(operation)
+                operation = params.get('operation', operation)
+                # 合并参数
+                kwargs.update({k: v for k, v in params.items() if k != 'operation'})
+            except json.JSONDecodeError:
+                pass  # 如果解析失败，继续使用原始参数
+        
         # 使用object.__getattribute__获取实例属性
         client = object.__getattribute__(self, 'client')
         
@@ -52,7 +63,22 @@ class EnviPathTool(BaseTool):
             }
         
         try:
-            if operation == "search_compound":
+            # 支持中文操作名称映射
+            operation_mapping = {
+                "search_compound": ["搜索化合物", "查询aldrin的代谢路径信息"],
+                "get_pathway_info": ["获取路径信息"],
+                "get_compound_pathways": ["获取化合物路径"],
+                "search_pathways_by_keyword": ["根据关键词搜索路径", "查询aldrin代谢相关的pathway和基因信息"]
+            }
+            
+            # 将中文操作名称映射到英文操作名称
+            actual_operation = operation
+            for eng_op, chi_ops in operation_mapping.items():
+                if operation == eng_op or operation in chi_ops:
+                    actual_operation = eng_op
+                    break
+            
+            if actual_operation == "search_compound":
                 compound_name = kwargs.get("compound_name")
                 if not compound_name:
                     return {"status": "error", "message": "缺少化合物名称参数"}
@@ -61,7 +87,7 @@ class EnviPathTool(BaseTool):
                 result = package.search(compound_name)
                 return {"status": "success", "data": result, "query": compound_name}
                 
-            elif operation == "get_pathway_info":
+            elif actual_operation == "get_pathway_info":
                 pathway_id = kwargs.get("pathway_id")
                 if not pathway_id:
                     return {"status": "error", "message": "缺少pathway ID参数"}
@@ -69,7 +95,7 @@ class EnviPathTool(BaseTool):
                 pathway = client.get_pathway(pathway_id)
                 return {"status": "success", "data": pathway, "pathway_id": pathway_id}
                 
-            elif operation == "get_compound_pathways":
+            elif actual_operation == "get_compound_pathways":
                 compound_id = kwargs.get("compound_id")
                 if not compound_id:
                     return {"status": "error", "message": "缺少化合物ID参数"}
@@ -79,7 +105,7 @@ class EnviPathTool(BaseTool):
                 pathways = []
                 return {"status": "success", "data": pathways, "compound_id": compound_id}
                 
-            elif operation == "search_pathways_by_keyword":
+            elif actual_operation == "search_pathways_by_keyword":
                 keyword = kwargs.get("keyword")
                 if not keyword:
                     return {"status": "error", "message": "缺少关键词参数"}
