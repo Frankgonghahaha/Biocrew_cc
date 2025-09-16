@@ -9,8 +9,6 @@ import pandas as pd
 import re
 from pathlib import Path
 from tools.local_data_retriever import LocalDataRetriever
-from tools.kegg_tool import KeggTool
-from tools.envipath_tool import EnviPathTool
 from typing import Dict, Any
 
 class SmartDataQueryTool(BaseTool):
@@ -27,8 +25,6 @@ class SmartDataQueryTool(BaseTool):
         super().__init__()  # 调用父类构造函数
         # 使用object.__setattr__来设置实例属性，避免Pydantic验证错误
         object.__setattr__(self, 'data_retriever', LocalDataRetriever(base_path))
-        object.__setattr__(self, 'kegg_tool', KeggTool())
-        object.__setattr__(self, 'envipath_tool', EnviPathTool())
         object.__setattr__(self, 'base_path', base_path)
     
     def _run(self, operation: str, **kwargs) -> Dict[Any, Any]:
@@ -43,6 +39,14 @@ class SmartDataQueryTool(BaseTool):
             dict: 操作结果
         """
         try:
+            # 记录输入参数用于调试
+            import json
+            params_log = {
+                "operation": operation,
+                "kwargs": kwargs
+            }
+            print(f"[DEBUG] SmartDataQueryTool._run 调用参数: {json.dumps(params_log, ensure_ascii=False)}")
+            
             # 如果operation是JSON字符串，解析它
             if isinstance(operation, str) and operation.startswith('{'):
                 import json
@@ -53,6 +57,31 @@ class SmartDataQueryTool(BaseTool):
                     kwargs.update({k: v for k, v in params.items() if k != 'operation'})
                 except json.JSONDecodeError:
                     pass  # 如果解析失败，继续使用原始参数
+            
+            # 如果kwargs中包含JSON字符串参数，也进行解析
+            if 'query_text' in kwargs and isinstance(kwargs['query_text'], str) and kwargs['query_text'].startswith('{'):
+                try:
+                    params = json.loads(kwargs['query_text'])
+                    kwargs.update(params)
+                except json.JSONDecodeError:
+                    pass  # 如果解析失败，继续使用原始参数
+                    
+            # 处理直接传递的参数
+            if 'query_text' not in kwargs and 'pollutant_name' in kwargs:
+                kwargs['query_text'] = kwargs['pollutant_name']
+            if 'pollutant_name' not in kwargs and 'query_text' in kwargs:
+                kwargs['pollutant_name'] = kwargs['query_text']
+            
+            # 如果kwargs中的值是JSON字符串，也进行解析
+            for key, value in list(kwargs.items()):
+                if isinstance(value, str) and value.startswith('{'):
+                    try:
+                        params = json.loads(value)
+                        kwargs.update(params)
+                        print(f"[DEBUG] 解析kwargs中的JSON参数: {params}")
+                    except json.JSONDecodeError:
+                        pass  # 如果解析失败，继续使用原始参数
+            
             
             # 支持中文操作名称映射
             operation_mapping = {
@@ -68,29 +97,29 @@ class SmartDataQueryTool(BaseTool):
                     actual_operation = eng_op
                     break
             
+            # 直接执行操作
             if actual_operation == "query_related_data":
-                query_text = kwargs.get("query_text")
-                data_type = kwargs.get("data_type", "both")
-                sheet_name = kwargs.get("sheet_name", 0)
+                query_text = kwargs.get("query_text") or kwargs.get("query")
                 if not query_text:
-                    return {"status": "error", "message": "缺少查询文本参数"}
-                return self.query_related_data(query_text, data_type, sheet_name)
-                
+                    # 尝试从pollutant_name中获取
+                    query_text = kwargs.get("pollutant_name")
+                data_type = kwargs.get("data_type", "both")
+                return self.query_related_data(query_text, data_type)
             elif actual_operation == "get_data_summary":
-                pollutant_name = kwargs.get("pollutant_name")
-                data_type = kwargs.get("data_type", "both")
+                pollutant_name = kwargs.get("pollutant_name") or kwargs.get("pollutant")
                 if not pollutant_name:
-                    return {"status": "error", "message": "缺少污染物名称参数"}
+                    # 尝试从query_text中获取
+                    pollutant_name = kwargs.get("query_text")
+                data_type = kwargs.get("data_type", "both")
                 return self.get_data_summary(pollutant_name, data_type)
-                
             elif actual_operation == "query_external_databases":
-                query_text = kwargs.get("query_text")
+                query_text = kwargs.get("query_text") or kwargs.get("query")
                 if not query_text:
-                    return {"status": "error", "message": "缺少查询文本参数"}
+                    # 尝试从pollutant_name中获取
+                    query_text = kwargs.get("pollutant_name")
                 return self.query_external_databases(query_text)
-                
             else:
-                return {"status": "error", "message": f"不支持的操作: {operation}"}
+                return {"status": "error", "message": f"不支持的操作: {actual_operation}"}
                 
         except Exception as e:
             return {
@@ -400,9 +429,13 @@ class SmartDataQueryTool(BaseTool):
         Returns:
             dict: 包含外部数据库查询结果的字典
         """
-        # 使用object.__getattribute__获取实例属性
-        kegg_tool = object.__getattribute__(self, 'kegg_tool')
-        envipath_tool = object.__getattribute__(self, 'envipath_tool')
+        # 导入外部数据库工具
+        from tools.kegg_tool import KeggTool
+        from tools.envipath_tool import EnviPathTool
+        
+        # 创建外部数据库工具实例
+        kegg_tool = KeggTool()
+        envipath_tool = EnviPathTool()
         
         results = {
             "status": "success",

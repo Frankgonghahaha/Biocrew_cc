@@ -48,16 +48,37 @@ class LocalDataRetriever(BaseTool):
             dict: 操作结果
         """
         try:
+            # 记录输入参数用于调试
+            import json
+            params_log = {
+                "operation": operation,
+                "kwargs": kwargs
+            }
+            print(f"[DEBUG] LocalDataRetriever._run 调用参数: {json.dumps(params_log, ensure_ascii=False)}")
+            
             # 如果operation是JSON字符串，解析它
             if isinstance(operation, str) and operation.startswith('{'):
                 import json
                 try:
                     params = json.loads(operation)
                     operation = params.get('operation', operation)
-                    # 合并参数
-                    kwargs.update({k: v for k, v in params.items() if k != 'operation'})
+                    # 合并参数，确保pollutant_name也被正确处理
+                    for k, v in params.items():
+                        if k != 'operation':
+                            kwargs[k] = v
+                    print(f"[DEBUG] 解析JSON后的参数: {kwargs}")
                 except json.JSONDecodeError:
                     pass  # 如果解析失败，继续使用原始参数
+            
+            # 如果kwargs中的值是JSON字符串，也进行解析
+            for key, value in list(kwargs.items()):
+                if isinstance(value, str) and value.startswith('{'):
+                    try:
+                        params = json.loads(value)
+                        kwargs.update(params)
+                        print(f"[DEBUG] 解析kwargs中的JSON参数: {params}")
+                    except json.JSONDecodeError:
+                        pass  # 如果解析失败，继续使用原始参数
             
             # 支持中文操作名称映射
             operation_mapping = {
@@ -75,61 +96,85 @@ class LocalDataRetriever(BaseTool):
                     break
             
             if actual_operation == "get_gene_data":
-                pollutant_name = kwargs.get("pollutant_name")
-                sheet_name = kwargs.get("sheet_name", 0)
-                if not pollutant_name:
-                    return {"status": "error", "message": "缺少污染物名称参数"}
-                data = self.get_gene_data(pollutant_name, sheet_name)
-                if data is not None:
-                    return {
-                        "status": "success",
-                        "data": {
-                            "shape": data.shape,
-                            "columns": list(data.columns),
-                            "sample_data": data.head(5).to_dict('records')
-                        },
-                        "pollutant_name": pollutant_name
-                    }
-                else:
-                    return {
-                        "status": "error",
-                        "message": f"未找到污染物 '{pollutant_name}' 的基因数据",
-                        "pollutant_name": pollutant_name
-                    }
+                try:
+                    # 从kwargs中获取污染物名称
+                    pollutant_name = kwargs.get("pollutant_name") or kwargs.get("pollutant")
+                    if not pollutant_name:
+                        # 尝试从query_text中获取
+                        pollutant_name = kwargs.get("query_text")
+                    if not pollutant_name:
+                        raise ValueError("缺少污染物名称参数")
+                    sheet_name = kwargs.get("sheet", 0)
+                    data = self.get_gene_data(pollutant_name, sheet_name)
+                    if data is not None:
+                        return {
+                            "status": "success",
+                            "data": {
+                                "shape": data.shape,
+                                "columns": list(data.columns),
+                                "sample_data": data.head(5).to_dict('records')
+                            },
+                            "pollutant_name": pollutant_name
+                        }
+                    else:
+                        return {
+                            "status": "error",
+                            "message": f"未找到污染物 '{pollutant_name}' 的基因数据",
+                            "pollutant_name": pollutant_name
+                        }
+                except ValueError as e:
+                    return {"status": "error", "message": str(e)}
                 
             elif actual_operation == "get_organism_data":
-                pollutant_name = kwargs.get("pollutant_name")
-                sheet_name = kwargs.get("sheet_name", 0)
-                if not pollutant_name:
-                    return {"status": "error", "message": "缺少污染物名称参数"}
-                data = self.get_organism_data(pollutant_name, sheet_name)
-                if data is not None:
-                    return {
-                        "status": "success",
-                        "data": {
-                            "shape": data.shape,
-                            "columns": list(data.columns),
-                            "sample_data": data.head(5).to_dict('records')
-                        },
-                        "pollutant_name": pollutant_name
-                    }
-                else:
-                    return {
-                        "status": "error",
-                        "message": f"未找到污染物 '{pollutant_name}' 的微生物数据",
-                        "pollutant_name": pollutant_name
-                    }
+                try:
+                    print(f"[DEBUG] get_organism_data - kwargs: {kwargs}")
+                    # 从kwargs中获取污染物名称
+                    pollutant_name = kwargs.get("pollutant_name") or kwargs.get("pollutant")
+                    if not pollutant_name:
+                        # 尝试从query_text中获取
+                        pollutant_name = kwargs.get("query_text")
+                    if not pollutant_name:
+                        raise ValueError("缺少污染物名称参数")
+                    print(f"[DEBUG] get_organism_data - 获取到的pollutant_name: {pollutant_name}")
+                    sheet_name = kwargs.get("sheet", 0)
+                    data = self.get_organism_data(pollutant_name, sheet_name)
+                    if data is not None:
+                        return {
+                            "status": "success",
+                            "data": {
+                                "shape": data.shape,
+                                "columns": list(data.columns),
+                                "sample_data": data.head(5).to_dict('records')
+                            },
+                            "pollutant_name": pollutant_name
+                        }
+                    else:
+                        return {
+                            "status": "error",
+                            "message": f"未找到污染物 '{pollutant_name}' 的微生物数据",
+                            "pollutant_name": pollutant_name
+                        }
+                except ValueError as e:
+                    print(f"[DEBUG] get_organism_data - ValueError: {e}")
+                    return {"status": "error", "message": str(e)}
                 
             elif actual_operation == "list_available_pollutants":
                 result = self.list_available_pollutants()
                 return {"status": "success", "data": result}
                 
             elif actual_operation == "list_sheet_names":
-                pollutant_name = kwargs.get("pollutant_name")
-                data_type = kwargs.get("data_type", "gene")
-                if not pollutant_name:
-                    return {"status": "error", "message": "缺少污染物名称参数"}
-                return self.list_sheet_names(pollutant_name, data_type)
+                try:
+                    # 从kwargs中获取污染物名称
+                    pollutant_name = kwargs.get("pollutant_name") or kwargs.get("pollutant")
+                    if not pollutant_name:
+                        # 尝试从query_text中获取
+                        pollutant_name = kwargs.get("query_text")
+                    if not pollutant_name:
+                        raise ValueError("缺少污染物名称参数")
+                    data_type = kwargs.get("data_type", "gene")
+                    return self.list_sheet_names(pollutant_name, data_type)
+                except ValueError as e:
+                    return {"status": "error", "message": str(e)}
                 
             else:
                 return {"status": "error", "message": f"不支持的操作: {operation}"}

@@ -7,8 +7,6 @@
 from crewai.tools import BaseTool
 from tools.local_data_retriever import LocalDataRetriever
 from tools.smart_data_query_tool import SmartDataQueryTool
-from tools.kegg_tool import KeggTool
-from tools.envipath_tool import EnviPathTool
 from typing import Dict, Any
 
 class MandatoryLocalDataQueryTool(BaseTool):
@@ -26,8 +24,6 @@ class MandatoryLocalDataQueryTool(BaseTool):
         # 使用object.__setattr__来设置实例属性，避免Pydantic验证错误
         object.__setattr__(self, 'local_data_retriever', LocalDataRetriever(base_path))
         object.__setattr__(self, 'smart_query', SmartDataQueryTool(base_path))
-        object.__setattr__(self, 'kegg_tool', KeggTool())
-        object.__setattr__(self, 'envipath_tool', EnviPathTool())
     
     def _run(self, operation: str, **kwargs) -> Dict[Any, Any]:
         """
@@ -41,16 +37,51 @@ class MandatoryLocalDataQueryTool(BaseTool):
             dict: 操作结果
         """
         try:
+            # 记录输入参数用于调试
+            import json
+            params_log = {
+                "operation": operation,
+                "kwargs": kwargs
+            }
+            print(f"[DEBUG] MandatoryLocalDataQueryTool._run 调用参数: {json.dumps(params_log, ensure_ascii=False)}")
+            
             # 如果operation是JSON字符串，解析它
             if isinstance(operation, str) and operation.startswith('{'):
                 import json
                 try:
                     params = json.loads(operation)
                     operation = params.get('operation', operation)
-                    # 合并参数
-                    kwargs.update({k: v for k, v in params.items() if k != 'operation'})
+                    # 合并参数，确保所有参数都被正确处理
+                    for k, v in params.items():
+                        if k != 'operation':
+                            kwargs[k] = v
                 except json.JSONDecodeError:
                     pass  # 如果解析失败，继续使用原始参数
+            
+            # 如果kwargs中包含JSON字符串参数，也进行解析
+            if 'query_text' in kwargs and isinstance(kwargs['query_text'], str) and kwargs['query_text'].startswith('{'):
+                try:
+                    params = json.loads(kwargs['query_text'])
+                    kwargs.update(params)
+                except json.JSONDecodeError:
+                    pass  # 如果解析失败，继续使用原始参数
+                    
+            # 处理直接传递的参数
+            if 'query_text' not in kwargs and 'pollutant_name' in kwargs:
+                kwargs['query_text'] = kwargs['pollutant_name']
+            if 'pollutant_name' not in kwargs and 'query_text' in kwargs:
+                kwargs['pollutant_name'] = kwargs['query_text']
+            
+            # 如果kwargs中的值是JSON字符串，也进行解析
+            for key, value in list(kwargs.items()):
+                if isinstance(value, str) and value.startswith('{'):
+                    try:
+                        params = json.loads(value)
+                        kwargs.update(params)
+                        print(f"[DEBUG] 解析kwargs中的JSON参数: {params}")
+                    except json.JSONDecodeError:
+                        pass  # 如果解析失败，继续使用原始参数
+            
             
             # 支持中文操作名称映射
             operation_mapping = {
@@ -69,69 +100,101 @@ class MandatoryLocalDataQueryTool(BaseTool):
                     break
             
             if actual_operation == "query_required_data":
-                query_text = kwargs.get("query_text")
-                data_type = kwargs.get("data_type", "both")
-                if not query_text:
-                    return {"status": "error", "message": "缺少查询文本参数"}
-                return self.query_required_data(query_text, data_type)
+                try:
+                    # 从kwargs中获取查询文本
+                    query_text = kwargs.get("query_text") or kwargs.get("query")
+                    if not query_text:
+                        # 尝试从pollutant_name中获取
+                        query_text = kwargs.get("pollutant_name")
+                    if not query_text:
+                        raise ValueError("缺少查询文本参数")
+                    data_type = kwargs.get("data_type", "both")
+                    # 使用智能数据查询工具
+                    smart_query = object.__getattribute__(self, 'smart_query')
+                    return smart_query.query_related_data(query_text=query_text, data_type=data_type)
+                except ValueError as e:
+                    return {"status": "error", "message": str(e)}
                 
             elif actual_operation == "get_available_pollutants_summary":
                 result = self.get_available_pollutants_summary()
                 return {"status": "success", "data": result}
                 
             elif actual_operation == "get_organism_data":
-                pollutant_name = kwargs.get("pollutant_name")
-                sheet_name = kwargs.get("sheet_name", 0)
-                if not pollutant_name:
-                    return {"status": "error", "message": "缺少污染物名称参数"}
-                # 直接调用本地数据读取工具的方法
-                data = self.local_data_retriever.get_organism_data(pollutant_name, sheet_name)
-                if data is not None:
-                    return {
-                        "status": "success",
-                        "data": {
-                            "shape": data.shape,
-                            "columns": list(data.columns),
-                            "sample_data": data.head(5).to_dict('records')
-                        },
-                        "pollutant_name": pollutant_name
-                    }
-                else:
-                    return {
-                        "status": "error",
-                        "message": f"未找到污染物 '{pollutant_name}' 的微生物数据",
-                        "pollutant_name": pollutant_name
-                    }
+                try:
+                    # 从kwargs中获取污染物名称
+                    pollutant_name = kwargs.get("pollutant_name") or kwargs.get("pollutant")
+                    if not pollutant_name:
+                        # 尝试从query_text中获取
+                        pollutant_name = kwargs.get("query_text")
+                    if not pollutant_name:
+                        raise ValueError("缺少污染物名称参数")
+                    sheet_name = kwargs.get("sheet", 0)
+                    # 直接调用本地数据读取工具的方法
+                    local_data_retriever = object.__getattribute__(self, 'local_data_retriever')
+                    data = local_data_retriever.get_organism_data(pollutant_name, sheet_name)
+                    if data is not None:
+                        return {
+                            "status": "success",
+                            "data": {
+                                "shape": data.shape,
+                                "columns": list(data.columns),
+                                "sample_data": data.head(5).to_dict('records')
+                            },
+                            "pollutant_name": pollutant_name
+                        }
+                    else:
+                        return {
+                            "status": "error",
+                            "message": f"未找到污染物 '{pollutant_name}' 的微生物数据",
+                            "pollutant_name": pollutant_name
+                        }
+                except ValueError as e:
+                    return {"status": "error", "message": str(e)}
                 
             elif actual_operation == "get_gene_data":
-                pollutant_name = kwargs.get("pollutant_name")
-                sheet_name = kwargs.get("sheet_name", 0)
-                if not pollutant_name:
-                    return {"status": "error", "message": "缺少污染物名称参数"}
-                # 直接调用本地数据读取工具的方法
-                data = self.local_data_retriever.get_gene_data(pollutant_name, sheet_name)
-                if data is not None:
-                    return {
-                        "status": "success",
-                        "data": {
-                            "shape": data.shape,
-                            "columns": list(data.columns),
-                            "sample_data": data.head(5).to_dict('records')
-                        },
-                        "pollutant_name": pollutant_name
-                    }
-                else:
-                    return {
-                        "status": "error",
-                        "message": f"未找到污染物 '{pollutant_name}' 的基因数据",
-                        "pollutant_name": pollutant_name
-                    }
+                try:
+                    # 从kwargs中获取污染物名称
+                    pollutant_name = kwargs.get("pollutant_name") or kwargs.get("pollutant")
+                    if not pollutant_name:
+                        # 尝试从query_text中获取
+                        pollutant_name = kwargs.get("query_text")
+                    if not pollutant_name:
+                        raise ValueError("缺少污染物名称参数")
+                    sheet_name = kwargs.get("sheet", 0)
+                    # 直接调用本地数据读取工具的方法
+                    local_data_retriever = object.__getattribute__(self, 'local_data_retriever')
+                    data = local_data_retriever.get_gene_data(pollutant_name, sheet_name)
+                    if data is not None:
+                        return {
+                            "status": "success",
+                            "data": {
+                                "shape": data.shape,
+                                "columns": list(data.columns),
+                                "sample_data": data.head(5).to_dict('records')
+                            },
+                            "pollutant_name": pollutant_name
+                        }
+                    else:
+                        return {
+                            "status": "error",
+                            "message": f"未找到污染物 '{pollutant_name}' 的基因数据",
+                            "pollutant_name": pollutant_name
+                        }
+                except ValueError as e:
+                    return {"status": "error", "message": str(e)}
                 
             elif actual_operation == "assess_data_integrity":
-                query_text = kwargs.get("query_text")
-                if not query_text:
-                    return {"status": "error", "message": "缺少查询文本参数"}
-                return self.assess_data_integrity(query_text)
+                try:
+                    # 从kwargs中获取查询文本
+                    query_text = kwargs.get("query_text") or kwargs.get("query")
+                    if not query_text:
+                        # 尝试从pollutant_name中获取
+                        query_text = kwargs.get("pollutant_name")
+                    if not query_text:
+                        raise ValueError("缺少查询文本参数")
+                    return self.assess_data_integrity(query_text)
+                except ValueError as e:
+                    return {"status": "error", "message": str(e)}
                 
             else:
                 return {"status": "error", "message": f"不支持的操作: {operation}"}
@@ -155,7 +218,8 @@ class MandatoryLocalDataQueryTool(BaseTool):
             dict: 包含查询结果的字典
         """
         # 使用智能数据查询工具查询相关数据
-        result = self.smart_query.query_related_data(query_text, data_type)
+        smart_query = object.__getattribute__(self, 'smart_query')
+        result = smart_query.query_related_data(query_text, data_type)
         
         # 添加查询状态信息
         result["query_required"] = True
@@ -170,7 +234,8 @@ class MandatoryLocalDataQueryTool(BaseTool):
         Returns:
             dict: 可用污染物数据摘要
         """
-        pollutants = self.local_data_retriever.list_available_pollutants()
+        local_data_retriever = object.__getattribute__(self, 'local_data_retriever')
+        pollutants = local_data_retriever.list_available_pollutants()
         return {
             "genes_pollutants_count": len(pollutants["genes_pollutants"]),
             "organism_pollutants_count": len(pollutants["organism_pollutants"]),
@@ -191,14 +256,12 @@ class MandatoryLocalDataQueryTool(BaseTool):
         # 使用object.__getattribute__获取实例属性
         local_data_retriever = object.__getattribute__(self, 'local_data_retriever')
         smart_query = object.__getattribute__(self, 'smart_query')
-        kegg_tool = object.__getattribute__(self, 'kegg_tool')
-        envipath_tool = object.__getattribute__(self, 'envipath_tool')
         
         # 本地数据查询
-        local_result = smart_query.query_related_data(query_text)
+        local_result = smart_query.query_related_data(query_text=query_text)
         
         # 外部数据查询
-        external_result = smart_query.query_external_databases(query_text)
+        external_result = smart_query.query_external_databases(query_text=query_text)
         
         # 评估数据完整性
         assessment = {

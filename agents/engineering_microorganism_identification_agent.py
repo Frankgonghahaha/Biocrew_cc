@@ -15,8 +15,7 @@ class EngineeringMicroorganismIdentificationAgent:
         data_retriever = None
         smart_query = None
         mandatory_query = None
-        envipath_tool = None
-        kegg_tool = None
+        output_coordinator = None
         available_pollutants_info = ""
         sheet_info = ""
         pollutants_info = ""
@@ -27,13 +26,11 @@ class EngineeringMicroorganismIdentificationAgent:
             from tools.local_data_retriever import LocalDataRetriever
             from tools.smart_data_query_tool import SmartDataQueryTool
             from tools.mandatory_local_data_query_tool import MandatoryLocalDataQueryTool
-            from tools.envipath_tool import EnviPathTool
-            from tools.kegg_tool import KeggTool
+            from tools.data_output_coordinator import DataOutputCoordinator
             data_retriever = LocalDataRetriever(base_path=".")
             smart_query = SmartDataQueryTool(base_path=".")
             mandatory_query = MandatoryLocalDataQueryTool(base_path=".")
-            envipath_tool = EnviPathTool()
-            kegg_tool = KeggTool()
+            output_coordinator = DataOutputCoordinator()
             
             # 获取可用污染物列表
             pollutants = data_retriever.list_available_pollutants()
@@ -70,14 +67,12 @@ class EngineeringMicroorganismIdentificationAgent:
             tools.append(smart_query)
         if mandatory_query:
             tools.append(mandatory_query)
-        if envipath_tool:
-            tools.append(envipath_tool)
-        if kegg_tool:
-            tools.append(kegg_tool)
+        if output_coordinator:
+            tools.append(output_coordinator)
         
         return Agent(
             role='功能微生物组识别专家',
-            goal='根据水质净化目标（水质治理指标+目标污染物）筛选功能微生物和代谢互补微生物',
+            goal='根据水质净化目标（水质治理指标+目标污染物）筛选功能微生物和代谢互补微生物，并通过协调工具调用生成完整、多元化的输出',
             backstory=f"""你是一位功能微生物组识别专家，专注于从本地数据和外部数据库获取领域知识以识别最适合的工程微生物。
             
             # 数据查询策略：
@@ -89,31 +84,52 @@ class EngineeringMicroorganismIdentificationAgent:
             
             # 外部数据库工具：
             # {database_tools_info}，包括：
-            #   1. EnviPath工具：用于查询环境化合物代谢路径信息，特别适用于有机污染物的降解路径分析
-            #   2. KEGG工具：用于查询pathway、ko、genome、reaction、enzyme、genes等生物代谢信息，适用于基因功能和代谢通路分析
+            #   1. 外部数据库访问工具：统一管理EnviPath和KEGG数据库访问，提供一致的外部数据查询接口
+            #   2. 数据查询协调器：协调本地和外部数据查询，提供智能查询功能，确保数据查询的完整性和一致性
+            #   3. 工具协调器：管理工具间的协作，确保工具调用的顺序和依赖关系，避免重复查询和冲突
             
             # 工具使用规范：
             # - 必须使用MandatoryLocalDataQueryTool来确保查询本地数据，调用方式：mandatory_query._run("query_required_data", query_text="用户需求")
-            # - 当本地数据不足时，可以使用EnviPath和KEGG工具获取补充信息
+            # - 当本地数据不足时，可以使用智能数据查询工具获取补充信息
             # - 使用本地数据读取工具查询微生物数据：data_retriever._run("get_organism_data", pollutant_name="aldrin")
             # - 使用本地数据读取工具查询基因数据：data_retriever._run("get_gene_data", pollutant_name="aldrin")
             # - 使用智能数据查询工具：smart_query._run("query_related_data", query_text="如何降解含有aldrin的废水？")
             # - 使用数据完整性评估功能：mandatory_query._run("assess_data_integrity", query_text="用户需求")
-            # - 查询外部数据库获取补充信息：smart_query._run("query_external_databases", query_text="用户需求")
+            # - 查询外部数据库获取补充信息：smart_query._run("query_external_databases", query_text="aldrin")
+            # - 使用数据输出协调器格式化结果：output_coordinator._run("format_output", data=查询结果, format_type="json")
+            # - 使用数据输出协调器整合多源数据：output_coordinator._run("combine_data", local_data, external_data)
+            # - 使用数据输出协调器生成结构化报告：output_coordinator._run("generate_report", title="报告标题", sections=报告章节)
             # - 在分析和回复过程中，必须明确体现查询到的具体数据，包括微生物名称、基因数据等
             # - 不能仅依赖预训练知识，所有结论都必须基于实际查询到的数据
             # - 当某些类型的数据缺失时（如只有微生物数据而无基因数据），应基于现有数据继续分析并明确指出数据缺失情况
             
-            # 数据完整性评估：
+            # 数据查询顺序和协调机制：
+            # 1. 首先使用MandatoryLocalDataQueryTool进行必需数据查询
+            # 2. 评估数据完整性，如果完整性评分低于70，则调用外部数据库工具
+            # 3. 根据查询结果整合信息，确保输出的完整性和准确性
+            # 4. 当遇到错误时，记录错误信息并尝试备选方案
+            
+            # 数据完整性处理：
             # - 使用MandatoryLocalDataQueryTool的assess_data_integrity功能评估数据完整性
             # - 完整性评分低于70时，需要调用外部数据库工具获取补充信息
             # - 根据评估结果的推荐，调整查询策略以获取更完整的数据
+            # - 明确标识数据缺失的部分，并提供改进建议
+            
+            # 结果整合策略：
+            # - 将本地数据和外部数据库数据进行整合，提供全面的分析
+            # - 使用数据输出协调器整合多源数据：output_coordinator._run("combine_data", local_data, external_data)
+            # - 确保输出格式统一，包含微生物名称、基因信息、代谢途径等关键信息
+            # - 使用数据输出协调器格式化结果：output_coordinator._run("format_output", data=查询结果, format_type="json")
+            # - 提供数据来源说明，增强结果的可信度
+            # - 根据数据质量提供置信度评估
+            # - 使用数据输出协调器生成结构化报告：output_coordinator._run("generate_report", title="报告标题", sections=报告章节)
             
             # 筛选原则：
             # - 基于微调大语言模型，按"互补指数＞竞争指数"筛选功能微生物+代谢互补微生物
             # - 重点关注微生物对目标污染物的降解能力和代谢途径
             # - 当基因数据缺失时，可基于微生物数据和外部数据库信息进行分析
             # - 应提供数据完整性和可信度的评估
+            # - 综合考虑微生物的环境适应性和安全性
             """,
             tools=tools,
             verbose=True,

@@ -52,14 +52,13 @@ find . -name "*.py" -exec python3 -m py_compile {} \;
 ### Testing
 ```bash
 # Run specific test files (note: some tests require proper data directory structure)
-python3 tests/test_local_data_query.py
-python3 tests/test_engineering_microorganism_identification.py
-python3 tests/test_database_tools.py
-python3 tests/test_envipath_tool.py
-python3 tests/test_autonomous_agent.py
+python3 tests/test_data_output_coordinator.py
+python3 tests/test_agent_tool_coordination.py
+python3 tests/test_agent_tool_integration.py
+python3 tests/test_microorganism_identification_with_user_input.py
 
-# Run a single test function (if the test file supports it)
-python3 -c "from tests.test_local_data_query import test_local_data_query; test_local_data_query()"
+# Run all tests in the tests/tests directory
+python3 -m pytest tests/tests/
 ```
 
 ## Project Structure
@@ -68,11 +67,12 @@ BioCrew/
 ├── main.py                 # Main entry point (fully implemented)
 ├── requirements.txt        # Project dependencies
 ├── .env.example           # Environment variable configuration example
+├── CLAUDE.md              # Claude Code development guide
 ├── config/
 │   └── config.py          # Configuration file (fully implemented)
 ├── agents/                # Agent definitions (fully implemented with TODOs for core algorithms)
 │   ├── task_coordination_agent.py
-│   ├── engineering_microorganism_identification_agent.py
+│   ├── engineering_microorganism_identification_agent.py  # Enhanced version with improved tool coordination
 │   ├── microbial_agent_design_agent.py
 │   ├── microbial_agent_evaluation_agent.py
 │   ├── implementation_plan_generation_agent.py
@@ -88,17 +88,23 @@ BioCrew/
 │   ├── smart_data_query_tool.py         # Smart data querying tool
 │   ├── mandatory_local_data_query_tool.py  # Mandatory data querying tool
 │   ├── envipath_tool.py                 # EnviPath database access tool
-│   └── kegg_tool.py                     # KEGG database access tool
+│   ├── kegg_tool.py                     # KEGG database access tool
+│   └── data_output_coordinator.py       # Data output coordination tool
 ├── data/                  # Local data files (Genes and Organism directories)
 │   ├── Genes/             # 22 gene data files for different pollutants
 │   └── Organism/          # 33 organism data files for different pollutants
 ├── tests/                 # Test files for all components
-│   ├── test_autonomous_agent.py
-│   ├── test_database_tools.py
-│   ├── test_engineering_microorganism_identification.py
-│   ├── test_envipath_tool.py
-│   ├── test_local_data_query.py
-│   └── test_aldrin_data_query.py      # Test for Aldrin data querying
+│   ├── test_data_output_coordinator.py  # Tests for data output coordinator
+│   ├── test_agent_tool_coordination.py  # Tests for agent tool coordination
+│   ├── test_agent_tool_integration.py   # Tests for agent tool integration
+│   ├── test_microorganism_identification_with_user_input.py  # Tests for agent with user input processing
+│   └── tests/                           # Core agent tests
+│       ├── test_engineering_microorganism_identification_agent.py
+│       ├── test_implementation_plan_generation_agent.py
+│       ├── test_knowledge_management_agent.py
+│       ├── test_microbial_agent_design_agent.py
+│       ├── test_microbial_agent_evaluation_agent.py
+│       └── test_task_coordination_agent.py
 └── models/                # Model configurations (to be completed)
 ```
 
@@ -126,6 +132,7 @@ The system uses local Excel data files stored in `data/Genes` and `data/Organism
 1. **LocalDataRetriever** - Core tool for reading Excel files from local directories
 2. **SmartDataQueryTool** - Intelligent querying tool that can automatically identify and retrieve relevant data based on text input, now enhanced with external database query capabilities
 3. **MandatoryLocalDataQueryTool** - Ensures data is always retrieved from local sources, now enhanced with data integrity assessment capabilities
+4. **DataOutputCoordinator** - Coordinates data output formatting and integration from multiple sources
 
 These tools support:
 - Reading data for specific pollutants
@@ -134,6 +141,7 @@ These tools support:
 - Handling both gene data and organism data
 - Assessing data integrity and providing completeness scores
 - Automatically querying external databases when local data is insufficient
+- Coordinating output formatting and integration from multiple data sources
 
 #### Data Query Logic
 When a user inputs a request like "处理含有 Aldrin 的污水" (treat wastewater containing Aldrin), the system:
@@ -181,6 +189,13 @@ The system integrates with external databases through the following tools:
    - Operations: `analyze_evaluation_result`, `check_core_standards`
    - Also supports direct method calls: `analyze_evaluation_result(evaluation_report)`, `check_core_standards(evaluation_report)`
 
+### Data Output Coordinator
+
+7. **DataOutputCoordinator** - Coordinates data output formatting and integration from multiple sources
+   - `_run(operation, **kwargs)` - Unified interface for data output coordination operations
+   - Operations: `format_output`, `combine_data`, `generate_report`, `assess_completeness`
+   - Also supports direct method calls: `format_output(data, format_type)`, `combine_data(*args, **kwargs)`, etc.
+
 ## Development Guidelines
 
 ### Code Organization
@@ -223,12 +238,16 @@ Tasks follow a consistent pattern:
 
 ### Testing
 The project includes several test files for validating functionality:
-1. `tests/test_database_tools.py` - Tests database tool functionality (EnviPath and KEGG)
-2. `tests/test_microorganism_identification_agent.py` - Comprehensive unit tests for the identification agent
-3. `tests/test_data_integrity_handling.py` - Tests data integrity handling capabilities
-4. `tests/test_task_coordination.py` - Tests task coordination agent functionality
-5. `tests/test_main_fixes.py` - Tests main.py fixes and CrewAI configuration
-6. `tests/test_task_coordination_fix.py` - Tests task coordination improvements and loop detection
+1. `tests/test_data_output_coordinator.py` - Tests for data output coordinator
+2. `tests/test_agent_tool_coordination.py` - Tests for agent tool coordination
+3. `tests/test_agent_tool_integration.py` - Tests for agent tool integration
+4. `tests/test_microorganism_identification_with_user_input.py` - Tests for agent with user input processing
+5. `tests/tests/test_engineering_microorganism_identification_agent.py` - Core unit tests for the identification agent
+6. `tests/tests/test_task_coordination_agent.py` - Tests for task coordination agent
+7. `tests/tests/test_implementation_plan_generation_agent.py` - Tests for implementation plan generation agent
+8. `tests/tests/test_knowledge_management_agent.py` - Tests for knowledge management agent
+9. `tests/tests/test_microbial_agent_design_agent.py` - Tests for microbial agent design agent
+10. `tests/tests/test_microbial_agent_evaluation_agent.py` - Tests for microbial agent evaluation agent
 
 #### Task Coordination Improvements
 The task coordination functionality has been enhanced with improved decision-making logic to prevent infinite loops and repetitive task delegation:
@@ -244,12 +263,18 @@ To run all tests:
 python3 -m pytest tests/
 
 # Or run individual test files
-python3 tests/test_microorganism_identification_agent.py
-python3 tests/test_data_integrity_handling.py
-python3 tests/test_database_tools.py
-python3 tests/test_task_coordination.py
-python3 tests/test_main_fixes.py
-python3 tests/test_task_coordination_fix.py
+python3 tests/test_data_output_coordinator.py
+python3 tests/test_agent_tool_coordination.py
+python3 tests/test_agent_tool_integration.py
+python3 tests/test_microorganism_identification_with_user_input.py
+
+# Run core agent tests
+python3 tests/tests/test_engineering_microorganism_identification_agent.py
+python3 tests/tests/test_task_coordination_agent.py
+python3 tests/tests/test_implementation_plan_generation_agent.py
+python3 tests/tests/test_knowledge_management_agent.py
+python3 tests/tests/test_microbial_agent_design_agent.py
+python3 tests/tests/test_microbial_agent_evaluation_agent.py
 ```
 
 #### Test Data Requirements

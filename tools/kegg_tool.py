@@ -37,6 +37,14 @@ class KeggTool(BaseTool):
             dict: 操作结果
         """
         try:
+            # 记录输入参数用于调试
+            import json
+            params_log = {
+                "operation": operation,
+                "kwargs": kwargs
+            }
+            print(f"[DEBUG] KeggTool._run 调用参数: {json.dumps(params_log, ensure_ascii=False)}")
+            
             # 如果operation是JSON字符串，解析它
             if isinstance(operation, str) and operation.startswith('{'):
                 import json
@@ -47,6 +55,18 @@ class KeggTool(BaseTool):
                     kwargs.update({k: v for k, v in params.items() if k != 'operation'})
                 except json.JSONDecodeError:
                     pass  # 如果解析失败，继续使用原始参数
+            
+            # 如果kwargs中包含JSON字符串参数，也进行解析
+            if 'keywords' in kwargs and isinstance(kwargs['keywords'], str) and kwargs['keywords'].startswith('{'):
+                try:
+                    params = json.loads(kwargs['keywords'])
+                    kwargs.update(params)
+                except json.JSONDecodeError:
+                    pass  # 如果解析失败，继续使用原始参数
+                    
+            # 处理直接传递的参数
+            if 'keywords' not in kwargs and 'query_text' in kwargs:
+                kwargs['keywords'] = kwargs['query_text']
             
             # 支持中文操作名称映射
             operation_mapping = {
@@ -83,7 +103,7 @@ class KeggTool(BaseTool):
                 
             elif actual_operation == "find_entries":
                 database = kwargs.get("database")
-                keywords = kwargs.get("keywords")
+                keywords = kwargs.get("keywords", kwargs.get("query"))
                 if not database or not keywords:
                     return {"status": "error", "message": "缺少数据库名称或关键词参数"}
                 return self.find_entries(database, keywords)

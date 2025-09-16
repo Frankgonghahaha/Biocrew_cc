@@ -41,19 +41,49 @@ class EnviPathTool(BaseTool):
         Returns:
             dict: 操作结果
         """
-        # 如果operation是JSON字符串，解析它
-        if isinstance(operation, str) and operation.startswith('{'):
+        try:
+            # 记录输入参数用于调试
             import json
-            try:
-                params = json.loads(operation)
-                operation = params.get('operation', operation)
-                # 合并参数
-                kwargs.update({k: v for k, v in params.items() if k != 'operation'})
-            except json.JSONDecodeError:
-                pass  # 如果解析失败，继续使用原始参数
+            params_log = {
+                "operation": operation,
+                "kwargs": kwargs
+            }
+            print(f"[DEBUG] EnviPathTool._run 调用参数: {json.dumps(params_log, ensure_ascii=False)}")
+            
+            # 如果operation是JSON字符串，解析它
+            if isinstance(operation, str) and operation.startswith('{'):
+                import json
+                try:
+                    params = json.loads(operation)
+                    operation = params.get('operation', operation)
+                    # 合并参数
+                    kwargs.update({k: v for k, v in params.items() if k != 'operation'})
+                except json.JSONDecodeError:
+                    pass  # 如果解析失败，继续使用原始参数
+            
+            # 如果kwargs中包含JSON字符串参数，也进行解析
+            if 'compound_name' in kwargs and isinstance(kwargs['compound_name'], str) and kwargs['compound_name'].startswith('{'):
+                try:
+                    params = json.loads(kwargs['compound_name'])
+                    kwargs.update(params)
+                except json.JSONDecodeError:
+                    pass  # 如果解析失败，继续使用原始参数
+                    
+            # 处理直接传递的参数
+            if 'compound_name' not in kwargs and 'query_text' in kwargs:
+                kwargs['compound_name'] = kwargs['query_text']
+            if 'keyword' not in kwargs and 'query_text' in kwargs:
+                kwargs['keyword'] = kwargs['query_text']
+            
+            # 使用object.__getattribute__获取实例属性
+            client = object.__getattribute__(self, 'client')
         
-        # 使用object.__getattribute__获取实例属性
-        client = object.__getattribute__(self, 'client')
+        except Exception as e:
+            return {
+                "status": "error",
+                "message": f"解析参数时出错: {str(e)}",
+                "operation": operation
+            }
         
         if not client:
             return {

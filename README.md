@@ -49,6 +49,7 @@ BioCrew/
 ├── requirements.txt        # 项目依赖
 ├── .env.example           # 环境变量配置示例
 ├── CHANGELOG.md           # 更新日志
+├── CLAUDE.md              # Claude Code开发指南
 ├── config/
 │   └── config.py          # 配置文件
 ├── agents/                # 智能体定义
@@ -69,17 +70,23 @@ BioCrew/
 │   ├── smart_data_query_tool.py              # 智能数据查询工具
 │   ├── mandatory_local_data_query_tool.py    # 强制本地数据查询工具
 │   ├── envipath_tool.py                      # EnviPath数据库访问工具
-│   └── kegg_tool.py                          # KEGG数据库访问工具
+│   ├── kegg_tool.py                          # KEGG数据库访问工具
+│   └── data_output_coordinator.py            # 数据输出协调器
 ├── data/                  # 本地数据文件
 │   ├── Genes/             # 基因数据文件
 │   └── Organism/          # 微生物数据文件
 ├── tests/                 # 测试文件
-│   ├── README.md                              # 测试文件说明
-│   ├── test_database_tools.py                # 数据库工具测试
-│   ├── test_data_integrity_handling.py       # 数据完整性处理测试
-│   ├── test_main_fixes.py                    # main.py修复功能测试
-│   ├── test_microorganism_identification_agent.py # 功能微生物识别智能体测试
-│   └── test_task_coordination.py             # 任务协调专家测试
+│   ├── test_agent_tool_coordination.py       # Agent工具协调测试
+│   ├── test_agent_tool_integration.py        # Agent工具集成测试
+│   ├── test_data_output_coordinator.py       # 数据输出协调器测试
+│   ├── test_microorganism_identification_with_user_input.py  # 用户输入处理测试
+│   └── tests/                                # 核心Agent测试
+│       ├── test_engineering_microorganism_identification_agent.py
+│       ├── test_implementation_plan_generation_agent.py
+│       ├── test_knowledge_management_agent.py
+│       ├── test_microbial_agent_design_agent.py
+│       ├── test_microbial_agent_evaluation_agent.py
+│       └── test_task_coordination_agent.py
 └── models/                # 模型配置（待完善）
 ```
 
@@ -173,22 +180,28 @@ python main.py
 python -m pytest tests/
 
 # 运行特定测试文件
-python tests/test_microorganism_identification_agent.py
-python tests/test_data_integrity_handling.py
-python tests/test_database_tools.py
-python tests/test_task_coordination.py
-python tests/test_main_fixes.py
-```
+python tests/test_agent_tool_coordination.py
+python tests/test_agent_tool_integration.py
+python tests/test_data_output_coordinator.py
+python tests/test_microorganism_identification_with_user_input.py
 
-详细测试文件说明请查看 [tests/README.md](tests/README.md)
+# 运行核心Agent测试
+python tests/tests/test_engineering_microorganism_identification_agent.py
+python tests/tests/test_task_coordination_agent.py
+python tests/tests/test_implementation_plan_generation_agent.py
+python tests/tests/test_knowledge_management_agent.py
+python tests/tests/test_microbial_agent_design_agent.py
+python tests/tests/test_microbial_agent_evaluation_agent.py
+```
 
 ## 本地数据工具
 
-项目包含三个本地数据工具，用于从Excel文件中读取基因和微生物数据：
+项目包含四个本地数据工具，用于从Excel文件中读取基因和微生物数据：
 
 1. **LocalDataRetriever** - 核心数据读取工具
 2. **SmartDataQueryTool** - 智能数据查询工具，可根据文本自动识别相关数据，现已增强支持外部数据库查询
 3. **MandatoryLocalDataQueryTool** - 强制本地数据查询工具，确保数据来自本地文件，现已增强支持数据完整性评估
+4. **DataOutputCoordinator** - 数据输出协调器，帮助Agent生成完整、结构化和多元化的数据输出
 
 ## 公开数据库工具
 
@@ -210,6 +223,7 @@ python tests/test_main_fixes.py
 - [x] 实现智能体调度模式：支持链式处理和自主选择两种模式
 - [x] 优化项目结构和注释：移除冗余文件，整理测试文件，简化数据目录结构，增强注释
 - [x] 增强工具调用功能：实现多元化数据源调用，支持数据完整性评估和外部数据库查询
+- [x] 增强功能微生物识别Agent：集成数据输出协调器，提供更好的工具协调和数据输出功能
 
 ### 后续开发计划
 
