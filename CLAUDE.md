@@ -226,6 +226,13 @@ The project includes several test files for validating functionality:
 5. `tests/test_main_fixes.py` - Tests main.py fixes and CrewAI configuration
 6. `tests/test_task_coordination_fix.py` - Tests task coordination improvements and loop detection
 
+#### Task Coordination Improvements
+The task coordination functionality has been enhanced with improved decision-making logic to prevent infinite loops and repetitive task delegation:
+1. Added clear decision guidelines to the TaskCoordinationAgent backstory
+2. Implemented loop detection and prevention mechanisms
+3. Enhanced context-aware decision making
+4. Added specific termination conditions for repeated task failures
+
 #### Running Tests
 To run all tests:
 ```bash
