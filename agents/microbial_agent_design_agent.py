@@ -12,6 +12,15 @@ class MicrobialAgentDesignAgent:
     def create_agent(self):
         from crewai import Agent
         
+        # 导入统一数据工具
+        try:
+            from tools.unified_data_tool import UnifiedDataTool
+            unified_tool = UnifiedDataTool()
+            tools = [unified_tool]
+        except Exception as e:
+            print(f"工具初始化失败: {e}")
+            tools = []
+        
         return Agent(
             role='微生物菌剂设计专家',
             goal='根据水质净化目标和工程微生物组设计高性能微生物菌剂',
@@ -35,9 +44,10 @@ class MicrobialAgentDesignAgent:
             
             # 数据使用：
             # - 基于工程微生物识别智能体提供的微生物组数据
-            # - 参考本地基因数据和微生物数据
-            # - 必要时可调用KEGG工具查询代谢通路信息
+            # - 使用统一数据工具查询相关基因和微生物数据
+            # - unified_tool._run(operation="query_pollutant_data", pollutant_name="目标污染物")
             """,
+            tools=tools,
             verbose=True,
             allow_delegation=True,
             llm=self.llm

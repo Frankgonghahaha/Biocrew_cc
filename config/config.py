@@ -29,3 +29,11 @@ class Config:
     # 系统配置
     PROJECT_NAME = "BioCrew"
     VERSION = "1.0.0"
+    
+    # 数据库配置
+    DB_TYPE = os.getenv('DB_TYPE', 'postgresql')
+    DB_HOST = os.getenv('DB_HOST', 'localhost')
+    DB_PORT = int(os.getenv('DB_PORT', '5432'))
+    DB_NAME = os.getenv('DB_NAME', 'Bio_data')
+    DB_USER = os.getenv('DB_USER', 'nju_bio')
+    DB_PASSWORD = os.getenv('DB_PASSWORD', '980605Hyz')

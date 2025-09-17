@@ -50,6 +50,7 @@ BioCrew/
 ├── .env.example           # 环境变量配置示例
 ├── CHANGELOG.md           # 更新日志
 ├── CLAUDE.md              # Claude Code开发指南
+├── FINAL_OPTIMIZATION_REPORT.md  # 最终优化报告
 ├── config/
 │   └── config.py          # 配置文件
 ├── agents/                # 智能体定义
@@ -66,12 +67,9 @@ BioCrew/
 │   └── implementation_plan_generation_task.py  # 实施方案生成任务
 ├── tools/                 # 自定义工具
 │   ├── evaluation_tool.py                     # 评价工具
-│   ├── local_data_retriever.py               # 本地数据读取工具
-│   ├── smart_data_query_tool.py              # 智能数据查询工具
-│   ├── mandatory_local_data_query_tool.py    # 强制本地数据查询工具
+│   ├── unified_data_tool.py                   # 统一数据访问工具（整合了原有5个工具）
 │   ├── envipath_tool.py                      # EnviPath数据库访问工具
-│   ├── kegg_tool.py                          # KEGG数据库访问工具
-│   └── data_output_coordinator.py            # 数据输出协调器
+│   └── kegg_tool.py                          # KEGG数据库访问工具
 ├── data/                  # 本地数据文件
 │   ├── Genes/             # 基因数据文件
 │   └── Organism/          # 微生物数据文件
@@ -118,6 +116,7 @@ BioCrew/
 - **效率**：全流程自动化，缩短技术开发周期
 - **数据驱动**：集成本地数据查询工具，支持从Excel文件中读取基因和微生物数据
 - **工具兼容性**：所有自定义工具均已重构以兼容CrewAI框架，提供统一接口和向后兼容性
+- **架构优化**：通过工具整合和智能体backstory精简，大幅简化系统架构
 
 ## 快速开始
 
@@ -149,6 +148,14 @@ pip install -r requirements.txt
    # OpenAI配置示例
    OPENAI_API_BASE=https://api.openai.com/v1
    OPENAI_API_KEY=your_openai_api_key_here
+   
+   # 数据库配置
+   DB_TYPE=postgresql  # postgresql 或 mysql
+   DB_HOST=your-rds-endpoint.amazonaws.com
+   DB_PORT=5432
+   DB_NAME=your_database_name
+   DB_USER=your_username
+   DB_PASSWORD=your_password
    
    # 其他配置
    VERBOSE=True
@@ -194,14 +201,15 @@ python tests/tests/test_microbial_agent_design_agent.py
 python tests/tests/test_microbial_agent_evaluation_agent.py
 ```
 
-## 本地数据工具
+## 统一数据工具
 
-项目包含四个本地数据工具，用于从Excel文件中读取基因和微生物数据：
+项目现在使用统一数据工具（UnifiedDataTool）替代了原有的5个本地数据工具，提供一站式数据访问服务：
 
-1. **LocalDataRetriever** - 核心数据读取工具
-2. **SmartDataQueryTool** - 智能数据查询工具，可根据文本自动识别相关数据，现已增强支持外部数据库查询
-3. **MandatoryLocalDataQueryTool** - 强制本地数据查询工具，确保数据来自本地文件，现已增强支持数据完整性评估
-4. **DataOutputCoordinator** - 数据输出协调器，帮助Agent生成完整、结构化和多元化的数据输出
+1. **UnifiedDataTool** - 统一数据访问工具，整合了以下功能：
+   - 本地数据库访问（PostgreSQL/MySQL）
+   - 外部数据库集成（KEGG和EnviPath）
+   - 智能搜索功能
+   - 数据摘要生成
 
 ## 公开数据库工具
 
@@ -224,6 +232,8 @@ python tests/tests/test_microbial_agent_evaluation_agent.py
 - [x] 优化项目结构和注释：移除冗余文件，整理测试文件，简化数据目录结构，增强注释
 - [x] 增强工具调用功能：实现多元化数据源调用，支持数据完整性评估和外部数据库查询
 - [x] 增强功能微生物识别Agent：集成数据输出协调器，提供更好的工具协调和数据输出功能
+- [x] 工具整合优化：将原有的5个本地数据工具整合为1个统一数据工具，简化工具调用逻辑
+- [x] 智能体backstory精简：大幅精简智能体backstory内容，提高代码可读性和维护性
 
 ### 后续开发计划
 

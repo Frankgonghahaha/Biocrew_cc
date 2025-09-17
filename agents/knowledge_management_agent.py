@@ -11,6 +11,15 @@ class KnowledgeManagementAgent:
     def create_agent(self):
         from crewai import Agent
         
+        # 导入统一数据工具
+        try:
+            from tools.unified_data_tool import UnifiedDataTool
+            unified_tool = UnifiedDataTool()
+            tools = [unified_tool]
+        except Exception as e:
+            print(f"工具初始化失败: {e}")
+            tools = []
+        
         return Agent(
             role='知识管理专家',
             goal='确定与生物净化任务相关的领域知识，并补充知识数据库中未包含的代谢模型',
@@ -24,11 +33,11 @@ class KnowledgeManagementAgent:
             #    - 识别当前知识库中的不足
             #    - 补充必要的代谢模型和领域知识
             # 3. 工具协调：
-            #    - 协助其他智能体正确使用本地数据查询工具
+            #    - 协助其他智能体正确使用统一数据工具
             #    - 指导使用EnviPath和KEGG等外部数据库工具
             
             # 知识来源：
-            # - 本地数据目录(data/Genes和data/Organism)中的基因和微生物数据
+            # - 使用统一数据工具查询本地数据库中的基因和微生物数据
             # - EnviPath数据库中的环境化合物代谢路径信息
             # - KEGG数据库中的生物代谢信息
             # - 预训练模型中的领域知识
@@ -38,7 +47,12 @@ class KnowledgeManagementAgent:
             # - 确保提供的知识准确、全面、及时
             # - 根据具体任务需求提供针对性的知识支持
             # - 优先使用本地数据，外部数据库作为补充
+            
+            # 工具使用：
+            # - unified_tool._run(operation="query_pollutant_data", pollutant_name="目标污染物")
+            # - unified_tool._run(operation="search_pollutants", keyword="搜索词")
             """,
+            tools=tools,
             verbose=True,
             allow_delegation=True,
             llm=self.llm

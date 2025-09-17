@@ -68,6 +68,7 @@ BioCrew/
 ├── requirements.txt        # Project dependencies
 ├── .env.example           # Environment variable configuration example
 ├── CLAUDE.md              # Claude Code development guide
+├── FINAL_OPTIMIZATION_REPORT.md  # Final optimization report
 ├── config/
 │   └── config.py          # Configuration file (fully implemented)
 ├── agents/                # Agent definitions (fully implemented with TODOs for core algorithms)
@@ -84,12 +85,9 @@ BioCrew/
 │   └── implementation_plan_generation_task.py
 ├── tools/                 # Custom tools (partially implemented)
 │   ├── evaluation_tool.py
-│   ├── local_data_retriever.py          # Local data access tool
-│   ├── smart_data_query_tool.py         # Smart data querying tool
-│   ├── mandatory_local_data_query_tool.py  # Mandatory data querying tool
-│   ├── envipath_tool.py                 # EnviPath database access tool
-│   ├── kegg_tool.py                     # KEGG database access tool
-│   └── data_output_coordinator.py       # Data output coordination tool
+│   ├── unified_data_tool.py               # Unified data access tool (replaces 5 legacy tools)
+│   ├── envipath_tool.py                  # EnviPath database access tool
+│   └── kegg_tool.py                      # KEGG database access tool
 ├── data/                  # Local data files (Genes and Organism directories)
 │   ├── Genes/             # 22 gene data files for different pollutants
 │   └── Organism/          # 33 organism data files for different pollutants
@@ -126,75 +124,35 @@ BioCrew/
 ### Configuration
 The system supports both DashScope (Qwen) and OpenAI model configurations through environment variables in the `.env` file.
 
-### Local Data Access
-The system uses local Excel data files stored in `data/Genes` and `data/Organism` directories. Several tools have been implemented to access this data:
+### Unified Data Access
+The system now uses a unified data tool that replaces the previous 5 local data tools, providing a single interface for all data access needs:
 
-1. **LocalDataRetriever** - Core tool for reading Excel files from local directories
-2. **SmartDataQueryTool** - Intelligent querying tool that can automatically identify and retrieve relevant data based on text input, now enhanced with external database query capabilities
-3. **MandatoryLocalDataQueryTool** - Ensures data is always retrieved from local sources, now enhanced with data integrity assessment capabilities
-4. **DataOutputCoordinator** - Coordinates data output formatting and integration from multiple sources
-
-These tools support:
-- Reading data for specific pollutants
-- Accessing multiple worksheets within Excel files
-- Searching for data files by pollutant names
-- Handling both gene data and organism data
-- Assessing data integrity and providing completeness scores
-- Automatically querying external databases when local data is insufficient
-- Coordinating output formatting and integration from multiple data sources
-
-#### Data Query Logic
-When a user inputs a request like "处理含有 Aldrin 的污水" (treat wastewater containing Aldrin), the system:
-1. Uses SmartDataQueryTool to extract the pollutant name "Aldrin" from the text
-2. Performs fuzzy matching to find related data files in the local data directories
-3. Retrieves gene and organism data for the matched pollutants
-4. Returns structured data including pollutant names, microbial information, and research links
-
-The data query logic has been tested and verified to work correctly with Aldrin and other pollutants. The system currently contains:
-- 22 gene data files for different pollutants in `data/Genes/`
-- 33 organism data files for different pollutants in `data/Organism/`
-
-#### Response Logic
-The system follows a specific response logic to ensure comprehensive and accurate information delivery:
-1. **Data Priority**: Always prioritize local data from `data/Genes` and `data/Organism` directories over external sources
-2. **Complete Information**: Provide complete information including:
-   - Identified pollutant names
-   - Gene data (when available)
-   - Microorganism data with scientific names and research links
-   - Relevant research references
-3. **Structured Output**: Return data in structured formats with clear headings and organized information
-4. **Error Handling**: Gracefully handle missing data by clearly indicating what information is unavailable
-5. **Cross-Reference**: When possible, cross-reference information between gene data and organism data for the same pollutant
-6. **Data Integrity Assessment**: Assess the completeness of retrieved data and automatically query external databases when local data is insufficient
-7. **Multi-Source Integration**: Integrate information from local data sources, KEGG database, and EnviPath database for comprehensive analysis
+1. **UnifiedDataTool** - Unified data access tool that integrates:
+   - Local database access (PostgreSQL/MySQL)
+   - External database integration (KEGG and EnviPath)
+   - Smart search functionality
+   - Data summary generation
 
 ### External Database Access Tools
 
 The system integrates with external databases through the following tools:
 
-4. **EnviPathTool** - Accesses environmental contaminant biotransformation pathway data from the enviPath database
+2. **EnviPathTool** - Accesses environmental contaminant biotransformation pathway data from the enviPath database
    - `_run(operation, **kwargs)` - Unified interface for all EnviPath operations
    - Operations: `search_compound`, `get_pathway_info`, `get_compound_pathways`, `search_pathways_by_keyword`
    - Also supports direct method calls: `search_compound(compound_name)`, `get_pathway_info(pathway_id)`, etc.
 
-5. **KeggTool** - Accesses biological pathway and genomic data from the KEGG database
+3. **KeggTool** - Accesses biological pathway and genomic data from the KEGG database
    - `_run(operation, **kwargs)` - Unified interface for all KEGG operations
    - Operations: `get_database_info`, `list_entries`, `find_entries`, `get_entry`, `link_entries`, `convert_id`, `search_pathway_by_compound`, `search_genes_by_pathway`, `search_enzymes_by_compound`
    - Also supports direct method calls for each operation
 
 ### Evaluation Tool
 
-6. **EvaluationTool** - Analyzes and evaluates microbial agent effectiveness
+4. **EvaluationTool** - Analyzes and evaluates microbial agent effectiveness
    - `_run(operation, **kwargs)` - Unified interface for evaluation operations
    - Operations: `analyze_evaluation_result`, `check_core_standards`
    - Also supports direct method calls: `analyze_evaluation_result(evaluation_report)`, `check_core_standards(evaluation_report)`
-
-### Data Output Coordinator
-
-7. **DataOutputCoordinator** - Coordinates data output formatting and integration from multiple sources
-   - `_run(operation, **kwargs)` - Unified interface for data output coordination operations
-   - Operations: `format_output`, `combine_data`, `generate_report`, `assess_completeness`
-   - Also supports direct method calls: `format_output(data, format_type)`, `combine_data(*args, **kwargs)`, etc.
 
 ## Development Guidelines
 
@@ -295,3 +253,30 @@ When adding new functionality:
    ```
 3. Write tests that verify the specific functionality of your new features
 4. Run existing tests to ensure no regressions were introduced
+
+## Recent Architecture Optimization
+
+The system has undergone significant optimization to simplify the architecture and improve maintainability:
+
+### Tool Consolidation
+- Consolidated 5 legacy local data tools into a single UnifiedDataTool
+- This includes:
+  - LocalDataRetriever
+  - SmartDataQueryTool
+  - MandatoryLocalDataQueryTool
+  - DataOutputCoordinator
+  - Part of the database access functionality
+
+### Agent Backstory Simplification
+- Significantly reduced the length and complexity of agent backstories
+- Streamlined tool usage instructions
+- Improved clarity and focus on core functionality
+
+### Benefits of Optimization
+1. **Reduced Complexity**: Fewer tools to manage and maintain
+2. **Improved Performance**: Single tool with unified interface
+3. **Better Maintainability**: Simplified codebase structure
+4. **Enhanced Reliability**: Reduced potential for tool coordination issues
+5. **Easier Extension**: Single point for data access functionality enhancements
+
+For details on the optimization process and results, see the FINAL_OPTIMIZATION_REPORT.md file.
