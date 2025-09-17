@@ -56,47 +56,66 @@ class UnifiedDataTool(BaseTool):
             dict: 操作结果
         """
         try:
+            # 添加调试日志
+            print(f"[DEBUG] UnifiedDataTool._run 被调用")
+            print(f"[DEBUG] 输入参数 - operation: {operation} (type: {type(operation)})")
+            print(f"[DEBUG] 输入参数 - kwargs: {kwargs} (type: {type(kwargs)})")
+            
             # 增强版参数解析逻辑，支持多种调用方式
             # 检查operation是否为字典（CrewAI框架调用方式）
             if isinstance(operation, dict):
+                print("[DEBUG] 路径1: operation是字典")
                 # 直接使用字典作为参数
                 processed_kwargs = operation.copy()
                 # 从processed_kwargs中获取operation
                 operation = processed_kwargs.pop('operation', '')
+                print(f"[DEBUG] 提取后 - operation: '{operation}', processed_kwargs: {processed_kwargs}")
             # 检查operation是否为JSON字符串
             elif isinstance(operation, str) and operation.startswith('{') and operation.endswith('}'):
+                print("[DEBUG] 路径2: operation是JSON字符串")
                 try:
                     import json
                     parsed_operation = json.loads(operation)
+                    print(f"[DEBUG] JSON解析结果: {parsed_operation} (type: {type(parsed_operation)})")
                     if isinstance(parsed_operation, dict):
+                        print("[DEBUG] 解析结果是字典")
                         # 使用解析后的字典作为参数
                         processed_kwargs = parsed_operation.copy()
                         # 从processed_kwargs中获取operation
                         operation = processed_kwargs.pop('operation', operation)
+                        print(f"[DEBUG] 提取后 - operation: '{operation}', processed_kwargs: {processed_kwargs}")
                     else:
+                        print("[DEBUG] 解析结果不是字典")
                         # 如果不是字典，保持原样
                         processed_kwargs = kwargs.copy()
                 except Exception as e:
+                    print(f"[DEBUG] JSON解析异常: {e}")
                     # 如果解析失败，保持原样
                     processed_kwargs = kwargs.copy()
             else:
+                print("[DEBUG] 路径3: 其他情况")
                 # 处理普通字符串参数和kwargs
                 processed_kwargs = kwargs.copy()
+                print(f"[DEBUG] 初始processed_kwargs: {processed_kwargs}")
                 
                 # 处理可能的JSON字符串参数
                 for key, value in processed_kwargs.items():
                     # 如果值是字符串且看起来像JSON，尝试解析它
                     if isinstance(value, str) and value.startswith('{') and value.endswith('}'):
+                        print(f"[DEBUG] 发现JSON字符串参数: {key} = {value}")
                         try:
                             import json
                             parsed_value = json.loads(value)
+                            print(f"[DEBUG] 参数JSON解析结果: {parsed_value} (type: {type(parsed_value)})")
                             # 如果解析后的值是字典，合并到processed_kwargs中
                             if isinstance(parsed_value, dict):
                                 processed_kwargs.update(parsed_value)
                                 # 从processed_kwargs中移除已合并的键
                                 if key in processed_kwargs:
                                     del processed_kwargs[key]
-                        except:
+                                print(f"[DEBUG] 合并后processed_kwargs: {processed_kwargs}")
+                        except Exception as e:
+                            print(f"[DEBUG] 参数JSON解析异常: {e}")
                             # 如果解析失败，保持原样
                             pass
                 
@@ -104,17 +123,24 @@ class UnifiedDataTool(BaseTool):
                 if len(processed_kwargs) == 1:
                     key, value = next(iter(processed_kwargs.items()))
                     if isinstance(value, dict):
+                        print(f"[DEBUG] 单个字典参数: {key} = {value}")
                         processed_kwargs = value
+                        print(f"[DEBUG] 替换后processed_kwargs: {processed_kwargs}")
             
             # 特殊处理：如果operation在processed_kwargs中，则使用它
             if 'operation' in processed_kwargs:
+                print("[DEBUG] 在processed_kwargs中发现operation字段")
                 operation = processed_kwargs['operation']
                 # 从processed_kwargs中移除operation
                 processed_kwargs.pop('operation', None)
+                print(f"[DEBUG] 更新后 - operation: '{operation}', processed_kwargs: {processed_kwargs}")
             
             # 如果processed_kwargs为空但kwargs不为空，使用kwargs
             if not processed_kwargs and kwargs:
+                print("[DEBUG] processed_kwargs为空，使用原始kwargs")
                 processed_kwargs = kwargs.copy()
+            
+            print(f"[DEBUG] 最终参数 - operation: '{operation}', processed_kwargs: {processed_kwargs}")
             
             # 支持的操作映射
             operation_mapping = {
@@ -128,37 +154,76 @@ class UnifiedDataTool(BaseTool):
             
             # 将操作名称标准化
             actual_operation = self._normalize_operation(operation, operation_mapping)
+            print(f"[DEBUG] 标准化后的操作: '{actual_operation}'")
+            
+            # 检查必需参数
+            print(f"[DEBUG] 检查必需参数 - processed_kwargs: {processed_kwargs}")
             
             # 执行相应操作
             if actual_operation == "query_pollutant_data":
+                print("[DEBUG] 执行操作: query_pollutant_data")
                 # 确保必需参数存在
                 if 'pollutant_name' not in processed_kwargs:
+                    print("[DEBUG] 缺少必需参数: pollutant_name")
                     return {"status": "error", "message": "缺少必需参数: pollutant_name"}
-                return self.query_pollutant_data(processed_kwargs['pollutant_name'], processed_kwargs.get('data_type', 'both'))
+                print(f"[DEBUG] 调用query_pollutant_data，参数: pollutant_name={processed_kwargs['pollutant_name']}, data_type={processed_kwargs.get('data_type', 'both')}")
+                result = self.query_pollutant_data(processed_kwargs['pollutant_name'], processed_kwargs.get('data_type', 'both'))
+                print(f"[DEBUG] query_pollutant_data返回结果: {result['status']}")
+                return result
             elif actual_operation == "query_gene_data":
+                print("[DEBUG] 执行操作: query_gene_data")
                 if 'pollutant_name' not in processed_kwargs:
+                    print("[DEBUG] 缺少必需参数: pollutant_name")
                     return {"status": "error", "message": "缺少必需参数: pollutant_name"}
-                return self.query_gene_data(processed_kwargs['pollutant_name'], processed_kwargs.get('enzyme_type'))
+                print(f"[DEBUG] 调用query_gene_data，参数: pollutant_name={processed_kwargs['pollutant_name']}, enzyme_type={processed_kwargs.get('enzyme_type')}")
+                result = self.query_gene_data(processed_kwargs['pollutant_name'], processed_kwargs.get('enzyme_type'))
+                print(f"[DEBUG] query_gene_data返回结果: {result['status']}")
+                return result
             elif actual_operation == "query_organism_data":
+                print("[DEBUG] 执行操作: query_organism_data")
                 if 'pollutant_name' not in processed_kwargs:
+                    print("[DEBUG] 缺少必需参数: pollutant_name")
                     return {"status": "error", "message": "缺少必需参数: pollutant_name"}
-                return self.query_organism_data(processed_kwargs['pollutant_name'], processed_kwargs.get('organism_type'))
+                print(f"[DEBUG] 调用query_organism_data，参数: pollutant_name={processed_kwargs['pollutant_name']}, organism_type={processed_kwargs.get('organism_type')}")
+                result = self.query_organism_data(processed_kwargs['pollutant_name'], processed_kwargs.get('organism_type'))
+                print(f"[DEBUG] query_organism_data返回结果: {result['status']}")
+                return result
             elif actual_operation == "query_external_data":
+                print("[DEBUG] 执行操作: query_external_data")
                 if 'query_text' not in processed_kwargs:
+                    print("[DEBUG] 缺少必需参数: query_text")
                     return {"status": "error", "message": "缺少必需参数: query_text"}
-                return self.query_external_data(processed_kwargs['query_text'])
+                print(f"[DEBUG] 调用query_external_data，参数: query_text={processed_kwargs['query_text']}")
+                result = self.query_external_data(processed_kwargs['query_text'])
+                print(f"[DEBUG] query_external_data返回结果: {result['status']}")
+                return result
             elif actual_operation == "get_pollutant_summary":
+                print("[DEBUG] 执行操作: get_pollutant_summary")
                 if 'pollutant_name' not in processed_kwargs:
+                    print("[DEBUG] 缺少必需参数: pollutant_name")
                     return {"status": "error", "message": "缺少必需参数: pollutant_name"}
-                return self.get_pollutant_summary(processed_kwargs['pollutant_name'])
+                print(f"[DEBUG] 调用get_pollutant_summary，参数: pollutant_name={processed_kwargs['pollutant_name']}")
+                result = self.get_pollutant_summary(processed_kwargs['pollutant_name'])
+                print(f"[DEBUG] get_pollutant_summary返回结果: {result['status']}")
+                return result
             elif actual_operation == "search_pollutants":
+                print("[DEBUG] 执行操作: search_pollutants")
                 if 'keyword' not in processed_kwargs:
+                    print("[DEBUG] 缺少必需参数: keyword")
                     return {"status": "error", "message": "缺少必需参数: keyword"}
-                return self.search_pollutants(processed_kwargs['keyword'])
+                print(f"[DEBUG] 调用search_pollutants，参数: keyword={processed_kwargs['keyword']}")
+                result = self.search_pollutants(processed_kwargs['keyword'])
+                print(f"[DEBUG] search_pollutants返回结果: {result['status']}")
+                return result
             else:
+                print(f"[DEBUG] 不支持的操作: {actual_operation}")
                 return {"status": "error", "message": f"不支持的操作: {actual_operation}"}
                         
         except Exception as e:
+            print(f"[DEBUG] 异常处理 - 错误: {str(e)}")
+            print(f"[DEBUG] 异常处理 - operation: {operation}")
+            import traceback
+            traceback.print_exc()
             return {
                 "status": "error",
                 "message": f"执行操作时出错: {str(e)}",
