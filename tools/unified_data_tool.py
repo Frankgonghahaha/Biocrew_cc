@@ -71,20 +71,33 @@ class UnifiedDataTool(BaseTool):
             
             # 执行相应操作
             if actual_operation == "query_pollutant_data":
-                return self.query_pollutant_data(**kwargs)
+                # 确保必需参数存在
+                if 'pollutant_name' not in kwargs:
+                    return {"status": "error", "message": "缺少必需参数: pollutant_name"}
+                return self.query_pollutant_data(kwargs['pollutant_name'], kwargs.get('data_type', 'both'))
             elif actual_operation == "query_gene_data":
-                return self.query_gene_data(**kwargs)
+                if 'pollutant_name' not in kwargs:
+                    return {"status": "error", "message": "缺少必需参数: pollutant_name"}
+                return self.query_gene_data(kwargs['pollutant_name'], kwargs.get('enzyme_type'))
             elif actual_operation == "query_organism_data":
-                return self.query_organism_data(**kwargs)
+                if 'pollutant_name' not in kwargs:
+                    return {"status": "error", "message": "缺少必需参数: pollutant_name"}
+                return self.query_organism_data(kwargs['pollutant_name'], kwargs.get('organism_type'))
             elif actual_operation == "query_external_data":
-                return self.query_external_data(**kwargs)
+                if 'query_text' not in kwargs:
+                    return {"status": "error", "message": "缺少必需参数: query_text"}
+                return self.query_external_data(kwargs['query_text'])
             elif actual_operation == "get_pollutant_summary":
-                return self.get_pollutant_summary(**kwargs)
+                if 'pollutant_name' not in kwargs:
+                    return {"status": "error", "message": "缺少必需参数: pollutant_name"}
+                return self.get_pollutant_summary(kwargs['pollutant_name'])
             elif actual_operation == "search_pollutants":
-                return self.search_pollutants(**kwargs)
+                if 'keyword' not in kwargs:
+                    return {"status": "error", "message": "缺少必需参数: keyword"}
+                return self.search_pollutants(kwargs['keyword'])
             else:
                 return {"status": "error", "message": f"不支持的操作: {actual_operation}"}
-                
+                        
         except Exception as e:
             return {
                 "status": "error",
