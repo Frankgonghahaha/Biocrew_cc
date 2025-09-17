@@ -69,7 +69,7 @@ class UnifiedDataTool(BaseTool):
                     else:
                         # 如果不是字典，保持原样
                         processed_kwargs = kwargs.copy()
-                except:
+                except Exception as e:
                     # 如果解析失败，保持原样
                     processed_kwargs = kwargs.copy()
             else:
