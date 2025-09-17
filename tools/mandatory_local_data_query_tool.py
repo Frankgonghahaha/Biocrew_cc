@@ -297,8 +297,20 @@ class MandatoryLocalDataQueryTool(BaseTool):
         assessment["recommendations"] = []
         
         # 根据数据完整性提供推荐
-        if local_score < 100:
+        # 对于某些特定污染物（如Aldrin），可能只有微生物数据而没有基因数据，这是正常情况
+        has_gene_data = assessment["local_data"]["gene_data_count"] > 0
+        has_organism_data = assessment["local_data"]["organism_data_count"] > 0
+        
+        if not has_gene_data and not has_organism_data:
+            assessment["recommendations"].append("本地数据缺失，建议查询更多相关数据")
+        elif not has_gene_data:
+            # 只有微生物数据的情况，对于某些污染物是正常的
+            assessment["recommendations"].append("基因数据缺失，但有微生物数据可用于分析")
+        elif not has_organism_data:
+            assessment["recommendations"].append("微生物数据缺失，建议补充相关微生物数据")
+        elif local_score < 100:
             assessment["recommendations"].append("本地数据不完整，建议补充相关基因或微生物数据")
+            
         if external_score < 100:
             assessment["recommendations"].append("外部数据库数据不完整，建议查询更多相关条目")
         if assessment["data_integrity_score"] < 70:

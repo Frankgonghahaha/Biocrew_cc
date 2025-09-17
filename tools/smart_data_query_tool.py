@@ -325,10 +325,20 @@ class SmartDataQueryTool(BaseTool):
             has_gene_data = len(results.get("gene_data", {})) > 0
             has_organism_data = len(results.get("organism_data", {})) > 0
             
-            # 如果数据不完整，查询外部数据库
+            # 对于某些特定污染物（如Aldrin），可能只有微生物数据而没有基因数据，这是正常情况
+            # 在这种情况下，仍然查询外部数据库以获取补充信息
             if not has_gene_data or not has_organism_data:
                 external_results = self.query_external_databases(query_text)
                 results["external_data"] = external_results
+                
+            # 添加数据完整性信息
+            results["data_completeness"] = {
+                "has_gene_data": has_gene_data,
+                "has_organism_data": has_organism_data,
+                "total_pollutants_matched": len(pollutant_names),
+                "gene_data_pollutants_count": len(results.get("gene_data", {})),
+                "organism_data_pollutants_count": len(results.get("organism_data", {}))
+            }
         
         return results
     
