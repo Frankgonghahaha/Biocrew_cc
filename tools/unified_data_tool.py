@@ -56,6 +56,31 @@ class UnifiedDataTool(BaseTool):
             dict: 操作结果
         """
         try:
+            # 处理可能的JSON字符串参数
+            processed_kwargs = {}
+            for key, value in kwargs.items():
+                # 如果值是字符串且看起来像JSON，尝试解析它
+                if isinstance(value, str) and value.startswith('{') and value.endswith('}'):
+                    try:
+                        import json
+                        parsed_value = json.loads(value)
+                        # 如果解析后的值是字典，合并到processed_kwargs中
+                        if isinstance(parsed_value, dict):
+                            processed_kwargs.update(parsed_value)
+                        else:
+                            processed_kwargs[key] = parsed_value
+                    except:
+                        # 如果解析失败，使用原始值
+                        processed_kwargs[key] = value
+                else:
+                    processed_kwargs[key] = value
+            
+            # 如果只有一个参数且是字典，可能是整个参数字典被作为单个参数传递
+            if len(processed_kwargs) == 1:
+                key, value = next(iter(processed_kwargs.items()))
+                if isinstance(value, dict):
+                    processed_kwargs = value
+            
             # 支持的操作映射
             operation_mapping = {
                 "query_pollutant_data": ["查询污染物数据", "获取aldrin相关的基因和微生物数据"],
@@ -72,29 +97,29 @@ class UnifiedDataTool(BaseTool):
             # 执行相应操作
             if actual_operation == "query_pollutant_data":
                 # 确保必需参数存在
-                if 'pollutant_name' not in kwargs:
+                if 'pollutant_name' not in processed_kwargs:
                     return {"status": "error", "message": "缺少必需参数: pollutant_name"}
-                return self.query_pollutant_data(kwargs['pollutant_name'], kwargs.get('data_type', 'both'))
+                return self.query_pollutant_data(processed_kwargs['pollutant_name'], processed_kwargs.get('data_type', 'both'))
             elif actual_operation == "query_gene_data":
-                if 'pollutant_name' not in kwargs:
+                if 'pollutant_name' not in processed_kwargs:
                     return {"status": "error", "message": "缺少必需参数: pollutant_name"}
-                return self.query_gene_data(kwargs['pollutant_name'], kwargs.get('enzyme_type'))
+                return self.query_gene_data(processed_kwargs['pollutant_name'], processed_kwargs.get('enzyme_type'))
             elif actual_operation == "query_organism_data":
-                if 'pollutant_name' not in kwargs:
+                if 'pollutant_name' not in processed_kwargs:
                     return {"status": "error", "message": "缺少必需参数: pollutant_name"}
-                return self.query_organism_data(kwargs['pollutant_name'], kwargs.get('organism_type'))
+                return self.query_organism_data(processed_kwargs['pollutant_name'], processed_kwargs.get('organism_type'))
             elif actual_operation == "query_external_data":
-                if 'query_text' not in kwargs:
+                if 'query_text' not in processed_kwargs:
                     return {"status": "error", "message": "缺少必需参数: query_text"}
-                return self.query_external_data(kwargs['query_text'])
+                return self.query_external_data(processed_kwargs['query_text'])
             elif actual_operation == "get_pollutant_summary":
-                if 'pollutant_name' not in kwargs:
+                if 'pollutant_name' not in processed_kwargs:
                     return {"status": "error", "message": "缺少必需参数: pollutant_name"}
-                return self.get_pollutant_summary(kwargs['pollutant_name'])
+                return self.get_pollutant_summary(processed_kwargs['pollutant_name'])
             elif actual_operation == "search_pollutants":
-                if 'keyword' not in kwargs:
+                if 'keyword' not in processed_kwargs:
                     return {"status": "error", "message": "缺少必需参数: keyword"}
-                return self.search_pollutants(kwargs['keyword'])
+                return self.search_pollutants(processed_kwargs['keyword'])
             else:
                 return {"status": "error", "message": f"不支持的操作: {actual_operation}"}
                         
