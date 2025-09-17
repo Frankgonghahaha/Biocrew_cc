@@ -63,7 +63,9 @@ def test_agent_with_user_input():
         4. 基于微调大语言模型，按"互补指数＞竞争指数"筛选功能微生物+代谢互补微生物
         
         重要数据处理指导：
-        1. 必须优先使用本地数据查询工具(LocalDataRetriever和SmartDataQueryTool)获取具体数据
+        1. 必须优先使用统一数据工具查询本地数据库中的具体数据
+           - 使用方式：unified_tool._run("query_pollutant_data", pollutant_name="污染物名称")
+           - 或者：unified_tool._run("get_pollutant_summary", pollutant_name="污染物名称")
         2. 当某些类型的数据缺失时（如只有微生物数据而无基因数据），应基于现有数据继续分析并明确指出数据缺失情况
         3. 对于Aldrin等特定污染物，可能只有微生物数据而没有基因数据，这是正常情况，应基于现有微生物数据继续分析
         4. 利用外部数据库工具(EnviPath、KEGG等)获取补充信息以完善分析
@@ -135,7 +137,9 @@ def test_agent_tool_usage_with_user_input():
         {user_requirement}
         
         请使用适当的工具来查询相关数据，特别是：
-        1. 使用智能数据查询工具识别需求中的污染物名称
+        1. 使用统一数据工具查询需求中的污染物名称
+           - 使用方式：unified_tool._run("query_pollutant_data", pollutant_name="污染物名称")
+           - 或者：unified_tool._run("search_pollutants", keyword="搜索词")
         2. 查询相关的基因和微生物数据（注意某些污染物可能只有微生物数据而没有基因数据，如Aldrin）
         3. 评估数据完整性
         4. 生成结构化报告
