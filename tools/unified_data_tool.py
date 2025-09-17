@@ -56,8 +56,15 @@ class UnifiedDataTool(BaseTool):
             dict: 操作结果
         """
         try:
-            # 特殊处理：如果第一个参数是JSON字符串，则解析它
-            if isinstance(operation, str) and operation.startswith('{') and operation.endswith('}'):
+            # 增强版参数解析逻辑，支持多种调用方式
+            # 检查operation是否为字典（CrewAI框架调用方式）
+            if isinstance(operation, dict):
+                # 直接使用字典作为参数
+                processed_kwargs = operation.copy()
+                # 从processed_kwargs中获取operation
+                operation = processed_kwargs.pop('operation', '')
+            # 检查operation是否为JSON字符串
+            elif isinstance(operation, str) and operation.startswith('{') and operation.endswith('}'):
                 try:
                     import json
                     parsed_operation = json.loads(operation)
@@ -73,9 +80,11 @@ class UnifiedDataTool(BaseTool):
                     # 如果解析失败，保持原样
                     processed_kwargs = kwargs.copy()
             else:
+                # 处理普通字符串参数和kwargs
+                processed_kwargs = kwargs.copy()
+                
                 # 处理可能的JSON字符串参数
-                processed_kwargs = {}
-                for key, value in kwargs.items():
+                for key, value in processed_kwargs.items():
                     # 如果值是字符串且看起来像JSON，尝试解析它
                     if isinstance(value, str) and value.startswith('{') and value.endswith('}'):
                         try:
@@ -84,13 +93,12 @@ class UnifiedDataTool(BaseTool):
                             # 如果解析后的值是字典，合并到processed_kwargs中
                             if isinstance(parsed_value, dict):
                                 processed_kwargs.update(parsed_value)
-                            else:
-                                processed_kwargs[key] = parsed_value
+                                # 从processed_kwargs中移除已合并的键
+                                if key in processed_kwargs:
+                                    del processed_kwargs[key]
                         except:
-                            # 如果解析失败，使用原始值
-                            processed_kwargs[key] = value
-                    else:
-                        processed_kwargs[key] = value
+                            # 如果解析失败，保持原样
+                            pass
                 
                 # 如果只有一个参数且是字典，可能是整个参数字典被作为单个参数传递
                 if len(processed_kwargs) == 1:

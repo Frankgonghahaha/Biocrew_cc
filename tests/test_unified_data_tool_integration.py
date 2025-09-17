@@ -111,6 +111,27 @@ def test_direct_tool_call():
     except Exception as e:
         print(f"   错误: {e}")
 
+def test_crewai_tool_call():
+    """测试CrewAI框架调用方式"""
+    print("\n=== 测试CrewAI框架调用方式 ===")
+    
+    tool = UnifiedDataTool()
+    print(f"工具名称: {tool.name}")
+    
+    # 测试CrewAI框架调用方式
+    print("\n1. 测试CrewAI框架调用方式:")
+    try:
+        # 模拟CrewAI框架可能的调用方式
+        # 通过to_structured_tool转换后调用
+        structured_tool = tool.to_structured_tool()
+        print(f"   结构化工具: {structured_tool}")
+        
+        # 尝试调用
+        result = structured_tool.func("query_pollutant_data", pollutant_name="Aldrin")
+        print(f"   结果: {result}")
+    except Exception as e:
+        print(f"   错误: {e}")
+
 def main():
     """主函数"""
     print("功能微生物组识别智能体 - 统一数据工具集成测试")
@@ -122,12 +143,24 @@ def main():
         test_agent_with_unified_tool()
     except Exception as e:
         print(f"智能体测试执行出错: {e}")
+        import traceback
+        traceback.print_exc()
     
     print("\n运行直接工具调用测试...")
     try:
         test_direct_tool_call()
     except Exception as e:
         print(f"直接工具调用测试执行出错: {e}")
+        import traceback
+        traceback.print_exc()
+    
+    print("\n运行CrewAI框架调用测试...")
+    try:
+        test_crewai_tool_call()
+    except Exception as e:
+        print(f"CrewAI框架调用测试执行出错: {e}")
+        import traceback
+        traceback.print_exc()
 
 if __name__ == "__main__":
     main()
