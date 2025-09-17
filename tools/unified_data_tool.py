@@ -104,6 +104,10 @@ class UnifiedDataTool(BaseTool):
                 # 从processed_kwargs中移除operation
                 processed_kwargs.pop('operation', None)
             
+            # 如果processed_kwargs为空但kwargs不为空，使用kwargs
+            if not processed_kwargs and kwargs:
+                processed_kwargs = kwargs.copy()
+            
             # 支持的操作映射
             operation_mapping = {
                 "query_pollutant_data": ["查询污染物数据", "获取aldrin相关的基因和微生物数据"],
