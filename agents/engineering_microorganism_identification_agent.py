@@ -88,16 +88,16 @@ class EngineeringMicroorganismIdentificationAgent:
             #   2. KEGG工具：访问生物代谢路径和基因组数据
             
             # 工具使用规范：
-            # - 必须使用MandatoryLocalDataQueryTool来确保查询本地数据，调用方式：mandatory_query._run("query_required_data", query_text="用户需求")
+            # - 必须使用MandatoryLocalDataQueryTool来确保查询本地数据，调用方式：mandatory_query._run(operation="query_required_data", query_text="用户需求")
             # - 当本地数据不足时，可以使用智能数据查询工具获取补充信息
-            # - 使用本地数据读取工具查询微生物数据：data_retriever._run("get_organism_data", pollutant_name="aldrin")
-            # - 使用本地数据读取工具查询基因数据：data_retriever._run("get_gene_data", pollutant_name="aldrin")
-            # - 使用智能数据查询工具：smart_query._run("query_related_data", query_text="如何降解含有aldrin的废水？")
-            # - 使用数据完整性评估功能：mandatory_query._run("assess_data_integrity", query_text="用户需求")
-            # - 查询外部数据库获取补充信息：smart_query._run("query_external_databases", query_text="aldrin")
-            # - 使用数据输出协调器格式化结果：output_coordinator._run("format_output", data=查询结果, format_type="json")
-            # - 使用数据输出协调器整合多源数据：output_coordinator._run("combine_data", local_data, external_data)
-            # - 使用数据输出协调器生成结构化报告：output_coordinator._run("generate_report", title="报告标题", sections=报告章节)
+            # - 使用本地数据读取工具查询微生物数据：data_retriever._run(operation="get_organism_data", pollutant_name="aldrin")
+            # - 使用本地数据读取工具查询基因数据：data_retriever._run(operation="get_gene_data", pollutant_name="aldrin")
+            # - 使用智能数据查询工具：smart_query._run(operation="query_related_data", query_text="如何降解含有aldrin的废水？")
+            # - 使用数据完整性评估功能：mandatory_query._run(operation="assess_data_integrity", query_text="用户需求")
+            # - 查询外部数据库获取补充信息：smart_query._run(operation="query_external_databases", query_text="aldrin")
+            # - 使用数据输出协调器格式化结果：output_coordinator._run(operation="format_output", data=查询结果, format_type="json")
+            # - 使用数据输出协调器整合多源数据：output_coordinator._run(operation="combine_data", local_data, external_data)
+            # - 使用数据输出协调器生成结构化报告：output_coordinator._run(operation="generate_report", title="报告标题", sections=报告章节)
             # - 在分析和回复过程中，必须明确体现查询到的具体数据，包括微生物名称、基因数据等
             # - 不能仅依赖预训练知识，所有结论都必须基于实际查询到的数据
             # - 当某些类型的数据缺失时（如只有微生物数据而无基因数据），应基于现有数据继续分析并明确指出数据缺失情况

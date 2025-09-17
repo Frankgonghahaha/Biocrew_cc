@@ -71,6 +71,19 @@ class MandatoryLocalDataQueryTool(BaseTool):
                 kwargs['query_text'] = kwargs['pollutant_name']
             if 'pollutant_name' not in kwargs and 'query_text' in kwargs:
                 kwargs['pollutant_name'] = kwargs['query_text']
+                
+            # 从JSON字符串中提取query_text
+            if 'query_text' not in kwargs:
+                # 检查是否有嵌套的query_text参数
+                for key, value in kwargs.items():
+                    if isinstance(value, str) and '"query_text":' in value:
+                        try:
+                            parsed = json.loads(value)
+                            if 'query_text' in parsed:
+                                kwargs['query_text'] = parsed['query_text']
+                                break
+                        except:
+                            pass
             
             # 如果kwargs中的值是JSON字符串，也进行解析
             for key, value in list(kwargs.items()):
