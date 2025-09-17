@@ -1,5 +1,27 @@
 # 更新日志
 
+## [2025-09-18] 项目清理和优化更新
+
+### 修复
+- 清理了项目中的冗余文件，包括多个版本的UnifiedDataTool和冗余测试文件
+- 更新了README.md以反映最新的项目结构
+
+### 改进
+- 简化了项目结构，删除了不再需要的备份文件和临时文件
+- 优化了文档内容，确保与当前代码库状态保持一致
+
+### 清理
+- 删除了以下冗余文件：
+  - `tools/unified_data_tool_backup.py` - UnifiedDataTool备份版本
+  - `tools/unified_data_tool_fixed.py` - UnifiedDataTool修复版本
+  - `tools/unified_data_tool_mcp.py` - UnifiedDataTool MCP版本
+  - `tests/test_agent_tool_integration_fixed.py` - 测试修复版本工具集成的文件
+  - `tests/test_fixed_unified_data_tool.py` - 测试修复版工具的文件
+  - `tests/test_enhanced_unified_data_tool.py` - 测试增强版工具的文件
+  - `tests/analyze_tool_integration_issue.py` - 分析工具集成问题的文件
+  - `tests/test_tool_call_analysis.py` - 工具调用分析的文件
+- 保留了重要的文档文件，如优化报告和模型支持说明
+
 ## [2025-09-16] 重大更新
 
 ### 修复
