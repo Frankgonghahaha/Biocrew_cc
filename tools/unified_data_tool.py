@@ -56,30 +56,53 @@ class UnifiedDataTool(BaseTool):
             dict: 操作结果
         """
         try:
-            # 处理可能的JSON字符串参数
-            processed_kwargs = {}
-            for key, value in kwargs.items():
-                # 如果值是字符串且看起来像JSON，尝试解析它
-                if isinstance(value, str) and value.startswith('{') and value.endswith('}'):
-                    try:
-                        import json
-                        parsed_value = json.loads(value)
-                        # 如果解析后的值是字典，合并到processed_kwargs中
-                        if isinstance(parsed_value, dict):
-                            processed_kwargs.update(parsed_value)
-                        else:
-                            processed_kwargs[key] = parsed_value
-                    except:
-                        # 如果解析失败，使用原始值
+            # 特殊处理：如果第一个参数是JSON字符串，则解析它
+            if isinstance(operation, str) and operation.startswith('{') and operation.endswith('}'):
+                try:
+                    import json
+                    parsed_operation = json.loads(operation)
+                    if isinstance(parsed_operation, dict):
+                        # 使用解析后的字典作为参数
+                        processed_kwargs = parsed_operation.copy()
+                        # 从processed_kwargs中获取operation
+                        operation = processed_kwargs.pop('operation', operation)
+                    else:
+                        # 如果不是字典，保持原样
+                        processed_kwargs = kwargs.copy()
+                except:
+                    # 如果解析失败，保持原样
+                    processed_kwargs = kwargs.copy()
+            else:
+                # 处理可能的JSON字符串参数
+                processed_kwargs = {}
+                for key, value in kwargs.items():
+                    # 如果值是字符串且看起来像JSON，尝试解析它
+                    if isinstance(value, str) and value.startswith('{') and value.endswith('}'):
+                        try:
+                            import json
+                            parsed_value = json.loads(value)
+                            # 如果解析后的值是字典，合并到processed_kwargs中
+                            if isinstance(parsed_value, dict):
+                                processed_kwargs.update(parsed_value)
+                            else:
+                                processed_kwargs[key] = parsed_value
+                        except:
+                            # 如果解析失败，使用原始值
+                            processed_kwargs[key] = value
+                    else:
                         processed_kwargs[key] = value
-                else:
-                    processed_kwargs[key] = value
+                
+                # 如果只有一个参数且是字典，可能是整个参数字典被作为单个参数传递
+                if len(processed_kwargs) == 1:
+                    key, value = next(iter(processed_kwargs.items()))
+                    if isinstance(value, dict):
+                        processed_kwargs = value
             
-            # 如果只有一个参数且是字典，可能是整个参数字典被作为单个参数传递
-            if len(processed_kwargs) == 1:
-                key, value = next(iter(processed_kwargs.items()))
-                if isinstance(value, dict):
-                    processed_kwargs = value
+            # 特殊处理：如果operation在processed_kwargs中，则使用它
+            if 'operation' in processed_kwargs:
+                operation = processed_kwargs['operation']
+                # 从processed_kwargs中移除operation
+                processed_kwargs.pop('operation', None)
             
             # 支持的操作映射
             operation_mapping = {
