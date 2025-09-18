@@ -45,6 +45,7 @@
 
 ```
 BioCrew/
+├── docs/                   # 技术文档和报告
 ├── main.py                 # 主程序入口
 ├── requirements.txt        # 项目依赖
 ├── .env.example           # 环境变量配置示例
@@ -53,6 +54,7 @@ BioCrew/
 ├── FINAL_OPTIMIZATION_REPORT.md  # 最终优化报告
 ├── config/
 │   └── config.py          # 配置文件
+├── docs/                   # 技术文档和报告
 ├── agents/                # 智能体定义
 │   ├── task_coordination_agent.py              # 任务协调专家
 │   ├── engineering_microorganism_identification_agent.py  # 工程微生物组识别专家

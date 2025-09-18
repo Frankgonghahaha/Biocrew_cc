@@ -30,12 +30,12 @@ class MicroorganismIdentificationTask:
         
         # 数据查询指导：
         # 1. 优先使用统一数据工具查询本地数据库中的具体数据
-        #    - 使用方式：unified_tool._run("query_pollutant_data", pollutant_name="污染物名称")
-        #    - 或者：unified_tool._run("get_pollutant_summary", pollutant_name="污染物名称")
+        #    - 使用方式：unified_tool._run({"operation": "query_pollutant_data", "pollutant_name": "污染物名称"})
+        #    - 或者：unified_tool._run({"operation": "get_pollutant_summary", "pollutant_name": "污染物名称"})
         # 2. 当某些类型的数据缺失时（如只有微生物数据而无基因数据），应基于现有数据继续分析并明确指出数据缺失情况
         # 3. 利用外部数据库工具(EnviPath、KEGG等)获取补充信息以完善分析
-        #    - EnviPath使用方式：envipath_tool._run("search_compound", compound_name="化合物名称")
-        #    - KEGG使用方式：kegg_tool._run("find_entries", database="genes", keywords="关键词")
+        #    - EnviPath使用方式：envipath_tool._run({"operation": "search_compound", "compound_name": "化合物名称"})
+        #    - KEGG使用方式：kegg_tool._run({"operation": "find_entries", "database": "genes", "keywords": "关键词"})
         # 4. 在最终报告中明确体现查询到的微生物名称、基因数据等具体内容，不能仅依赖预训练知识
         # 5. 提供数据完整性和可信度的评估，明确指出哪些数据可用，哪些数据缺失
         """

@@ -64,6 +64,7 @@ python3 -m pytest tests/tests/
 ## Project Structure
 ```
 BioCrew/
+├── docs/                   # Technical documentation and reports
 ├── main.py                 # Main entry point (fully implemented)
 ├── requirements.txt        # Project dependencies
 ├── .env.example           # Environment variable configuration example
@@ -71,6 +72,7 @@ BioCrew/
 ├── FINAL_OPTIMIZATION_REPORT.md  # Final optimization report
 ├── config/
 │   └── config.py          # Configuration file (fully implemented)
+├── docs/                   # Technical documentation and reports
 ├── agents/                # Agent definitions (fully implemented with TODOs for core algorithms)
 │   ├── task_coordination_agent.py
 │   ├── engineering_microorganism_identification_agent.py  # Enhanced version with improved tool coordination

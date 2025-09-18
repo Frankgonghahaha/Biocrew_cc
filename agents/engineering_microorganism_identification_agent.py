@@ -31,9 +31,9 @@ class EngineeringMicroorganismIdentificationAgent:
             # 3. 重点关注微生物对目标污染物的降解能力和代谢途径
             
             # 工具使用：
-            # - unified_tool._run(operation="query_pollutant_data", pollutant_name="目标污染物")
-            # - unified_tool._run(operation="get_pollutant_summary", pollutant_name="目标污染物")
-            # - unified_tool._run(operation="search_pollutants", keyword="搜索词")
+            # - unified_tool._run({"operation": "query_pollutant_data", "pollutant_name": "目标污染物"})
+            # - unified_tool._run({"operation": "get_pollutant_summary", "pollutant_name": "目标污染物"})
+            # - unified_tool._run({"operation": "search_pollutants", "keyword": "搜索词"})
             
             # 工作流程：
             # 1. 接收用户输入的水质净化目标
