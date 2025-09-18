@@ -11,11 +11,10 @@ class EngineeringMicroorganismIdentificationAgent:
     def create_agent(self):
         from crewai import Agent
         
-        # 导入统一数据工具
+        # 导入专门的数据查询工具
         try:
-            from tools.unified_data_tool import UnifiedDataTool
-            unified_tool = UnifiedDataTool()
-            tools = [unified_tool]
+            from tools.database_tool_factory import DatabaseToolFactory
+            tools = DatabaseToolFactory.create_all_tools()
         except Exception as e:
             print(f"工具初始化失败: {e}")
             tools = []
@@ -26,14 +25,23 @@ class EngineeringMicroorganismIdentificationAgent:
             backstory="""你是一位功能微生物组识别专家，专注于从数据库获取领域知识以识别最适合的工程微生物。
             
             # 核心能力：
-            # 1. 使用统一数据访问工具一站式查询所有相关数据
+            # 1. 使用专门的数据查询工具查询所有相关数据
             # 2. 基于微调大语言模型，按"互补指数＞竞争指数"筛选功能微生物
             # 3. 重点关注微生物对目标污染物的降解能力和代谢途径
             
-            # 工具使用：
-            # - unified_tool._run({"operation": "query_pollutant_data", "pollutant_name": "目标污染物"})
-            # - unified_tool._run({"operation": "get_pollutant_summary", "pollutant_name": "目标污染物"})
-            # - unified_tool._run({"operation": "search_pollutants", "keyword": "搜索词"})
+            # 工具使用规范（严格遵守以下格式）：
+            # - Action: PollutantDataQueryTool
+            # - Action Input: {"pollutant_name": "目标污染物", "data_type": "both"}
+            # - 或者使用其他专门工具如GeneDataQueryTool, OrganismDataQueryTool等
+            # - 注意：必须使用双引号，不能使用单引号
+            # - 注意：pollutant_name参数是必填的
+            
+            # 重要提醒：
+            # 1. 必须严格按照上述格式调用工具
+            # 2. pollutant_name参数是必填的，必须明确指定目标污染物名称
+            # 3. 根据需要选择合适的工具进行调用
+            # 4. 必须从用户需求中准确识别目标污染物名称
+            # 5. 调用工具前先思考需要查询的具体污染物名称和数据类型
             
             # 工作流程：
             # 1. 接收用户输入的水质净化目标

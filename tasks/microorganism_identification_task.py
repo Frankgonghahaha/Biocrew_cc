@@ -16,7 +16,7 @@ class MicroorganismIdentificationTask:
         
         识别步骤：
         # 1. 分析水质净化目标（水质治理指标+目标污染物）
-        # 2. 使用统一数据工具查询相关基因和微生物数据
+        # 2. 使用专门的数据查询工具查询相关基因和微生物数据
         # 3. 从公开数据库（Web of Science、HydroWASTE、KEGG、NCBI、EnviPath）获取补充领域知识
         # 4. 使用EnviPath工具查询环境化合物代谢路径信息
         # 5. 使用KEGG工具查询pathway、ko、genome、reaction、enzyme、genes等生物代谢信息
@@ -29,9 +29,11 @@ class MicroorganismIdentificationTask:
         # - 互补指数：MI_complementarity(A,B)=|SeedSet(A)∩NonSeedSet(B)|/|SeedSet(A)∩(SeedSet(B)∪NonSeedSet(B))|
         
         # 数据查询指导：
-        # 1. 优先使用统一数据工具查询本地数据库中的具体数据
-        #    - 使用方式：unified_tool._run({"operation": "query_pollutant_data", "pollutant_name": "污染物名称"})
-        #    - 或者：unified_tool._run({"operation": "get_pollutant_summary", "pollutant_name": "污染物名称"})
+        # 1. 优先使用专门的数据查询工具查询本地数据库中的具体数据
+        #    - 使用方式：pollutant_data_query_tool._run({"pollutant_name": "污染物名称", "data_type": "both"})
+        #    - 或者：pollutant_summary_tool._run({"pollutant_name": "污染物名称"})
+        #    - 重要：pollutant_name参数是必填的，必须明确指定目标污染物名称
+        #    - 重要：必须使用双引号，不能使用单引号
         # 2. 当某些类型的数据缺失时（如只有微生物数据而无基因数据），应基于现有数据继续分析并明确指出数据缺失情况
         # 3. 利用外部数据库工具(EnviPath、KEGG等)获取补充信息以完善分析
         #    - EnviPath使用方式：envipath_tool._run({"operation": "search_compound", "compound_name": "化合物名称"})

@@ -8,9 +8,52 @@ from crewai.tools import BaseTool
 import requests
 import json
 from typing import Dict, List, Optional, Any
+from pydantic import BaseModel, Field
+
+
+class GetDatabaseInfoRequest(BaseModel):
+    database: str = Field(..., description="数据库名称 (pathway, ko, genome, reaction, enzyme, genes)")
+
+
+class ListEntriesRequest(BaseModel):
+    database: str = Field(..., description="数据库名称")
+    organism: Optional[str] = Field(None, description="物种代码 (如 hsa 表示人类)")
+
+
+class FindEntriesRequest(BaseModel):
+    database: str = Field(..., description="数据库名称")
+    keywords: str = Field(..., description="搜索关键词")
+
+
+class GetEntryRequest(BaseModel):
+    entry_id: str = Field(..., description="条目ID (如 hsa:10458)")
+    format_type: str = Field("json", description="返回格式 (json, aaseq, ntseq等)")
+
+
+class LinkEntriesRequest(BaseModel):
+    target_db: str = Field(..., description="目标数据库")
+    source_db_entries: str = Field(..., description="源数据库条目 (如 hsa)")
+
+
+class ConvertIdRequest(BaseModel):
+    target_db: str = Field(..., description="目标数据库 (如 ncbi-geneid)")
+    source_ids: str = Field(..., description="源ID (如 eco)")
+
+
+class SearchPathwayByCompoundRequest(BaseModel):
+    compound_id: str = Field(..., description="化合物ID (如 C00001)")
+
+
+class SearchGenesByPathwayRequest(BaseModel):
+    pathway_id: str = Field(..., description="pathway ID (如 path:hsa00010)")
+
+
+class SearchEnzymesByCompoundRequest(BaseModel):
+    compound_id: str = Field(..., description="化合物ID")
+
 
 class KeggTool(BaseTool):
-    name: str = "KEGG数据库访问工具"
+    name: str = "KeggTool"
     description: str = "用于查询pathway、ko、genome、reaction、enzyme、genes等生物代谢信息"
     
     def __init__(self, base_url: str = "https://rest.kegg.jp"):
@@ -25,136 +68,45 @@ class KeggTool(BaseTool):
         object.__setattr__(self, 'base_url', base_url)
         object.__setattr__(self, 'session', requests.Session())
     
-    def _run(self, operation: str, **kwargs) -> Dict[Any, Any]:
+    def _run(self, **kwargs) -> Dict[Any, Any]:
         """
         执行指定的KEGG数据库操作
         
         Args:
-            operation (str): 要执行的操作名称
             **kwargs: 操作参数
             
         Returns:
             dict: 操作结果
         """
         try:
-            # 记录输入参数用于调试
-            import json
-            params_log = {
-                "operation": operation,
-                "kwargs": kwargs
-            }
-            print(f"[DEBUG] KeggTool._run 调用参数: {json.dumps(params_log, ensure_ascii=False)}")
-            
-            # 如果operation是JSON字符串，解析它
-            if isinstance(operation, str) and operation.startswith('{'):
-                import json
-                try:
-                    params = json.loads(operation)
-                    operation = params.get('operation', operation)
-                    # 合并参数
-                    kwargs.update({k: v for k, v in params.items() if k != 'operation'})
-                except json.JSONDecodeError:
-                    pass  # 如果解析失败，继续使用原始参数
-            
-            # 如果kwargs中包含JSON字符串参数，也进行解析
-            if 'keywords' in kwargs and isinstance(kwargs['keywords'], str) and kwargs['keywords'].startswith('{'):
-                try:
-                    params = json.loads(kwargs['keywords'])
-                    kwargs.update(params)
-                except json.JSONDecodeError:
-                    pass  # 如果解析失败，继续使用原始参数
-                    
-            # 处理直接传递的参数
-            if 'keywords' not in kwargs and 'query_text' in kwargs:
-                kwargs['keywords'] = kwargs['query_text']
-            
-            # 支持中文操作名称映射
-            operation_mapping = {
-                "get_database_info": ["获取数据库信息"],
-                "list_entries": ["列出条目"],
-                "find_entries": ["查找条目", "查询aldrin代谢相关的pathway和基因信息"],
-                "get_entry": ["获取条目"],
-                "link_entries": ["关联条目"],
-                "convert_id": ["转换ID"],
-                "search_pathway_by_compound": ["根据化合物搜索路径", "查询aldrin的代谢路径信息"],
-                "search_genes_by_pathway": ["根据路径搜索基因"],
-                "search_enzymes_by_compound": ["根据化合物搜索酶"]
-            }
-            
-            # 将中文操作名称映射到英文操作名称
-            actual_operation = operation
-            for eng_op, chi_ops in operation_mapping.items():
-                if operation == eng_op or operation in chi_ops:
-                    actual_operation = eng_op
-                    break
-            
-            if actual_operation == "get_database_info":
-                database = kwargs.get("database")
-                if not database:
-                    return {"status": "error", "message": "缺少数据库名称参数"}
-                return self.get_database_info(database)
-                
-            elif actual_operation == "list_entries":
-                database = kwargs.get("database")
-                organism = kwargs.get("organism")
-                if not database:
-                    return {"status": "error", "message": "缺少数据库名称参数"}
-                return self.list_entries(database, organism)
-                
-            elif actual_operation == "find_entries":
-                database = kwargs.get("database")
-                keywords = kwargs.get("keywords", kwargs.get("query"))
-                if not database or not keywords:
-                    return {"status": "error", "message": "缺少数据库名称或关键词参数"}
-                return self.find_entries(database, keywords)
-                
-            elif actual_operation == "get_entry":
-                entry_id = kwargs.get("entry_id")
-                format_type = kwargs.get("format_type", "json")
-                if not entry_id:
-                    return {"status": "error", "message": "缺少条目ID参数"}
-                return self.get_entry(entry_id, format_type)
-                
-            elif actual_operation == "link_entries":
-                target_db = kwargs.get("target_db")
-                source_db_entries = kwargs.get("source_db_entries")
-                if not target_db or not source_db_entries:
-                    return {"status": "error", "message": "缺少目标数据库或源数据库条目参数"}
-                return self.link_entries(target_db, source_db_entries)
-                
-            elif actual_operation == "convert_id":
-                target_db = kwargs.get("target_db")
-                source_ids = kwargs.get("source_ids")
-                if not target_db or not source_ids:
-                    return {"status": "error", "message": "缺少目标数据库或源ID参数"}
-                return self.convert_id(target_db, source_ids)
-                
-            elif actual_operation == "search_pathway_by_compound":
-                compound_id = kwargs.get("compound_id")
-                if not compound_id:
-                    return {"status": "error", "message": "缺少化合物ID参数"}
-                return self.search_pathway_by_compound(compound_id)
-                
-            elif actual_operation == "search_genes_by_pathway":
-                pathway_id = kwargs.get("pathway_id")
-                if not pathway_id:
-                    return {"status": "error", "message": "缺少路径ID参数"}
-                return self.search_genes_by_pathway(pathway_id)
-                
-            elif actual_operation == "search_enzymes_by_compound":
-                compound_id = kwargs.get("compound_id")
-                if not compound_id:
-                    return {"status": "error", "message": "缺少化合物ID参数"}
-                return self.search_enzymes_by_compound(compound_id)
-                
+            # 简化参数处理，直接使用kwargs
+            if "database" in kwargs and "organism" in kwargs:
+                return self.list_entries(kwargs["database"], kwargs.get("organism"))
+            elif "database" in kwargs and "keywords" in kwargs:
+                return self.find_entries(kwargs["database"], kwargs["keywords"])
+            elif "entry_id" in kwargs:
+                return self.get_entry(kwargs["entry_id"], kwargs.get("format_type", "json"))
+            elif "target_db" in kwargs and "source_db_entries" in kwargs:
+                return self.link_entries(kwargs["target_db"], kwargs["source_db_entries"])
+            elif "target_db" in kwargs and "source_ids" in kwargs:
+                return self.convert_id(kwargs["target_db"], kwargs["source_ids"])
+            elif "compound_id" in kwargs and "pathway" in kwargs:
+                return self.search_pathway_by_compound(kwargs["compound_id"])
+            elif "pathway_id" in kwargs:
+                return self.search_genes_by_pathway(kwargs["pathway_id"])
+            elif "compound_id" in kwargs:
+                # 默认执行search_enzymes_by_compound操作
+                return self.search_enzymes_by_compound(kwargs["compound_id"])
+            elif "database" in kwargs:
+                # 默认执行get_database_info操作
+                return self.get_database_info(kwargs["database"])
             else:
-                return {"status": "error", "message": f"不支持的操作: {operation}"}
+                return {"status": "error", "message": "缺少必需参数"}
                 
         except Exception as e:
             return {
                 "status": "error",
-                "message": f"执行操作时出错: {str(e)}",
-                "operation": operation
+                "message": f"执行操作时出错: {str(e)}"
             }
     
     def get_database_info(self, database: str) -> Dict:
@@ -432,29 +384,3 @@ class KeggTool(BaseTool):
             dict: 相关酶信息
         """
         return self.link_entries("enzyme", compound_id)
-
-# 使用示例
-if __name__ == "__main__":
-    # 创建KEGG工具实例
-    kegg_tool = KeggTool()
-    
-    # 示例：获取pathway数据库信息
-    print("获取pathway数据库信息:")
-    result = kegg_tool.get_database_info("pathway")
-    print(json.dumps(result, indent=2, ensure_ascii=False)[:200] + "...")
-    
-    # 示例：搜索与镉相关的基因
-    print("\n搜索与'cadmium'相关的基因:")
-    result = kegg_tool.find_entries("genes", "cadmium")
-    print(json.dumps(result, indent=2, ensure_ascii=False)[:200] + "...")
-    
-    # 示例：列出前10个人类基因
-    print("\n列出前10个人类基因:")
-    result = kegg_tool.list_entries("genes", "hsa")
-    if result["status"] == "success":
-        print(json.dumps(result["data"][:10], indent=2, ensure_ascii=False))
-    
-    # 示例：搜索与重金属相关的pathway
-    print("\n搜索与'heavy metal'相关的pathway:")
-    result = kegg_tool.find_entries("pathway", "heavy metal")
-    print(json.dumps(result, indent=2, ensure_ascii=False)[:200] + "...")

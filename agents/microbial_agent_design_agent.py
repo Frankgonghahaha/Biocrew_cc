@@ -12,11 +12,10 @@ class MicrobialAgentDesignAgent:
     def create_agent(self):
         from crewai import Agent
         
-        # 导入统一数据工具
+        # 导入专门的数据查询工具
         try:
-            from tools.unified_data_tool import UnifiedDataTool
-            unified_tool = UnifiedDataTool()
-            tools = [unified_tool]
+            from tools.database_tool_factory import DatabaseToolFactory
+            tools = DatabaseToolFactory.create_all_tools()
         except Exception as e:
             print(f"工具初始化失败: {e}")
             tools = []
@@ -44,8 +43,10 @@ class MicrobialAgentDesignAgent:
             
             # 数据使用：
             # - 基于工程微生物识别智能体提供的微生物组数据
-            # - 使用统一数据工具查询相关基因和微生物数据
-            # - unified_tool._run(operation="query_pollutant_data", pollutant_name="目标污染物")
+            # - 使用专门的数据查询工具查询相关基因和微生物数据
+            # - 可使用PollutantDataQueryTool查询污染物数据
+            # - 可使用GeneDataQueryTool查询基因数据
+            # - 可使用OrganismDataQueryTool查询微生物数据
             """,
             tools=tools,
             verbose=True,

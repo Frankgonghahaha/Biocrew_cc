@@ -13,7 +13,7 @@ class Config:
     # QWEN3模型配置
     QWEN_API_BASE = os.getenv('QWEN_API_BASE', 'https://dashscope.aliyuncs.com/compatible-mode/v1')
     QWEN_API_KEY = os.getenv('QWEN_API_KEY', 'YOUR_API_KEY')
-    QWEN_MODEL_NAME = os.getenv('QWEN_MODEL_NAME', 'qwen3-30b-a3b-instruct-2507')
+    QWEN_MODEL_NAME = os.getenv('QWEN_MODEL_NAME', 'qwen3-next-80b-a3b-thinking')
     
     # OpenAI兼容配置（CrewAI需要）
     OPENAI_API_BASE = os.getenv('OPENAI_API_BASE', 'https://dashscope.aliyuncs.com/compatible-mode/v1')

@@ -5,20 +5,24 @@
 """
 
 from crewai.tools import BaseTool
-from typing import Dict, Any
+from pydantic import BaseModel, Field
+from typing import Dict, Any, Optional
 import re
 
+
+class AnalyzeEvaluationResultRequest(BaseModel):
+    evaluation_report: str = Field(..., description="技术评估专家生成的评价报告")
+
+
+class CheckCoreStandardsRequest(BaseModel):
+    evaluation_report: str = Field(..., description="评价报告")
+
+
 class EvaluationTool(BaseTool):
-    name: str = "评价工具"
+    name: str = "EvaluationTool"
     description: str = "实现基于核心标准的评价结果判断逻辑"
     
-    def __init__(self):
-        """
-        初始化评价工具
-        """
-        super().__init__()  # 调用父类构造函数
-    
-    def _run(self, operation: str, **kwargs) -> Dict[Any, Any]:
+    def _run(self, operation: str = "", **kwargs) -> Dict[Any, Any]:
         """
         执行指定的评价操作
         
@@ -30,23 +34,33 @@ class EvaluationTool(BaseTool):
             dict: 操作结果
         """
         try:
-            if operation == "analyze_evaluation_result":
-                evaluation_report = kwargs.get("evaluation_report")
-                if not evaluation_report:
-                    return {"status": "error", "message": "缺少评价报告参数"}
-                result = self.analyze_evaluation_result(evaluation_report)
-                return {"status": "success", "data": result}
-                
-            elif operation == "check_core_standards":
-                evaluation_report = kwargs.get("evaluation_report")
-                if not evaluation_report:
-                    return {"status": "error", "message": "缺少评价报告参数"}
-                result = self.check_core_standards(evaluation_report)
-                return {"status": "success", "data": result}
-                
+            # 如果提供了operation参数，则按旧方式处理以保持向后兼容
+            if operation:
+                if operation == "analyze_evaluation_result":
+                    evaluation_report = kwargs.get("evaluation_report")
+                    if not evaluation_report:
+                        return {"status": "error", "message": "缺少评价报告参数"}
+                    result = self.analyze_evaluation_result(evaluation_report)
+                    return {"status": "success", "data": result}
+                    
+                elif operation == "check_core_standards":
+                    evaluation_report = kwargs.get("evaluation_report")
+                    if not evaluation_report:
+                        return {"status": "error", "message": "缺少评价报告参数"}
+                    result = self.check_core_standards(evaluation_report)
+                    return {"status": "success", "data": result}
+                    
+                else:
+                    return {"status": "error", "message": f"不支持的操作: {operation}"}
             else:
-                return {"status": "error", "message": f"不支持的操作: {operation}"}
-                
+                # 如果没有提供operation参数，直接使用kwargs中的参数
+                if "evaluation_report" in kwargs:
+                    # 默认执行analyze_evaluation_result操作
+                    result = self.analyze_evaluation_result(kwargs["evaluation_report"])
+                    return {"status": "success", "data": result}
+                else:
+                    return {"status": "error", "message": "缺少必需参数: evaluation_report"}
+                    
         except Exception as e:
             return {
                 "status": "error",
@@ -54,8 +68,7 @@ class EvaluationTool(BaseTool):
                 "operation": operation
             }
     
-    @staticmethod
-    def analyze_evaluation_result(evaluation_report):
+    def analyze_evaluation_result(self, evaluation_report: str) -> Dict[str, Any]:
         """
         分析评价报告并判断是否需要重新设计
         
@@ -66,7 +79,7 @@ class EvaluationTool(BaseTool):
             dict: 包含判断结果和建议的字典
         """
         # 检查核心标准是否达标
-        core_standards_met = EvaluationTool.check_core_standards(evaluation_report)
+        core_standards_met = self.check_core_standards(evaluation_report)
         
         # 分析具体原因
         reason = ""
@@ -88,8 +101,7 @@ class EvaluationTool(BaseTool):
         
         return analysis_result
     
-    @staticmethod
-    def check_core_standards(evaluation_report):
+    def check_core_standards(self, evaluation_report: str) -> bool:
         """
         检查核心标准（群落稳定性和结构稳定性）是否达标
         

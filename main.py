@@ -171,7 +171,7 @@ def run_dynamic_workflow(user_requirement, llm):
         # 创建识别任务，添加数据完整性处理指导
         identification_task = MicroorganismIdentificationTask(llm).create_task(
             identification_agent, 
-            user_requirement=f"{user_requirement}\n\n重要数据处理指导：\n1. 必须优先使用本地数据查询工具(LocalDataRetriever和SmartDataQueryTool)获取具体数据\n2. 当某些类型的数据缺失时（如只有微生物数据而无基因数据），应基于现有数据继续分析并明确指出数据缺失情况\n3. 利用外部数据库工具(EnviPath、KEGG等)获取补充信息以完善分析\n4. 在最终报告中明确体现查询到的微生物名称、基因数据等具体内容，不能仅依赖预训练知识"
+            user_requirement=f"{user_requirement}\n\n重要数据处理指导：\n1. 必须优先使用专门的数据查询工具(PollutantDataQueryTool、GeneDataQueryTool等)获取具体数据\n2. 当某些类型的数据缺失时（如只有微生物数据而无基因数据），应基于现有数据继续分析并明确指出数据缺失情况\n3. 利用外部数据库工具(EnviPath、KEGG等)获取补充信息以完善分析\n4. 在最终报告中明确体现查询到的微生物名称、基因数据等具体内容，不能仅依赖预训练知识"
         )
         
         # 如果不是第一轮，添加反馈信息和数据完整性处理指导
@@ -179,7 +179,7 @@ def run_dynamic_workflow(user_requirement, llm):
             identification_task = MicroorganismIdentificationTask(llm).create_task(
                 identification_agent, 
                 user_requirement=user_requirement,
-                feedback=f"根据上一轮评估结果，需要重新进行微生物识别。之前的识别结果: {identification_result}\n\n重要数据处理指导：\n1. 必须优先使用本地数据查询工具(LocalDataRetriever和SmartDataQueryTool)获取具体数据\n2. 当某些类型的数据缺失时（如只有微生物数据而无基因数据），应基于现有数据继续分析并明确指出数据缺失情况\n3. 利用外部数据库工具(EnviPath、KEGG等)获取补充信息以完善分析\n4. 在最终报告中明确体现查询到的微生物名称、基因数据等具体内容，不能仅依赖预训练知识"
+                feedback=f"根据上一轮评估结果，需要重新进行微生物识别。之前的识别结果: {identification_result}\n\n重要数据处理指导：\n1. 必须优先使用专门的数据查询工具(PollutantDataQueryTool、GeneDataQueryTool等)获取具体数据\n2. 当某些类型的数据缺失时（如只有微生物数据而无基因数据），应基于现有数据继续分析并明确指出数据缺失情况\n3. 利用外部数据库工具(EnviPath、KEGG等)获取补充信息以完善分析\n4. 在最终报告中明确体现查询到的微生物名称、基因数据等具体内容，不能仅依赖预训练知识"
             )
         
         # 执行识别任务
@@ -286,18 +286,29 @@ def main():
         print("错误：API密钥未正确设置")
         return
     
+    # 验证OPENAI_API_KEY是否存在
+    if not Config.OPENAI_API_KEY or Config.OPENAI_API_KEY == "YOUR_API_KEY":
+        print("错误：OPENAI_API_KEY未正确设置")
+        return
+    
     # 设置dashscope的API密钥
     dashscope.api_key = Config.QWEN_API_KEY
     
     # 初始化LLM模型，使用DashScope专用方式
-    llm = ChatOpenAI(
-        base_url=Config.OPENAI_API_BASE,
-        api_key=Config.OPENAI_API_KEY,  # 使用原始API密钥
-        model="openai/qwen3-30b-a3b-instruct-2507",  # 指定openai提供商
-        temperature=Config.MODEL_TEMPERATURE,
-        streaming=False,
-        max_tokens=Config.MODEL_MAX_TOKENS
-    )
+    # 注意：必须正确指定提供商（openai/前缀）以避免"LLM Provider NOT provided"错误
+    try:
+        llm = ChatOpenAI(
+            base_url=Config.OPENAI_API_BASE,
+            api_key=Config.OPENAI_API_KEY,  # 使用原始API密钥
+            model="openai/qwen3-30b-a3b-instruct-2507",  # 指定openai提供商
+            temperature=Config.MODEL_TEMPERATURE,
+            streaming=False,
+            max_tokens=Config.MODEL_MAX_TOKENS
+        )
+        print("   ✓ LLM模型初始化成功")
+    except Exception as e:
+        print(f"   ✗ LLM模型初始化失败: {e}")
+        return
     
     # 根据用户选择的模式执行相应的工作流
     if processing_mode == 1:

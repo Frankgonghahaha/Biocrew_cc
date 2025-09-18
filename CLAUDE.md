@@ -73,7 +73,12 @@ BioCrew/
 │   └── implementation_plan_generation_task.py
 ├── tools/                 # Custom tools (partially implemented)
 │   ├── evaluation_tool.py
-│   ├── unified_data_tool.py               # Unified data access tool (replaces 5 legacy tools)
+│   ├── database_tool_factory.py           # Factory for creating database tools
+│   ├── pollutant_data_query_tool.py       # Query all data for a specific pollutant
+│   ├── gene_data_query_tool.py            # Query gene data for a specific pollutant
+│   ├── organism_data_query_tool.py        # Query organism data for a specific pollutant
+│   ├── pollutant_summary_tool.py          # Get summary statistics for a specific pollutant
+│   ├── pollutant_search_tool.py           # Search pollutants by keyword
 │   ├── envipath_tool.py                  # EnviPath database access tool
 │   └── kegg_tool.py                      # KEGG database access tool
 ├── data/                  # Local data files (Genes and Organism directories)
@@ -101,13 +106,15 @@ BioCrew/
 The system supports both DashScope (Qwen) and OpenAI model configurations through environment variables in the `.env` file.
 
 ### Unified Data Access
-The system now uses a unified data tool that replaces the previous 5 local data tools, providing a single interface for all data access needs:
+The system now uses specialized database tools that replace the previous monolithic UnifiedDataTool, providing focused interfaces for different data access needs:
 
-1. **UnifiedDataTool** - Unified data access tool that integrates:
-   - Local database access (PostgreSQL/MySQL)
-   - External database integration (KEGG and EnviPath)
-   - Smart search functionality
-   - Data summary generation
+1. **PollutantDataQueryTool** - Query all data for a specific pollutant
+2. **GeneDataQueryTool** - Query gene data for a specific pollutant
+3. **OrganismDataQueryTool** - Query organism data for a specific pollutant
+4. **PollutantSummaryTool** - Get summary statistics for a specific pollutant
+5. **PollutantSearchTool** - Search pollutants by keyword
+
+These tools are managed by the DatabaseToolFactory for easy instantiation and use.
 
 ### External Database Access Tools
 
@@ -142,10 +149,16 @@ The system integrates with external databases through the following tools:
 ### Tool Structure
 All tools follow a consistent pattern:
 1. Each tool inherits from `crewai.tools.BaseTool` for CrewAI compatibility
-2. Tools implement a unified `_run(operation, **kwargs)` method as the main entry point
-3. Tools provide direct method calls for specific operations for backward compatibility
+2. Each tool has a dedicated Pydantic model for input parameters (args_schema)
+3. Tools implement a `_run()` method with explicit parameter definitions
 4. Tools use `object.__setattr__` and `object.__getattribute__` to handle instance attributes and avoid Pydantic validation issues
 5. Tools return consistent result formats with `status`, `data`, and error information
+
+### Tool Factory Pattern
+Database tools are managed through the DatabaseToolFactory:
+1. Provides a centralized way to create all database tools
+2. Allows easy instantiation of individual tools by name
+3. Ensures consistent tool initialization across the application
 
 ### Agent Structure
 Agents follow a consistent pattern:
