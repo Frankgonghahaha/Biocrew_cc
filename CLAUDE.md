@@ -49,6 +49,16 @@ python3 -m py_compile main.py
 find . -name "*.py" -exec python3 -m py_compile {} \;
 ```
 
+### Git Operations
+When pushing changes, make sure to push to both repositories:
+```bash
+# Push to organization repository
+git push upstream master
+
+# Push to personal repository
+git push origin master
+```
+
 ## Project Structure
 ```
 BioCrew/
