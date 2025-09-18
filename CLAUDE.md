@@ -56,6 +56,13 @@ BioCrew/
 ├── requirements.txt        # Project dependencies
 ├── .env.example           # Environment variable configuration example
 ├── CLAUDE.md              # Claude Code development guide
+├── DOCS/                  # Detailed documentation
+│   ├── AGENTS.md          # Agent detailed documentation
+│   ├── TOOLS.md           # Tool detailed documentation
+│   ├── TASKS.md           # Task detailed documentation
+│   └── TESTS.md           # Test detailed documentation
+├── tests/                 # Test files
+│   └── test_real_agent_tool_call.py  # Real agent tool call test
 ├── config/
 │   └── config.py          # Configuration file (fully implemented)
 ├── agents/                # Agent definitions (fully implemented with TODOs for core algorithms)
