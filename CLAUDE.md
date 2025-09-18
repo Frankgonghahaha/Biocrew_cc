@@ -62,7 +62,7 @@ BioCrew/
 │   ├── TASKS.md           # Task detailed documentation
 │   └── TESTS.md           # Test detailed documentation
 ├── tests/                 # Test files
-│   └── test_real_agent_tool_call.py  # Real agent tool call test
+│   └── test_database_query_user_input.py  # Database query test with user input
 ├── config/
 │   └── config.py          # Configuration file (fully implemented)
 ├── agents/                # Agent definitions (fully implemented with TODOs for core algorithms)
@@ -85,6 +85,7 @@ BioCrew/
 │   ├── organism_data_query_tool.py        # Query organism data for a specific pollutant
 │   ├── pollutant_summary_tool.py          # Get summary statistics for a specific pollutant
 │   ├── pollutant_search_tool.py           # Search pollutants by keyword
+│   ├── pollutant_name_utils.py            # Utility functions for pollutant name standardization
 │   ├── envipath_tool.py                  # EnviPath database access tool
 │   └── kegg_tool.py                      # KEGG database access tool
 ├── data/                  # Local data files (Genes and Organism directories)
@@ -121,6 +122,12 @@ The system now uses specialized database tools that replace the previous monolit
 5. **PollutantSearchTool** - Search pollutants by keyword
 
 These tools are managed by the DatabaseToolFactory for easy instantiation and use.
+
+### Pollutant Name Standardization
+A new utility module `pollutant_name_utils.py` has been added to handle pollutant name standardization:
+- Standardizes different formats of pollutant names to a consistent format for database queries
+- Generates multiple name variants for improved search and matching
+- Handles Greek letters, abbreviations, and special characters
 
 ### External Database Access Tools
 
@@ -212,3 +219,25 @@ The system has undergone significant optimization to simplify the architecture a
 3. **Enhanced Reliability**: Reduced potential for tool coordination issues
 4. **Easier Debugging**: Issues can be isolated to specific tools
 5. **Better Performance**: Tools are optimized for their specific functions
+
+## Recent Enhancements
+
+### Natural Language Processing Improvements
+- Enhanced pollutant recognition and translation capabilities in the Engineering Microorganism Identification Agent
+- Added support for automatic translation of natural language pollutant descriptions to standard scientific terms
+- Improved tool calling functionality with better error handling and data completeness assessment
+
+### Dynamic Workflow Implementation
+- Implemented a dynamic workflow in main.py that can re-execute tasks based on evaluation results
+- Added feedback loops for continuous improvement of microbial identification and design
+- Implemented maximum iteration limits to prevent infinite loops
+
+### User Input Support
+- Added support for user-defined water treatment requirements in the main application
+- Created test scripts that allow users to input custom pollutant names for database queries
+- Improved the user experience with clear prompts and instructions
+
+### Database Query Enhancements
+- Enhanced database tools with better error handling and data validation
+- Added pollutant name standardization utilities for improved database query accuracy
+- Implemented more robust database connection management

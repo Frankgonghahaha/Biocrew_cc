@@ -55,7 +55,7 @@ BioCrew/
 │   ├── TASKS.md           # 任务详细说明
 │   └── TESTS.md           # 测试详细说明
 ├── tests/                 # 测试文件
-│   └── test_real_agent_tool_call.py  # 真实Agent工具调用测试
+│   └── test_database_query_user_input.py  # 数据库查询测试（支持用户输入）
 ├── config/
 │   └── config.py          # 配置文件
 ├── agents/                # 智能体定义
@@ -78,11 +78,12 @@ BioCrew/
 │   ├── organism_data_query_tool.py            # 微生物数据查询工具
 │   ├── pollutant_summary_tool.py              # 污染物摘要工具
 │   ├── pollutant_search_tool.py               # 污染物搜索工具
+│   ├── pollutant_name_utils.py                # 污染物名称标准化工具
 │   ├── envipath_tool.py                      # EnviPath数据库访问工具
 │   └── kegg_tool.py                          # KEGG数据库访问工具
 ├── data/                  # 本地数据文件
-│   ├── Genes/             # 基因数据文件
-│   └── Organism/          # 微生物数据文件
+│   ├── Genes/             # 基因数据文件 (22个污染物)
+│   └── Organism/          # 微生物数据文件 (33个污染物)
 └── models/                # 模型配置（待完善）
 ```
 
@@ -115,6 +116,7 @@ BioCrew/
 - **数据驱动**：集成本地数据查询工具，支持从Excel文件中读取基因和微生物数据
 - **工具兼容性**：所有自定义工具均已重构以兼容CrewAI框架，提供统一接口和向后兼容性
 - **架构优化**：通过工具整合和智能体backstory精简，大幅简化系统架构
+- **自然语言处理**：增强的污染物识别和翻译能力，能够将自然语言中的污染物描述准确翻译为标准科学术语
 
 ## 快速开始
 
@@ -174,7 +176,7 @@ python main.py
 1. 链式处理模式（按固定顺序执行）
 2. 自主选择模式（智能体根据情况自主选择）
 
-用户可以根据需求选择相应的模式。
+用户可以根据需求选择相应的模式，并可以输入自定义的水质处理需求。
 
 ## 专门化数据库工具
 
@@ -185,6 +187,7 @@ python main.py
 3. **OrganismDataQueryTool** - 查询指定污染物的微生物数据
 4. **PollutantSummaryTool** - 获取指定污染物的摘要统计信息
 5. **PollutantSearchTool** - 根据关键字搜索污染物
+6. **PollutantNameUtils** - 污染物名称标准化工具
 
 ## 公开数据库工具
 
@@ -210,6 +213,9 @@ python main.py
 - [x] 工具整合优化：将原有的统一数据工具重构为多个专门化的工具，提高工具的精确性和可维护性
 - [x] 智能体backstory精简：大幅精简智能体backstory内容，提高代码可读性和维护性
 - [x] 清理冗余文件：删除了多个版本的工具文件和冗余测试文件，使项目更加简洁
+- [x] 增强污染物识别与翻译能力：使Agent能够自主将自然语言中的污染物描述翻译为标准科学术语
+- [x] 实现动态工作流：根据评估结果决定是否需要重新执行任务
+- [x] 支持用户自定义输入：允许用户输入自定义的水质处理需求
 
 ### 后续开发计划
 
