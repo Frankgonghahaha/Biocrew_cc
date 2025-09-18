@@ -48,9 +48,7 @@ BioCrew/
 ├── main.py                 # 主程序入口
 ├── requirements.txt        # 项目依赖
 ├── .env.example           # 环境变量配置示例
-├── CHANGELOG.md           # 更新日志
 ├── CLAUDE.md              # Claude Code开发指南
-├── FINAL_OPTIMIZATION_REPORT.md  # 最终优化报告
 ├── config/
 │   └── config.py          # 配置文件
 ├── agents/                # 智能体定义
@@ -67,7 +65,12 @@ BioCrew/
 │   └── implementation_plan_generation_task.py  # 实施方案生成任务
 ├── tools/                 # 自定义工具
 │   ├── evaluation_tool.py                     # 评价工具
-│   ├── unified_data_tool.py                   # 统一数据访问工具（整合了原有5个工具）
+│   ├── database_tool_factory.py               # 数据库工具工厂
+│   ├── pollutant_data_query_tool.py           # 污染物数据查询工具
+│   ├── gene_data_query_tool.py                # 基因数据查询工具
+│   ├── organism_data_query_tool.py            # 微生物数据查询工具
+│   ├── pollutant_summary_tool.py              # 污染物摘要工具
+│   ├── pollutant_search_tool.py               # 污染物搜索工具
 │   ├── envipath_tool.py                      # EnviPath数据库访问工具
 │   └── kegg_tool.py                          # KEGG数据库访问工具
 ├── data/                  # 本地数据文件
@@ -166,15 +169,15 @@ python main.py
 
 用户可以根据需求选择相应的模式。
 
-## 统一数据工具
+## 专门化数据库工具
 
-项目现在使用统一数据工具（UnifiedDataTool）替代了原有的5个本地数据工具，提供一站式数据访问服务：
+项目现在使用专门化的数据库工具替代了原有的统一数据工具，提供更精确的数据访问服务：
 
-1. **UnifiedDataTool** - 统一数据访问工具，整合了以下功能：
-   - 本地数据库访问（PostgreSQL/MySQL）
-   - 外部数据库集成（KEGG和EnviPath）
-   - 智能搜索功能
-   - 数据摘要生成
+1. **PollutantDataQueryTool** - 查询指定污染物的所有相关数据
+2. **GeneDataQueryTool** - 查询指定污染物的基因数据
+3. **OrganismDataQueryTool** - 查询指定污染物的微生物数据
+4. **PollutantSummaryTool** - 获取指定污染物的摘要统计信息
+5. **PollutantSearchTool** - 根据关键字搜索污染物
 
 ## 公开数据库工具
 
@@ -197,7 +200,7 @@ python main.py
 - [x] 优化项目结构和注释：移除冗余文件，整理测试文件，简化数据目录结构，增强注释
 - [x] 增强工具调用功能：实现多元化数据源调用，支持数据完整性评估和外部数据库查询
 - [x] 增强功能微生物识别Agent：集成数据输出协调器，提供更好的工具协调和数据输出功能
-- [x] 工具整合优化：将原有的5个本地数据工具整合为1个统一数据工具，简化工具调用逻辑
+- [x] 工具整合优化：将原有的统一数据工具重构为多个专门化的工具，提高工具的精确性和可维护性
 - [x] 智能体backstory精简：大幅精简智能体backstory内容，提高代码可读性和维护性
 - [x] 清理冗余文件：删除了多个版本的工具文件和冗余测试文件，使项目更加简洁
 
