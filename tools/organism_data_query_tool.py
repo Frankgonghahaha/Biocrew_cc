@@ -11,6 +11,7 @@ from typing import Dict, Any, List, Optional
 import requests
 import json
 from pydantic import BaseModel, Field
+from tools.pollutant_name_utils import standardize_pollutant_name
 
 
 class OrganismDataQueryInput(BaseModel):
@@ -67,6 +68,9 @@ class OrganismDataQueryTool(BaseTool):
             dict: 微生物数据
         """
         try:
+            # 标准化污染物名称
+            standardized_name = standardize_pollutant_name(pollutant_name)
+            
             with self.db_engine.connect() as connection:
                 if organism_type:
                     result = connection.execute(text("""
@@ -76,7 +80,7 @@ class OrganismDataQueryTool(BaseTool):
                         AND organism_type = :organism_type
                         LIMIT 50
                     """), {
-                        "pollutant_name": pollutant_name.lower().replace(' ', '_'),
+                        "pollutant_name": standardized_name,
                         "organism_type": organism_type
                     })
                 else:
@@ -85,7 +89,7 @@ class OrganismDataQueryTool(BaseTool):
                         FROM organism_data
                         WHERE pollutant_name = :pollutant_name
                         LIMIT 50
-                    """), {"pollutant_name": pollutant_name.lower().replace(' ', '_')})
+                    """), {"pollutant_name": standardized_name})
                 
                 # 转换为字典列表
                 columns = result.keys()

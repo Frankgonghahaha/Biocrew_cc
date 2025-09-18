@@ -11,6 +11,7 @@ from typing import Dict, Any, List, Optional
 import requests
 import json
 from pydantic import BaseModel, Field
+from tools.pollutant_name_utils import generate_pollutant_name_variants
 
 
 class PollutantSearchInput(BaseModel):
@@ -65,35 +66,45 @@ class PollutantSearchTool(BaseTool):
             dict: 搜索结果
         """
         try:
+            # 生成关键词的多种变体
+            keyword_variants = generate_pollutant_name_variants(keyword)
+            
             with self.db_engine.connect() as connection:
-                # 搜索基因数据中的污染物
-                gene_result = connection.execute(text("""
-                    SELECT DISTINCT pollutant_name
-                    FROM genes_data
-                    WHERE pollutant_name ILIKE :keyword
-                    LIMIT 20
-                """), {"keyword": f"%{keyword}%"})
+                all_pollutants = set()
                 
-                gene_pollutants = [row[0] for row in gene_result.fetchall()]
+                # 对每个变体进行搜索
+                for variant in keyword_variants:
+                    # 搜索基因数据中的污染物
+                    gene_result = connection.execute(text("""
+                        SELECT DISTINCT pollutant_name
+                        FROM genes_data
+                        WHERE pollutant_name ILIKE :keyword
+                        LIMIT 20
+                    """), {"keyword": f"%{variant}%"})
+                    
+                    gene_pollutants = [row[0] for row in gene_result.fetchall()]
+                    all_pollutants.update(gene_pollutants)
+                    
+                    # 搜索微生物数据中的污染物
+                    organism_result = connection.execute(text("""
+                        SELECT DISTINCT pollutant_name
+                        FROM organism_data
+                        WHERE pollutant_name ILIKE :keyword
+                        LIMIT 20
+                    """), {"keyword": f"%{variant}%"})
+                    
+                    organism_pollutants = [row[0] for row in organism_result.fetchall()]
+                    all_pollutants.update(organism_pollutants)
                 
-                # 搜索微生物数据中的污染物
-                organism_result = connection.execute(text("""
-                    SELECT DISTINCT pollutant_name
-                    FROM organism_data
-                    WHERE pollutant_name ILIKE :keyword
-                    LIMIT 20
-                """), {"keyword": f"%{keyword}%"})
-                
-                organism_pollutants = [row[0] for row in organism_result.fetchall()]
-                
-                # 合并结果并去重
-                all_pollutants = list(set(gene_pollutants + organism_pollutants))
+                # 转换为列表
+                pollutants_list = list(all_pollutants)
                 
                 return {
                     "status": "success",
                     "keyword": keyword,
-                    "pollutants": all_pollutants,
-                    "count": len(all_pollutants)
+                    "variants_searched": keyword_variants[:5],  # 只显示前5个变体
+                    "pollutants": pollutants_list,
+                    "count": len(pollutants_list)
                 }
                 
         except Exception as e:

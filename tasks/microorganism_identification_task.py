@@ -46,6 +46,7 @@ class MicroorganismIdentificationTask:
         #    - 或者：pollutant_summary_tool._run({"pollutant_name": "翻译后的标准污染物名称"})
         #    - 重要：pollutant_name参数是必填的，必须明确指定翻译后的标准污染物名称
         #    - 重要：必须使用双引号，不能使用单引号
+        #    - 注意：系统现在支持自动标准化污染物名称格式，可以使用连字符、空格或下划线等不同格式
         # 2. 当某些类型的数据缺失时（如只有微生物数据而无基因数据），应基于现有数据继续分析并明确指出数据缺失情况
         # 3. 利用外部数据库工具(EnviPath、KEGG等)获取补充信息以完善分析
         #    - EnviPath使用方式：envipath_tool._run({"operation": "search_compound", "compound_name": "翻译后的标准化合物名称"})
