@@ -55,6 +55,7 @@ BioCrew/
 │   ├── TASKS.md           # 任务详细说明
 │   └── TESTS.md           # 测试详细说明
 ├── tests/                 # 测试文件
+│   ├── test_Agent_Search.py               # Agent搜索测试
 │   └── test_database_query_user_input.py  # 数据库查询测试（支持用户输入）
 ├── config/
 │   └── config.py          # 配置文件
