@@ -45,7 +45,6 @@
 
 ```
 BioCrew/
-├── docs/                   # 技术文档和报告
 ├── main.py                 # 主程序入口
 ├── requirements.txt        # 项目依赖
 ├── .env.example           # 环境变量配置示例
@@ -54,7 +53,6 @@ BioCrew/
 ├── FINAL_OPTIMIZATION_REPORT.md  # 最终优化报告
 ├── config/
 │   └── config.py          # 配置文件
-├── docs/                   # 技术文档和报告
 ├── agents/                # 智能体定义
 │   ├── task_coordination_agent.py              # 任务协调专家
 │   ├── engineering_microorganism_identification_agent.py  # 工程微生物组识别专家
@@ -75,18 +73,6 @@ BioCrew/
 ├── data/                  # 本地数据文件
 │   ├── Genes/             # 基因数据文件
 │   └── Organism/          # 微生物数据文件
-├── tests/                 # 测试文件
-│   ├── test_agent_tool_coordination.py       # Agent工具协调测试
-│   ├── test_agent_tool_integration.py        # Agent工具集成测试
-│   ├── test_data_output_coordinator.py       # 数据输出协调器测试
-│   ├── test_microorganism_identification_with_user_input.py  # 用户输入处理测试
-│   └── tests/                                # 核心Agent测试
-│       ├── test_engineering_microorganism_identification_agent.py
-│       ├── test_implementation_plan_generation_agent.py
-│       ├── test_knowledge_management_agent.py
-│       ├── test_microbial_agent_design_agent.py
-│       ├── test_microbial_agent_evaluation_agent.py
-│       └── test_task_coordination_agent.py
 └── models/                # 模型配置（待完善）
 ```
 
@@ -179,29 +165,6 @@ python main.py
 2. 自主选择模式（智能体根据情况自主选择）
 
 用户可以根据需求选择相应的模式。
-
-### 运行测试
-
-项目包含了全面的测试文件，可以单独运行测试：
-
-```bash
-# 运行所有测试
-python -m pytest tests/
-
-# 运行特定测试文件
-python tests/test_agent_tool_coordination.py
-python tests/test_agent_tool_integration.py
-python tests/test_data_output_coordinator.py
-python tests/test_microorganism_identification_with_user_input.py
-
-# 运行核心Agent测试
-python tests/tests/test_engineering_microorganism_identification_agent.py
-python tests/tests/test_task_coordination_agent.py
-python tests/tests/test_implementation_plan_generation_agent.py
-python tests/tests/test_knowledge_management_agent.py
-python tests/tests/test_microbial_agent_design_agent.py
-python tests/tests/test_microbial_agent_evaluation_agent.py
-```
 
 ## 统一数据工具
 

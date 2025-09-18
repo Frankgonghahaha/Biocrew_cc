@@ -49,22 +49,9 @@ python3 -m py_compile main.py
 find . -name "*.py" -exec python3 -m py_compile {} \;
 ```
 
-### Testing
-```bash
-# Run specific test files (note: some tests require proper data directory structure)
-python3 tests/test_data_output_coordinator.py
-python3 tests/test_agent_tool_coordination.py
-python3 tests/test_agent_tool_integration.py
-python3 tests/test_microorganism_identification_with_user_input.py
-
-# Run all tests in the tests/tests directory
-python3 -m pytest tests/tests/
-```
-
 ## Project Structure
 ```
 BioCrew/
-├── docs/                   # Technical documentation and reports
 ├── main.py                 # Main entry point (fully implemented)
 ├── requirements.txt        # Project dependencies
 ├── .env.example           # Environment variable configuration example
@@ -72,7 +59,6 @@ BioCrew/
 ├── FINAL_OPTIMIZATION_REPORT.md  # Final optimization report
 ├── config/
 │   └── config.py          # Configuration file (fully implemented)
-├── docs/                   # Technical documentation and reports
 ├── agents/                # Agent definitions (fully implemented with TODOs for core algorithms)
 │   ├── task_coordination_agent.py
 │   ├── engineering_microorganism_identification_agent.py  # Enhanced version with improved tool coordination
@@ -93,18 +79,6 @@ BioCrew/
 ├── data/                  # Local data files (Genes and Organism directories)
 │   ├── Genes/             # 22 gene data files for different pollutants
 │   └── Organism/          # 33 organism data files for different pollutants
-├── tests/                 # Test files for all components
-│   ├── test_data_output_coordinator.py  # Tests for data output coordinator
-│   ├── test_agent_tool_coordination.py  # Tests for agent tool coordination
-│   ├── test_agent_tool_integration.py   # Tests for agent tool integration
-│   ├── test_microorganism_identification_with_user_input.py  # Tests for agent with user input processing
-│   └── tests/                           # Core agent tests
-│       ├── test_engineering_microorganism_identification_agent.py
-│       ├── test_implementation_plan_generation_agent.py
-│       ├── test_knowledge_management_agent.py
-│       ├── test_microbial_agent_design_agent.py
-│       ├── test_microbial_agent_evaluation_agent.py
-│       └── test_task_coordination_agent.py
 └── models/                # Model configurations (to be completed)
 ```
 
@@ -164,7 +138,6 @@ The system integrates with external databases through the following tools:
 - Shared functionality should be implemented in the `tools/` directory
 - Configuration is managed through the `config/` directory
 - Local data is stored in the `data/` directory
-- Tests are located in the `tests/` directory
 
 ### Tool Structure
 All tools follow a consistent pattern:
@@ -194,67 +167,6 @@ Tasks follow a consistent pattern:
 3. Register new agents and tasks in `main.py`
 4. Update the Crew configuration in `main.py` to include new agents and tasks
 5. For data access functionality, implement new tools in the `tools/` directory
-6. Add corresponding test files in the `tests/` directory
-
-### Testing
-The project includes several test files for validating functionality:
-1. `tests/test_data_output_coordinator.py` - Tests for data output coordinator
-2. `tests/test_agent_tool_coordination.py` - Tests for agent tool coordination
-3. `tests/test_agent_tool_integration.py` - Tests for agent tool integration
-4. `tests/test_microorganism_identification_with_user_input.py` - Tests for agent with user input processing
-5. `tests/tests/test_engineering_microorganism_identification_agent.py` - Core unit tests for the identification agent
-6. `tests/tests/test_task_coordination_agent.py` - Tests for task coordination agent
-7. `tests/tests/test_implementation_plan_generation_agent.py` - Tests for implementation plan generation agent
-8. `tests/tests/test_knowledge_management_agent.py` - Tests for knowledge management agent
-9. `tests/tests/test_microbial_agent_design_agent.py` - Tests for microbial agent design agent
-10. `tests/tests/test_microbial_agent_evaluation_agent.py` - Tests for microbial agent evaluation agent
-
-#### Task Coordination Improvements
-The task coordination functionality has been enhanced with improved decision-making logic to prevent infinite loops and repetitive task delegation:
-1. Added clear decision guidelines to the TaskCoordinationAgent backstory
-2. Implemented loop detection and prevention mechanisms
-3. Enhanced context-aware decision making
-4. Added specific termination conditions for repeated task failures
-
-#### Running Tests
-To run all tests:
-```bash
-# Run all test files
-python3 -m pytest tests/
-
-# Or run individual test files
-python3 tests/test_data_output_coordinator.py
-python3 tests/test_agent_tool_coordination.py
-python3 tests/test_agent_tool_integration.py
-python3 tests/test_microorganism_identification_with_user_input.py
-
-# Run core agent tests
-python3 tests/tests/test_engineering_microorganism_identification_agent.py
-python3 tests/tests/test_task_coordination_agent.py
-python3 tests/tests/test_implementation_plan_generation_agent.py
-python3 tests/tests/test_knowledge_management_agent.py
-python3 tests/tests/test_microbial_agent_design_agent.py
-python3 tests/tests/test_microbial_agent_evaluation_agent.py
-```
-
-#### Test Data Requirements
-Note: Some tests may require the proper data directory structure to run successfully. The data files should be located in `data/Genes` and `data/Organism` directories. The system currently contains:
-- 22 gene data files for different pollutants in `data/Genes/`
-- 33 organism data files for different pollutants in `data/Organism/`
-
-#### Creating New Tests
-When adding new functionality:
-1. Create a new test file in the `tests/` directory following the naming pattern `test_*.py`
-2. Use the same project root setup pattern as existing tests:
-   ```python
-   import sys
-   import os
-   project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-   os.chdir(project_root)
-   sys.path.append(project_root)
-   ```
-3. Write tests that verify the specific functionality of your new features
-4. Run existing tests to ensure no regressions were introduced
 
 ## Recent Architecture Optimization
 
