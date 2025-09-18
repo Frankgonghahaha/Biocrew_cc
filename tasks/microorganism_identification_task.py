@@ -16,28 +16,40 @@ class MicroorganismIdentificationTask:
         
         识别步骤：
         # 1. 分析水质净化目标（水质治理指标+目标污染物）
-        # 2. 使用专门的数据查询工具查询相关基因和微生物数据
-        # 3. 从公开数据库（Web of Science、HydroWASTE、KEGG、NCBI、EnviPath）获取补充领域知识
-        # 4. 使用EnviPath工具查询环境化合物代谢路径信息
-        # 5. 使用KEGG工具查询pathway、ko、genome、reaction、enzyme、genes等生物代谢信息
-        # 6. 调用Tool_api工具拉取基因组/酶序列数据
-        # 7. 使用Tool_Carveme工具将基因组转为代谢模型.xml文件
-        # 8. 基于微调大语言模型，按"互补指数＞竞争指数"筛选功能微生物+代谢互补微生物
+        # 2. 从用户输入中准确识别目标污染物并将其翻译为标准科学术语
+        # 3. 使用专门的数据查询工具查询相关基因和微生物数据
+        # 4. 从公开数据库（Web of Science、HydroWASTE、KEGG、NCBI、EnviPath）获取补充领域知识
+        # 5. 使用EnviPath工具查询环境化合物代谢路径信息
+        # 6. 使用KEGG工具查询pathway、ko、genome、reaction、enzyme、genes等生物代谢信息
+        # 7. 调用Tool_api工具拉取基因组/酶序列数据
+        # 8. 使用Tool_Carveme工具将基因组转为代谢模型.xml文件
+        # 9. 基于微调大语言模型，按"互补指数＞竞争指数"筛选功能微生物+代谢互补微生物
         
         # 关键公式：
         # - 竞争指数：MI_competition(A,B)=|SeedSet(A)∩SeedSet(B)|/|SeedSet(A)|
         # - 互补指数：MI_complementarity(A,B)=|SeedSet(A)∩NonSeedSet(B)|/|SeedSet(A)∩(SeedSet(B)∪NonSeedSet(B))|
         
+        # 污染物识别与翻译要求：
+        # 1. 必须从用户输入的自然语言中准确识别目标污染物
+        # 2. 将识别出的污染物名称翻译为标准科学术语，例如：
+        #    - "重金属镉" -> "Cadmium"
+        #    - "苯系化合物" -> "Benzene compounds"
+        #    - "有机磷农药" -> "Organophosphorus pesticides"
+        #    - "塑料垃圾微粒" -> "Microplastics"
+        #    - "多氯联苯" -> "Polychlorinated biphenyls"
+        # 3. 使用翻译后的标准科学术语作为pollutant_name参数调用数据查询工具
+        # 4. 在报告中同时提供原始用户输入中的污染物描述和翻译后的标准科学术语
+        
         # 数据查询指导：
         # 1. 优先使用专门的数据查询工具查询本地数据库中的具体数据
-        #    - 使用方式：pollutant_data_query_tool._run({"pollutant_name": "污染物名称", "data_type": "both"})
-        #    - 或者：pollutant_summary_tool._run({"pollutant_name": "污染物名称"})
-        #    - 重要：pollutant_name参数是必填的，必须明确指定目标污染物名称
+        #    - 使用方式：pollutant_data_query_tool._run({"pollutant_name": "翻译后的标准污染物名称", "data_type": "both"})
+        #    - 或者：pollutant_summary_tool._run({"pollutant_name": "翻译后的标准污染物名称"})
+        #    - 重要：pollutant_name参数是必填的，必须明确指定翻译后的标准污染物名称
         #    - 重要：必须使用双引号，不能使用单引号
         # 2. 当某些类型的数据缺失时（如只有微生物数据而无基因数据），应基于现有数据继续分析并明确指出数据缺失情况
         # 3. 利用外部数据库工具(EnviPath、KEGG等)获取补充信息以完善分析
-        #    - EnviPath使用方式：envipath_tool._run({"operation": "search_compound", "compound_name": "化合物名称"})
-        #    - KEGG使用方式：kegg_tool._run({"operation": "find_entries", "database": "genes", "keywords": "关键词"})
+        #    - EnviPath使用方式：envipath_tool._run({"operation": "search_compound", "compound_name": "翻译后的标准化合物名称"})
+        #    - KEGG使用方式：kegg_tool._run({"operation": "find_entries", "database": "genes", "keywords": "翻译后的标准关键词"})
         # 4. 在最终报告中明确体现查询到的微生物名称、基因数据等具体内容，不能仅依赖预训练知识
         # 5. 提供数据完整性和可信度的评估，明确指出哪些数据可用，哪些数据缺失
         """
