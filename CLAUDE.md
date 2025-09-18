@@ -62,21 +62,23 @@ BioCrew/
 │   ├── TASKS.md           # Task detailed documentation
 │   └── TESTS.md           # Test detailed documentation
 ├── tests/                 # Test files
+│   ├── test_Agent_Search.py               # Agent search test
 │   └── test_database_query_user_input.py  # Database query test with user input
 ├── config/
 │   └── config.py          # Configuration file (fully implemented)
 ├── agents/                # Agent definitions (fully implemented with TODOs for core algorithms)
-│   ├── task_coordination_agent.py
-│   ├── engineering_microorganism_identification_agent.py  # Enhanced version with improved tool coordination
-│   ├── microbial_agent_design_agent.py
-│   ├── microbial_agent_evaluation_agent.py
-│   ├── implementation_plan_generation_agent.py
-│   └── knowledge_management_agent.py
+│   ├── task_coordination_agent.py              # Task coordination agent
+│   ├── engineering_microorganism_identification_agent.py  # Engineering microorganism identification agent
+│   ├── microbial_agent_design_agent.py         # Microbial agent design agent
+│   ├── microbial_agent_evaluation_agent.py     # Microbial agent evaluation agent
+│   ├── implementation_plan_generation_agent.py  # Implementation plan generation agent
+│   └── knowledge_management_agent.py           # Knowledge management agent
 ├── tasks/                 # Task definitions (fully implemented with TODOs for core algorithms)
-│   ├── microorganism_identification_task.py
-│   ├── microbial_agent_design_task.py
-│   ├── microbial_agent_evaluation_task.py
-│   └── implementation_plan_generation_task.py
+│   ├── microorganism_identification_task.py    # Microorganism identification task
+│   ├── microbial_agent_design_task.py          # Microbial agent design task
+│   ├── microbial_agent_evaluation_task.py      # Microbial agent evaluation task
+│   ├── implementation_plan_generation_task.py  # Implementation plan generation task
+│   └── task_coordination_task.py               # Task coordination task
 ├── tools/                 # Custom tools (partially implemented)
 │   ├── evaluation_tool.py
 │   ├── database_tool_factory.py           # Factory for creating database tools
@@ -88,9 +90,6 @@ BioCrew/
 │   ├── pollutant_name_utils.py            # Utility functions for pollutant name standardization
 │   ├── envipath_tool.py                  # EnviPath database access tool
 │   └── kegg_tool.py                      # KEGG database access tool
-├── data/                  # Local data files (Genes and Organism directories)
-│   ├── Genes/             # 22 gene data files for different pollutants
-│   └── Organism/          # 33 organism data files for different pollutants
 └── models/                # Model configurations (to be completed)
 ```
 

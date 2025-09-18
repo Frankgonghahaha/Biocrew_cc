@@ -180,6 +180,9 @@ Thumbs.db
 # Log files
 *.log
 
+# Data files (specific to this project)
+data/
+
 
 # Example files (specific to this project)
 *_example.py
