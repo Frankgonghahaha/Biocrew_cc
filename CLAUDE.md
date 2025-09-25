@@ -250,3 +250,14 @@ The system has undergone significant optimization to simplify the architecture a
 - Enhanced database tools with better error handling and data validation
 - Added pollutant name standardization utilities for improved database query accuracy
 - Implemented more robust database connection management
+
+### KEGG Tool Optimization
+- Added timeout mechanisms to prevent long waits during KEGG database queries
+- Implemented data size limitations to avoid exceeding model input limits
+- Enhanced error handling and recovery mechanisms for improved reliability
+- Optimized smart_query method for automatic handling of complex query logic
+
+### Agent Performance Improvements
+- Optimized Agent tool calling strategies to require comprehensive use of all available tools
+- Strengthened data annotation requirements to clearly distinguish between direct query results and comprehensive analysis conclusions
+- Standardized output formats to require specific data sources and confidence assessments
