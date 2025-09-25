@@ -23,6 +23,7 @@ class ListEntriesRequest(BaseModel):
 class FindEntriesRequest(BaseModel):
     database: str = Field(..., description="数据库名称")
     keywords: str = Field(..., description="搜索关键词")
+    limit: int = Field(50, description="返回结果的最大数量")
 
 
 class GetEntryRequest(BaseModel):
@@ -52,9 +53,25 @@ class SearchEnzymesByCompoundRequest(BaseModel):
     compound_id: str = Field(..., description="化合物ID")
 
 
+class KeggToolInput(BaseModel):
+    """KEGG工具输入参数"""
+    database: Optional[str] = Field(None, description="数据库名称 (pathway, ko, genome, reaction, enzyme, genes, compound)")
+    keywords: Optional[str] = Field(None, description="搜索关键词")
+    entry_id: Optional[str] = Field(None, description="条目ID")
+    target_db: Optional[str] = Field(None, description="目标数据库")
+    source_db_entries: Optional[str] = Field(None, description="源数据库条目")
+    source_ids: Optional[str] = Field(None, description="源ID")
+    compound_id: Optional[str] = Field(None, description="化合物ID")
+    pathway_id: Optional[str] = Field(None, description="pathway ID")
+    format_type: Optional[str] = Field("json", description="返回格式")
+    organism: Optional[str] = Field(None, description="物种代码")
+    limit: Optional[int] = Field(5, description="返回结果的最大数量")
+
+
 class KeggTool(BaseTool):
     name: str = "KeggTool"
     description: str = "用于查询pathway、ko、genome、reaction、enzyme、genes等生物代谢信息"
+    args_schema: type[BaseModel] = KeggToolInput
     
     def __init__(self, base_url: str = "https://rest.kegg.jp"):
         """
@@ -80,12 +97,13 @@ class KeggTool(BaseTool):
         """
         try:
             # 简化参数处理，直接使用kwargs
-            if "database" in kwargs and "organism" in kwargs:
+            # 注意：需要检查参数值是否为None，避免错误匹配
+            if "database" in kwargs and "organism" in kwargs and kwargs.get("organism") is not None:
                 return self.list_entries(kwargs["database"], kwargs.get("organism"))
             elif "database" in kwargs and "keywords" in kwargs:
-                return self.find_entries(kwargs["database"], kwargs["keywords"])
+                return self.find_entries(kwargs["database"], kwargs["keywords"], kwargs.get("limit", 5))
             elif "entry_id" in kwargs:
-                return self.get_entry(kwargs["entry_id"], kwargs.get("format_type", "json"))
+                return self.get_entry(kwargs["entry_id"], kwargs.get("format_type"))
             elif "target_db" in kwargs and "source_db_entries" in kwargs:
                 return self.link_entries(kwargs["target_db"], kwargs["source_db_entries"])
             elif "target_db" in kwargs and "source_ids" in kwargs:
@@ -185,13 +203,14 @@ class KeggTool(BaseTool):
                 "database": database
             }
     
-    def find_entries(self, database: str, keywords: str) -> Dict:
+    def find_entries(self, database: str, keywords: str, limit: int = 5) -> Dict:
         """
         根据关键词搜索条目
         
         Args:
             database (str): 数据库名称
             keywords (str): 搜索关键词
+            limit (int): 返回结果的最大数量，默认50
             
         Returns:
             dict: 搜索结果
@@ -204,10 +223,10 @@ class KeggTool(BaseTool):
             response = self.session.get(url)
             response.raise_for_status()
             
-            # 解析返回的文本数据
+            # 解析返回的文本数据，限制返回数量
             entries = []
             for line in response.text.strip().split('\n'):
-                if line:
+                if line and len(entries) < limit:
                     parts = line.split('\t')
                     if len(parts) >= 2:
                         entries.append({
@@ -225,7 +244,8 @@ class KeggTool(BaseTool):
                 "data": entries,
                 "database": database,
                 "keyword": keywords.replace('+', ' '),
-                "count": len(entries)
+                "count": len(entries),
+                "limit": limit
             }
         except Exception as e:
             return {
@@ -235,19 +255,22 @@ class KeggTool(BaseTool):
                 "keyword": keywords.replace('+', ' ') if 'keywords' in locals() else ""
             }
     
-    def get_entry(self, entry_id: str, format_type: str = "json") -> Dict:
+    def get_entry(self, entry_id: str, format_type: str = None) -> Dict:
         """
         获取特定条目的详细信息
         
         Args:
             entry_id (str): 条目ID (如 hsa:10458)
-            format_type (str): 返回格式 (json, aaseq, ntseq等)
+            format_type (str): 返回格式 (json, aaseq, ntseq等)，默认为None表示基本格式
             
         Returns:
             dict: 条目详细信息
         """
         try:
-            url = f"{self.base_url}/get/{entry_id}/{format_type}"
+            if format_type:
+                url = f"{self.base_url}/get/{entry_id}/{format_type}"
+            else:
+                url = f"{self.base_url}/get/{entry_id}"
             response = self.session.get(url)
             response.raise_for_status()
             
@@ -255,14 +278,14 @@ class KeggTool(BaseTool):
                 "status": "success",
                 "data": response.text,
                 "entry_id": entry_id,
-                "format": format_type
+                "format": format_type or "default"
             }
         except Exception as e:
             return {
                 "status": "error",
                 "message": str(e),
                 "entry_id": entry_id,
-                "format": format_type
+                "format": format_type or "default"
             }
     
     def link_entries(self, target_db: str, source_db_entries: str) -> Dict:

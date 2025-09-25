@@ -15,7 +15,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from config.config import Config
-from crewai import Crew, Process, Agent, Task
+from crewai import Crew, Process, Task
+from crewai.agent import Agent
 from langchain_openai import ChatOpenAI
 import dashscope
 
@@ -70,6 +71,18 @@ def test_natural_language_input():
     # 获取用户输入
     print("\n=== 用户自定义输入测试 ===")
     user_input = get_user_input()
+    # 如果用户没有输入，则使用预设的测试案例
+    # if not user_input.strip():
+    #     print("未输入自定义需求，使用预设测试案例...")
+    #     natural_language_inputs = [
+    #         "处理含有重金属镉的工业废水",
+    #         "治理被苯系化合物污染的河水",
+    #         "去除生活污水中的有机磷农药",
+    #         "降解海洋中的塑料垃圾微粒",
+    #         "处理含有多氯联苯的电子废弃物废水"
+    #     ]
+    #     # 只测试第一个案例
+    #     user_input = natural_language_inputs[0]
     
     # 如果用户没有输入，则使用预设的测试案例
     if not user_input.strip():
@@ -89,18 +102,24 @@ def test_natural_language_input():
     # 创建任务
     print("  创建任务...")
     try:
+        # 构建任务描述，避免f-string中的引号问题
+        task_description = """
+        请分析处理含有特定污染物的污水的需求，并使用数据查询工具查询相关数据：
+        用户输入: """ + user_input + """
+        
+        请严格按照以下步骤执行：
+        1. 从用户输入中识别目标污染物并将其翻译为标准科学术语
+        2. 使用PollutantDataQueryTool查询相关数据
+        3. 如本地数据不足，优先使用EnviPathTool查询环境代谢路径信息
+        4. 如EnviPathTool返回路径信息，使用路径ID查询详细信息
+        5. 如EnviPathTool无结果，再使用KeggTool查询外部数据库补充信息（注意控制返回结果数量，limit设置为3-5）
+        6. 分析查询到的数据
+        7. 生成包含具体数据的报告
+        8. 在报告中明确说明原始污染物描述和翻译后的标准科学术语
+        """
+        
         task = Task(
-            description=f"""
-            请分析处理含有特定污染物的污水的需求，并使用数据查询工具查询相关数据：
-            用户输入: {user_input}
-            
-            请严格按照以下步骤执行：
-            1. 从用户输入中识别目标污染物并将其翻译为标准科学术语
-            2. 使用PollutantDataQueryTool查询相关数据
-            3. 分析查询到的数据
-            4. 生成包含具体数据的报告
-            5. 在报告中明确说明原始污染物描述和翻译后的标准科学术语
-            """,
+            description=task_description,
             expected_output="""
             提供一个分析报告，必须包含以下内容：
             1. 识别的原始污染物描述
@@ -108,6 +127,9 @@ def test_natural_language_input():
             3. 查询到的具体基因数据（如果有）
             4. 查询到的具体微生物数据（如果有）
             5. 数据完整性和可信度评估
+            6. 全基因组信息获取判断
+            7. 生长环境评估
+            8. 降解效果分析
             """,
             agent=agent,
             verbose=True
