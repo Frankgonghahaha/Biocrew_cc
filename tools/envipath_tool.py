@@ -8,7 +8,7 @@ EnviPath数据库访问工具
 from crewai.tools import BaseTool
 from enviPath_python import enviPath
 import json
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any
 from pydantic import BaseModel, Field
 
 
@@ -28,9 +28,18 @@ class SearchPathwaysByKeywordRequest(BaseModel):
     keyword: str = Field(..., description="搜索关键词")
 
 
+class EnviPathToolInput(BaseModel):
+    """EnviPath工具输入参数"""
+    compound_name: Optional[str] = Field(None, description="化合物名称")
+    pathway_id: Optional[str] = Field(None, description="pathway ID")
+    compound_id: Optional[str] = Field(None, description="化合物ID")
+    keyword: Optional[str] = Field(None, description="搜索关键词")
+
+
 class EnviPathTool(BaseTool):
     name: str = "EnviPathTool"
     description: str = "用于查询环境pathway数据和化合物代谢信息，基于enviPath-python库实现"
+    args_schema: type[BaseModel] = EnviPathToolInput
     
     def __init__(self, base_url: str = "https://envipath.org"):
         """
@@ -102,13 +111,20 @@ class EnviPathTool(BaseTool):
             compound_name (str): 化合物名称
             
         Returns:
-            dict: 化合物搜索结果
+            dict: 化合物搜索结果（已限制数据量）
         """
         try:
             client = object.__getattribute__(self, 'client')
             package = client.get_package('https://envipath.org/package/32de3cf4-e3e6-4168-956e-32fa5ddb0ce1')
             result = package.search(compound_name)
-            return {"status": "success", "data": result, "query": compound_name}
+            
+            # 限制返回的数据量
+            if hasattr(result, '__len__') and len(result) > 5:
+                limited_result = result[:5]  # 最多返回5个结果
+            else:
+                limited_result = result
+                
+            return {"status": "success", "data": limited_result, "query": compound_name}
         except Exception as e:
             return {
                 "status": "error",
@@ -124,12 +140,28 @@ class EnviPathTool(BaseTool):
             pathway_id (str): pathway ID
             
         Returns:
-            dict: pathway信息
+            dict: pathway信息（已限制数据量）
         """
         try:
             client = object.__getattribute__(self, 'client')
-            pathway = client.get_pathway(pathway_id)
-            return {"status": "success", "data": pathway, "pathway_id": pathway_id}
+            # 检查pathway_id是否是完整的URL，如果不是则添加完整前缀
+            if not pathway_id.startswith('http'):
+                full_pathway_id = f"https://envipath.org/package/32de3cf4-e3e6-4168-956e-32fa5ddb0ce1/pathway/{pathway_id}"
+            else:
+                full_pathway_id = pathway_id
+            pathway = client.get_pathway(full_pathway_id)
+            
+            # 限制返回的数据量
+            # 如果pathway对象有to_json方法，则转换为JSON并限制大小
+            if hasattr(pathway, 'to_json'):
+                pathway_data = pathway.to_json()
+                # 限制字符串长度
+                if len(str(pathway_data)) > 5000:
+                    pathway_data = str(pathway_data)[:5000] + "...(数据已截断)"
+            else:
+                pathway_data = str(pathway)[:5000] + "...(数据已截断)" if len(str(pathway)) > 5000 else str(pathway)
+                
+            return {"status": "success", "data": pathway_data, "pathway_id": pathway_id}
         except Exception as e:
             return {
                 "status": "error",

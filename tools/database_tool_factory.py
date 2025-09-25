@@ -9,6 +9,8 @@ from tools.gene_data_query_tool import GeneDataQueryTool
 from tools.organism_data_query_tool import OrganismDataQueryTool
 from tools.pollutant_summary_tool import PollutantSummaryTool
 from tools.pollutant_search_tool import PollutantSearchTool
+from tools.kegg_tool import KeggTool
+from tools.envipath_tool import EnviPathTool
 
 
 class DatabaseToolFactory:
@@ -27,7 +29,9 @@ class DatabaseToolFactory:
             GeneDataQueryTool(),
             OrganismDataQueryTool(),
             PollutantSummaryTool(),
-            PollutantSearchTool()
+            PollutantSearchTool(),
+            KeggTool(),
+            EnviPathTool()
         ]
         return tools
     
@@ -47,7 +51,9 @@ class DatabaseToolFactory:
             "GeneDataQueryTool": GeneDataQueryTool,
             "OrganismDataQueryTool": OrganismDataQueryTool,
             "PollutantSummaryTool": PollutantSummaryTool,
-            "PollutantSearchTool": PollutantSearchTool
+            "PollutantSearchTool": PollutantSearchTool,
+            "KeggTool": KeggTool,
+            "EnviPathTool": EnviPathTool
         }
         
         tool_class = tool_map.get(tool_name)

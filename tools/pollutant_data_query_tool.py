@@ -104,19 +104,19 @@ class PollutantDataQueryTool(BaseTool):
             pollutant_name (str): 污染物名称
             
         Returns:
-            list: 基因数据列表
+            list: 基因数据列表（已限制数据量）
         """
         try:
             # 标准化污染物名称
             standardized_name = standardize_pollutant_name(pollutant_name)
             
             with self.db_engine.connect() as connection:
-                # 查询基因数据
+                # 查询基因数据（限制返回数量）
                 result = connection.execute(text("""
                     SELECT *
                     FROM genes_data
                     WHERE pollutant_name = :pollutant_name
-                    LIMIT 100
+                    LIMIT 10
                 """), {"pollutant_name": standardized_name})
                 
                 # 转换为字典列表
@@ -141,19 +141,19 @@ class PollutantDataQueryTool(BaseTool):
             pollutant_name (str): 污染物名称
             
         Returns:
-            list: 微生物数据列表
+            list: 微生物数据列表（已限制数据量）
         """
         try:
             # 标准化污染物名称
             standardized_name = standardize_pollutant_name(pollutant_name)
             
             with self.db_engine.connect() as connection:
-                # 查询微生物数据
+                # 查询微生物数据（限制返回数量）
                 result = connection.execute(text("""
                     SELECT *
                     FROM organism_data
                     WHERE pollutant_name = :pollutant_name
-                    LIMIT 100
+                    LIMIT 10
                 """), {"pollutant_name": standardized_name})
                 
                 # 转换为字典列表
