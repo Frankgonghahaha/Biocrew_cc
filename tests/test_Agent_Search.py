@@ -38,7 +38,7 @@ def standardize_input(input_text):
     标准化输入处理，使用与直接调用相同的标准化函数
     从用户输入中提取污染物名称并标准化
     """
-    from tools.pollutant_name_utils import standardize_pollutant_name, generate_pollutant_name_variants, generate_pollutant_name_variants
+    from tools.pollutant_name_utils import standardize_pollutant_name, generate_pollutant_name_variants
     
     # 常见的污染物关键词列表（按优先级排序）
     common_pollutants = [
@@ -67,75 +67,6 @@ def standardize_input(input_text):
     # 如果没有找到明确的污染物名称，返回原始输入
     return input_text
 
-def compare_results(agent_result, direct_result, tool_name):
-    """
-    比较Agent调用结果与直接API调用结果的一致性
-    """
-    print(f"\n=== {tool_name} 结果一致性验证 ===")
-    
-    # 检查状态
-    agent_status = agent_result.get("status", "unknown")
-    direct_status = direct_result.get("status", "unknown")
-    
-    print(f"Agent调用状态: {agent_status}")
-    print(f"直接调用状态: {direct_status}")
-    
-    if agent_status == direct_status:
-        print("✓ 状态一致")
-    else:
-        print("✗ 状态不一致")
-    
-    # 检查数据结构
-    if "data" in agent_result and "data" in direct_result:
-        agent_data = agent_result.get("data")
-        direct_data = direct_result.get("data")
-        
-        if type(agent_data) == type(direct_data):
-            print("✓ 数据类型一致")
-        else:
-            print("✗ 数据类型不一致")
-        
-        # 简单比较数据长度
-        if hasattr(agent_data, '__len__') and hasattr(direct_data, '__len__'):
-            print(f"Agent数据量: {len(agent_data)}")
-            print(f"直接调用数据量: {len(direct_data)}")
-    
-    print("=" * 40)
-
-
-def validate_result_structure(result, tool_name):
-    """
-    验证结果结构是否符合直接API调用的格式
-    """
-    print(f"\n=== {tool_name} 结果结构验证 ===")
-    
-    # 检查必需字段
-    required_fields = ["status"]
-    missing_fields = [field for field in required_fields if field not in result]
-    
-    if not missing_fields:
-        print("✓ 包含必需字段")
-    else:
-        print(f"✗ 缺少必需字段: {missing_fields}")
-    
-    # 检查status字段值
-    valid_statuses = ["success", "error", "warning"]
-    if "status" in result and result["status"] in valid_statuses:
-        print("✓ status字段值有效")
-    elif "status" in result:
-        print(f"⚠ status字段值 '{result['status']}' 不在标准值列表中")
-    else:
-        print("✗ 缺少status字段")
-    
-    # 检查data字段（如果存在）
-    if "data" in result:
-        data = result["data"]
-        if data is not None:
-            print("✓ data字段存在且不为None")
-        else:
-            print("⚠ data字段为None")
-    
-    print("=" * 40)
 
 def test_natural_language_input():
     """测试自然语言输入处理"""
@@ -288,107 +219,18 @@ def test_natural_language_input():
         if result:
             print(f"\n  ✓ 任务执行成功，Agent可以处理自然语言输入")
             
-            # 执行直接API调用以进行一致性验证
-            print("\n  === 直接API调用验证 ===")
-            # 获取标准化的污染物名称
-            pollutant_name = standardized_input
-            
-            # 直接调用PollutantDataQueryTool
-            try:
-                from tools.pollutant_data_query_tool import PollutantDataQueryTool
-                pollutant_tool = PollutantDataQueryTool()
-                direct_pollutant_result = pollutant_tool._run(pollutant_name)
-                print("  ✓ PollutantDataQueryTool直接调用成功")
-            except Exception as e:
-                print(f"  ✗ PollutantDataQueryTool直接调用失败: {e}")
-                direct_pollutant_result = {"status": "error", "message": str(e)}
-            
-            # 直接调用KeggTool
-            try:
-                from tools.kegg_tool import KeggTool
-                kegg_tool = KeggTool()
-                direct_kegg_result = kegg_tool._run(compound_name=pollutant_name)
-                print("  ✓ KeggTool直接调用成功")
-            except Exception as e:
-                print(f"  ✗ KeggTool直接调用失败: {e}")
-                direct_kegg_result = {"status": "error", "message": str(e)}
-            
-            # 直接调用EnviPathTool
-            try:
-                from tools.envipath_tool import EnviPathTool
-                envipath_tool = EnviPathTool()
-                direct_envipath_result = envipath_tool._run(compound_name=pollutant_name)
-                print("  ✓ EnviPathTool直接调用成功")
-            except Exception as e:
-                print(f"  ✗ EnviPathTool直接调用失败: {e}")
-                direct_envipath_result = {"status": "error", "message": str(e)}
-            
-            # 比较结果
-            print("\n  === 结果一致性简要分析 ===")
-            
-            # 检查Agent结果的数据结构
-            agent_data = None
-            if hasattr(result, 'pydantic') and result.pydantic:
-                agent_data = result.pydantic
-            elif hasattr(result, 'raw') and result.raw:
-                # 可以尝试解析原始数据
-                import json
-                try:
-                    agent_data = json.loads(result.raw)
-                except:
-                    agent_data = result.raw
-            else:
-                agent_data = str(result)
-            
-            # 简要比较状态一致性
-            print("  工具调用状态对比:")
-            if 'direct_pollutant_result' in locals():
-                agent_status = "unknown"
-                if isinstance(agent_data, dict) and "data" in agent_data and isinstance(agent_data["data"], dict):
-                    for tool_result in agent_data["data"].get("tools_results", []):
-                        if tool_result.get("tool_name") == "PollutantDataQueryTool":
-                            agent_status = tool_result.get("result", {}).get("status", "unknown")
-                            break
-                direct_status = direct_pollutant_result.get("status", "unknown")
-                status_match = "✓" if agent_status == direct_status else "✗"
-                print(f"    PollutantDataQueryTool: Agent({agent_status}) vs Direct({direct_status}) {status_match}")
-            
-            if 'direct_kegg_result' in locals():
-                agent_status = "unknown"
-                if isinstance(agent_data, dict) and "data" in agent_data and isinstance(agent_data["data"], dict):
-                    for tool_result in agent_data["data"].get("tools_results", []):
-                        if tool_result.get("tool_name") == "KeggTool":
-                            agent_status = tool_result.get("result", {}).get("status", "unknown")
-                            break
-                direct_status = direct_kegg_result.get("status", "unknown")
-                status_match = "✓" if agent_status == direct_status else "✗"
-                print(f"    KeggTool: Agent({agent_status}) vs Direct({direct_status}) {status_match}")
-            
-            if 'direct_envipath_result' in locals():
-                agent_status = "unknown"
-                if isinstance(agent_data, dict) and "data" in agent_data and isinstance(agent_data["data"], dict):
-                    for tool_result in agent_data["data"].get("tools_results", []):
-                        if tool_result.get("tool_name") == "EnviPathTool":
-                            agent_status = tool_result.get("result", {}).get("status", "unknown")
-                            break
-                direct_status = direct_envipath_result.get("status", "unknown")
-                status_match = "✓" if agent_status == direct_status else "✗"
-                print(f"    EnviPathTool: Agent({agent_status}) vs Direct({direct_status}) {status_match}")
-            
-            # 简要展示结果
+            # 显示关键信息
             print("\n  === 关键结果摘要 ===")
-            if isinstance(agent_data, dict) and "data" in agent_data:
-                print(f"  标准化污染物名称: {agent_data['data'].get('pollutant_standardized', 'N/A')}")
-                if "analysis_summary" in agent_data["data"]:
-                    summary = agent_data["data"]["analysis_summary"]
-                    if "microbe_data" in summary and summary["microbe_data"].get("found"):
-                        print("  推荐功能微生物:")
-                        for microbe in summary["microbe_data"]["found"]:
-                            print(f"    - {microbe.get('species', 'N/A')} (置信度: {microbe.get('confidence', 'N/A')})")
-                    if "gene_data" in summary:
-                        print(f"  基因数据可用性: {'是' if summary['gene_data'].get('found') else '否'}")
-                    if "genomic_info" in summary:
-                        print(f"  基因组信息可用性: {'是' if summary['genomic_info'].get('available') else '否'}")
+            print(f"  标准化污染物名称: {standardized_input}")
+            
+            # 显示Agent执行结果的关键信息
+            if hasattr(result, 'raw') and result.raw:
+                print("  Agent执行结果摘要:")
+                # 只显示前500个字符，避免输出过长
+                result_str = str(result.raw)[:500]
+                print(f"    {result_str}")
+                if len(str(result.raw)) > 500:
+                    print("    ... (结果已截断)")
             
             print("  ✓ 结果验证完成")
         else:
