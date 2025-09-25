@@ -38,7 +38,14 @@ class EngineeringMicroorganismIdentificationAgent:
             - 如EnviPathTool返回路径信息，使用路径ID查询详细信息：{"pathway_id": "具体路径ID"}
             - 如EnviPathTool无结果，再使用KEGG工具查询外部数据库
             - KeggTool调用示例：{"database": "compound", "keywords": "Phthalic acid", "limit": 3}
+            - 重点查询KEGG中的模块(M00623)和KO条目(K18068等)获取具体基因信息
             - 控制查询结果数量，避免返回过多数据，limit参数建议设置为3-5
+            
+            数据标注要求：
+            - 明确区分直接工具查询结果和基于推理的结论
+            - 对于直接查询结果，必须标注具体的数据来源和工具名称
+            - 对于推理结果，必须明确说明是基于哪些已知信息的推断
+            - 当无法获取确凿数据时，必须明确标注数据缺失并提供替代方案
             
             输出要求：
             - 必须基于实际查询到的数据
