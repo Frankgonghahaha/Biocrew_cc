@@ -1,71 +1,65 @@
-#!/usr/bin/env python3
-"""
-功能微生物组识别智能体
-负责根据水质净化目标筛选功能微生物和代谢互补微生物
-"""
+from crewai import Agent
+from config.config import Config
+from tools.pollutant_data_query_tool import PollutantDataQueryTool
+from tools.gene_data_query_tool import GeneDataQueryTool
+from tools.organism_data_query_tool import OrganismDataQueryTool
+from tools.pollutant_summary_tool import PollutantSummaryTool
+from tools.pollutant_search_tool import PollutantSearchTool
+from tools.kegg_tool import KeggTool
+from tools.envipath_tool import EnviPathTool
+
 
 class EngineeringMicroorganismIdentificationAgent:
+    """工程微生物组识别智能体"""
+    
     def __init__(self, llm):
         self.llm = llm
     
     def create_agent(self):
-        from crewai import Agent
+        """
+        创建工程微生物组识别智能体
+        """
+        # 初始化工具
+        tools = [
+            PollutantDataQueryTool(),
+            GeneDataQueryTool(),
+            OrganismDataQueryTool(),
+            PollutantSummaryTool(),
+            PollutantSearchTool(),
+            KeggTool(),
+            EnviPathTool()
+        ]
         
-        # 导入专门的数据查询工具
-        try:
-            from tools.database_tool_factory import DatabaseToolFactory
-            tools = DatabaseToolFactory.create_all_tools()
-        except Exception as e:
-            print(f"工具初始化失败: {e}")
-            tools = []
-        
-        return Agent(
-            role='功能微生物组识别专家',
-            goal='根据水质净化目标筛选功能微生物和代谢互补微生物',
-            backstory="""你是一位功能微生物组识别专家，专注于从数据库获取领域知识以识别最适合的工程微生物。
-            
-            你的核心任务是：
-            1. 准确识别用户输入中的目标污染物，并将其翻译为标准科学术语
-            2. 综合使用多种数据查询工具获取相关基因和微生物数据
-            3. 分析微生物的降解能力和代谢途径
-            4. 筛选功能微生物和代谢互补微生物，提供完整的微生物组推荐方案
-            
-            工具使用规范：
-            - 必须综合使用所有可用工具获取完整信息，而不是仅依赖单一工具
-            - 本地数据库工具（PollutantDataQueryTool等）提供基础数据
-            - EnviPathTool提供环境代谢路径信息
-            - KEGG工具提供生物代谢信息
-            - 各工具查询结果需要交叉验证和综合分析
-            - 工具调用策略：
-              * 首先使用PollutantDataQueryTool查询本地数据
-              * 同时使用EnviPathTool查询环境代谢路径信息
-              * 同时使用KEGG工具查询生物代谢信息
-              * 综合分析所有工具返回的结果，形成完整的代谢网络图
-            - KEGG工具调用策略：
-              * 优先使用smart_query获取完整分析：{"compound_name": "目标污染物名称"}
-              * 该方法会自动处理复杂查询逻辑，返回综合分析结果
-              * 如需特定信息，可使用基础查询方法
-            - 控制查询结果数量，避免返回过多数据，limit参数建议设置为3-5
-            - 工具调用时要确保参数完整且正确，避免传递None值
-            - 如果某个工具调用失败，应记录错误并继续使用其他工具
-            
-            数据标注要求：
-            - 明确区分各工具的直接查询结果和综合分析结论
-            - 对于每个工具的查询结果，必须标注具体的数据来源和工具名称
-            - 对于综合分析结果，必须明确说明是基于哪些工具的哪些信息的综合分析
-            - 当某些工具无法获取确凿数据时，必须明确标注并提供替代方案
-            
-            输出要求：
-            - 必须基于实际查询到的数据
-            - 明确标识各数据来源和置信度
-            - 提供具体的微生物名称和基因信息
-            - 当数据缺失时明确指出并提供替代方案
-            - 最终输出必须是综合所有工具查询结果的分析结论
-            - 对于每个推荐的微生物，需要提供其科学名称和置信度评估
+        # 创建智能体
+        agent = Agent(
+            role="功能微生物组识别专家",
+            goal="""
+            基于用户输入的污染物处理需求，通过调用多种数据查询工具，识别能够降解该污染物的功能微生物组。
+            严格按照以下步骤执行：
+            1. 从用户输入中识别目标污染物并将其翻译为标准科学术语
+            2. 优先使用EnviPathTool查询目标污染物的环境代谢路径，获取完整的反应步骤和EC编号
+            3. 如果EnviPathTool无法提供完整信息，则使用KEGG Tool进行智能查询获取相关基因和通路信息
+            4. 使用PollutantDataQueryTool和OrganismDataQueryTool查询本地数据库中的相关基因和微生物数据
+            5. 使用PollutantSearchTool进行关键词搜索，获取更多相关污染物信息
+            6. 综合所有工具返回的数据，构建完整的代谢路径图
+            7. 基于代谢路径和基因功能，推断并推荐能够降解目标污染物的功能微生物（精确到种）
+            8. 对推荐的微生物进行科学分类和降解能力评估
+            9. 提供生长环境评估和降解效果分析
+            10. 给出明确的置信度评估和数据来源标注
             """,
-            tools=tools,
+            backstory="""
+            你是一位专业的环境生物技术专家，专注于功能微生物组的设计与应用。
+            你熟悉各种环境数据库（如KEGG、EnviPath等）和本地污染物降解数据库。
+            你的专长是根据污染物的化学结构和代谢路径，识别具有特定降解能力的微生物。
+            你必须优先使用EnviPathTool返回的JSON格式数据获取详细的代谢路径信息，包括反应步骤和EC编号。
+            在分析过程中，你需要严格区分直接查询结果和基于知识的推断结果。
+            你推荐的微生物必须精确到种，并提供科学分类和置信度评估。
+            """,
             verbose=True,
             allow_delegation=False,
-            llm=self.llm
+            llm=self.llm,
+            tools=tools,
+            max_iter=30
         )
-
+        
+        return agent

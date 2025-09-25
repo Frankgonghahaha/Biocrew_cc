@@ -49,11 +49,6 @@ BioCrew/
 ├── requirements.txt        # 项目依赖
 ├── .env.example           # 环境变量配置示例
 ├── CLAUDE.md              # Claude Code开发指南
-├── DOCS/                  # 详细文档
-│   ├── AGENTS.md          # 智能体详细说明
-│   ├── TOOLS.md           # 工具详细说明
-│   ├── TASKS.md           # 任务详细说明
-│   └── TESTS.md           # 测试详细说明
 ├── tests/                 # 测试文件
 │   ├── test_Agent_Search.py               # Agent搜索测试
 │   └── test_database_query_user_input.py  # 数据库查询测试（支持用户输入）
