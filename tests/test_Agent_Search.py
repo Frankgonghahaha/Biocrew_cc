@@ -38,34 +38,8 @@ def standardize_input(input_text):
     标准化输入处理，使用与直接调用相同的标准化函数
     从用户输入中提取污染物名称并标准化
     """
-    from tools.pollutant_name_utils import standardize_pollutant_name, generate_pollutant_name_variants
-    
-    # 常见的污染物关键词列表（按优先级排序）
-    common_pollutants = [
-        "dibutyl phthalate", "dbp", "phthalate", "cadmium", "benzene", 
-        "toluene", "pcb", "pah", "hch", "pesticide", "heavy metal",
-        "microplastic", "plastic", "organic", "pollutant", "waste"
-    ]
-    
-    # 尝试匹配完整的污染物名称
-    input_lower = input_text.lower()
-    
-    # 首先尝试匹配完整的污染物名称（多词组合）
-    for pollutant in common_pollutants:
-        if pollutant in input_lower:
-            return standardize_pollutant_name(pollutant)
-    
-    # 如果没有找到完整匹配，尝试匹配单个词
-    keywords = input_text.split()
-    for keyword in keywords:
-        # 移除常见的标点符号
-        clean_keyword = keyword.strip('.,!?;:"')
-        standardized = standardize_pollutant_name(clean_keyword)
-        if standardized and len(standardized) > 2:  # 确保不是太短的词
-            return standardized
-    
-    # 如果没有找到明确的污染物名称，返回原始输入
-    return input_text
+    # 直接使用工具函数进行标准化
+    return standardize_pollutant_name(input_text)
 
 
 def test_natural_language_input():
@@ -226,11 +200,12 @@ def test_natural_language_input():
             # 显示Agent执行结果的关键信息
             if hasattr(result, 'raw') and result.raw:
                 print("  Agent执行结果摘要:")
-                # 只显示前500个字符，避免输出过长
-                result_str = str(result.raw)[:500]
+                # 显示前1000个字符，避免输出过长
+                result_str = str(result.raw)[:3000]
                 print(f"    {result_str}")
-                if len(str(result.raw)) > 500:
+                if len(str(result.raw)) > 3000:
                     print("    ... (结果已截断)")
+                    print("    如需查看完整结果，请检查返回对象的raw属性")
             
             print("  ✓ 结果验证完成")
         else:

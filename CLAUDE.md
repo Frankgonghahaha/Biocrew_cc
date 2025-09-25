@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a multi-agent system built with the CrewAI framework for wastewater microbial purification technology development and optimization. The system implements a complete automated workflow through 6 AI agents collaborating to "screen functional microorganisms → design microbial agents → evaluate effectiveness → generate implementation plans". 
+This is a multi-agent system built with the CrewAI framework for wastewater microbial purification technology development and optimization. The system implements a complete automated workflow through 6 AI agents collaborating to "screen functional microorganisms → design microbial agents → evaluate effectiveness → generate implementation plans".
 
 Note: The core algorithms (Tool_api, Tool_Carveme, ctFBA, and evaluation formulas) are currently only described in the agent backstories and task descriptions, with actual implementation pending as indicated by TODO comments throughout the codebase.
 
@@ -38,6 +38,10 @@ cp .env.example .env
 ```bash
 # Run the main application
 python3 main.py
+
+# Run tests
+python3 tests/test_Agent_Search.py
+python3 tests/test_database_query_user_input.py
 ```
 
 ### Code Validation
@@ -50,12 +54,8 @@ find . -name "*.py" -exec python3 -m py_compile {} \;
 ```
 
 ### Git Operations
-When pushing changes, make sure to push to both repositories:
 ```bash
-# Push to organization repository
-git push upstream master
-
-# Push to personal repository
+# Push to repository
 git push origin master
 ```
 
@@ -66,11 +66,6 @@ BioCrew/
 ├── requirements.txt        # Project dependencies
 ├── .env.example           # Environment variable configuration example
 ├── CLAUDE.md              # Claude Code development guide
-├── DOCS/                  # Detailed documentation
-│   ├── AGENTS.md          # Agent detailed documentation
-│   ├── TOOLS.md           # Tool detailed documentation
-│   ├── TASKS.md           # Task detailed documentation
-│   └── TESTS.md           # Test detailed documentation
 ├── tests/                 # Test files
 │   ├── test_Agent_Search.py               # Agent search test
 │   └── test_database_query_user_input.py  # Database query test with user input
