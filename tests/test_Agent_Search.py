@@ -197,15 +197,10 @@ def test_natural_language_input():
             print("\n  === 关键结果摘要 ===")
             print(f"  标准化污染物名称: {standardized_input}")
             
-            # 显示Agent执行结果的关键信息
+            # 显示Agent执行结果的完整内容
             if hasattr(result, 'raw') and result.raw:
-                print("  Agent执行结果摘要:")
-                # 显示前1000个字符，避免输出过长
-                result_str = str(result.raw)[:3000]
-                print(f"    {result_str}")
-                if len(str(result.raw)) > 3000:
-                    print("    ... (结果已截断)")
-                    print("    如需查看完整结果，请检查返回对象的raw属性")
+                print("  Agent执行结果完整内容:")
+                print(f"    {str(result.raw)}")
             
             print("  ✓ 结果验证完成")
         else:
