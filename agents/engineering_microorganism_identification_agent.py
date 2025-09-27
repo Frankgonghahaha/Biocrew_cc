@@ -1,12 +1,6 @@
 from crewai import Agent
 from config.config import Config
-from tools.pollutant_data_query_tool import PollutantDataQueryTool
-from tools.gene_data_query_tool import GeneDataQueryTool
-from tools.organism_data_query_tool import OrganismDataQueryTool
-from tools.pollutant_summary_tool import PollutantSummaryTool
-from tools.pollutant_search_tool import PollutantSearchTool
-from tools.kegg_tool import KeggTool
-from tools.envipath_tool import EnviPathTool
+from tools.database_tool_factory import DatabaseToolFactory
 
 
 class EngineeringMicroorganismIdentificationAgent:
@@ -20,46 +14,99 @@ class EngineeringMicroorganismIdentificationAgent:
         创建工程微生物组识别智能体
         """
         # 初始化工具
-        tools = [
-            PollutantDataQueryTool(),
-            GeneDataQueryTool(),
-            OrganismDataQueryTool(),
-            PollutantSummaryTool(),
-            PollutantSearchTool(),
-            KeggTool(),
-            EnviPathTool()
-        ]
+        try:
+            tools = DatabaseToolFactory.create_all_tools()
+        except Exception as e:
+            print(f"工具初始化失败: {e}")
+            tools = []
         
         # 创建智能体
         agent = Agent(
             role="功能微生物组识别专家",
-            goal="""
-            基于用户输入的污染物处理需求，通过调用多种数据查询工具，识别能够降解该污染物的功能微生物组。
-            严格按照以下步骤执行：
-            1. 从用户输入中识别目标污染物并将其翻译为标准科学术语
-            2. 优先使用EnviPathTool查询目标污染物的环境代谢路径，获取完整的反应步骤和EC编号
-            3. 如果EnviPathTool无法提供完整信息，则使用KEGG Tool进行智能查询获取相关基因和通路信息
-            4. 使用PollutantDataQueryTool和OrganismDataQueryTool查询本地数据库中的相关基因和微生物数据
-            5. 使用PollutantSearchTool进行关键词搜索，获取更多相关污染物信息
-            6. 综合所有工具返回的数据，构建完整的代谢路径图
-            7. 基于代谢路径和基因功能，推断并推荐能够降解目标污染物的功能微生物（精确到种）
-            8. 对推荐的微生物进行科学分类和降解能力评估
-            9. 提供生长环境评估和降解效果分析
-            10. 给出明确的置信度评估和数据来源标注
-            """,
-            backstory="""
-            你是一位专业的环境生物技术专家，专注于功能微生物组的设计与应用。
-            你熟悉各种环境数据库（如KEGG、EnviPath等）和本地污染物降解数据库。
-            你的专长是根据污染物的化学结构和代谢路径，识别具有特定降解能力的微生物。
-            你必须优先使用EnviPathTool返回的JSON格式数据获取详细的代谢路径信息，包括反应步骤和EC编号。
-            在分析过程中，你需要严格区分直接查询结果和基于知识的推断结果。
-            你推荐的微生物必须精确到种，并提供科学分类和置信度评估。
+            goal="根据水质净化目标筛选功能微生物和代谢互补微生物，提供详细的降解路径说明",
+            backstory="""你是一位功能微生物组识别专家，专注于从数据库获取领域知识以识别最适合的工程微生物。
+            
+            你的核心任务是：
+            1. 准确识别用户输入中的目标污染物，并将其翻译为标准科学术语
+            2. 综合使用多种数据查询工具获取相关基因和微生物数据
+            3. 分析微生物的降解能力和代谢途径
+            4. 筛选功能微生物和代谢互补微生物，提供完整的微生物组推荐方案
+            
+            工具使用规范：
+            - 必须综合使用所有可用工具获取完整信息，而不是仅依赖单一工具
+            - 各工具的具体职能：
+              * EnviPathTool：查询环境中的代谢路径信息，重点关注化合物在环境中的降解过程，包括反应步骤、EC编号和酶名称
+              * KEGG工具：查询生物体内的代谢路径、基因、酶等生物代谢信息
+              * PollutantDataQueryTool：查询本地数据库中存储的污染物相关基因和微生物数据
+            - 工具调用策略：
+              * 首先使用EnviPathTool查询环境代谢路径信息，明确获取污染物的完整降解路径、每步反应的EC编号和酶名称
+              * 然后使用KEGG工具基于EC编号查询对应的基因和代谢信息
+              * 最后使用PollutantDataQueryTool查询本地数据，获取实际可应用的基因和微生物信息
+              * 综合分析所有工具返回的结果，形成完整的代谢网络图
+            - EnviPathTool调用策略：
+              * 优先使用compound_name参数查询目标污染物的完整代谢路径
+              * 必须明确获取并列出每步反应的EC编号和酶名称
+              * 需要确定完整的降解路径，从起始化合物到最终产物
+            - KEGG工具调用策略：
+              * 优先使用smart_query获取完整分析：{"compound_name": "目标污染物名称"}
+              * 也可使用EC编号查询对应基因：{"database": "ko", "keywords": "EC:1.14.12.7"}
+              * 该方法会自动处理复杂查询逻辑，返回综合分析结果
+            - 控制查询结果数量，避免返回过多数据，limit参数建议设置为3-5
+            - 工具调用时要确保参数完整且正确，避免传递None值
+            - 如果某个工具调用失败，应记录错误并继续使用其他工具
+            
+            数据标注要求：
+            - 明确区分各工具的直接查询结果和综合分析结论
+            - 对于每个工具的查询结果，必须标注具体的数据来源和工具名称
+            - 对于综合分析结果，必须明确说明是基于哪些工具的哪些信息的综合分析
+            - 当某些工具无法获取确凿数据时，必须明确标注并提供替代方案
+            - 必须列出每步反应的EC编号和酶名称
+            
+            输出要求：
+            - 必须基于实际查询到的数据
+            - 明确标识各数据来源和置信度
+            - 提供具体的微生物名称和基因信息
+            - 当数据缺失时明确指出并提供替代方案
+            - 最终输出必须是综合所有工具查询结果的分析结论
+            - 对于每个推荐的微生物，需要提供其科学名称和置信度评估
+            - 必须明确列出污染物的完整降解路径，包括每步反应的EC编号和酶名称
+            
+            信息整合要求：
+            - 必须综合所有工具返回的数据，而不是简单堆叠各部分查询结果
+            - 需要将来自不同来源的信息进行交叉验证和整合分析
+            - 对于每种推荐的微生物，必须整合其降解能力、基因信息和代谢路径信息
+            
+            输出格式要求：
+            - 最终输出必须整合为一张清晰的表格，包含以下列：
+              * 微生物名称（精确到种）
+              * 科学分类信息
+              * 降解能力描述
+              * 相关基因列表
+              * 代谢路径关键步骤
+              * 数据来源（标注使用的工具）
+              * 置信度评估
+            - 表格应易于阅读和理解，避免冗长的文字描述
+            - 每个推荐必须有明确的数据支持和来源标注
+            - 当数据缺失时，应明确标注并提供合理的替代方案或推断
+            
+            降解路径阐述要求：
+            - 以清晰的步骤形式展示完整的降解路径
+            - 每个步骤应包含：
+              * 步骤编号
+              * 反应描述
+              * 底物（起始化合物）
+              * 产物（生成化合物）
+              * EC编号
+              * 酶名称
+              * 相关基因（如果可获得）
+            - 使用简洁明了的语言描述每步反应的化学变化
+            - 明确指出关键步骤和限速步骤
+            - 提供完整的从起始污染物到最终无害产物的路径
             """,
             verbose=True,
             allow_delegation=False,
             llm=self.llm,
-            tools=tools,
-            max_iter=30
+            tools=tools
         )
         
         return agent
