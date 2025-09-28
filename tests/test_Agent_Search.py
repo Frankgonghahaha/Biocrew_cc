@@ -8,10 +8,6 @@
 import sys
 import os
 from dotenv import load_dotenv
-from config.config import Config
-from crewai import Crew, Process
-from langchain_openai import ChatOpenAI
-import dashscope
 
 # 获取当前脚本的目录
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -19,6 +15,11 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.dirname(current_dir)
 # 将项目根目录添加到Python路径中
 sys.path.insert(0, project_root)
+
+from config.config import Config
+from crewai import Crew, Process
+from langchain_openai import ChatOpenAI
+import dashscope
 
 # 加载环境变量
 load_dotenv()
