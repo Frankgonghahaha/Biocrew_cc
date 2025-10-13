@@ -1,15 +1,27 @@
+#!/usr/bin/env python3
+"""
+工程微生物识别智能体
+负责根据污染物信息识别合适的工程微生物组合
+"""
+
+from typing import List
 from crewai import Agent
-from config.config import Config
 from tools.database_tool_factory import DatabaseToolFactory
 
 
 class EngineeringMicroorganismIdentificationAgent:
-    """工程微生物组识别智能体"""
+    """工程微生物识别智能体类"""
     
     def __init__(self, llm):
+        """
+        初始化工程微生物识别智能体
+        
+        Args:
+            llm: 大语言模型实例
+        """
         self.llm = llm
-    
-    def create_agent(self):
+
+    def create_agent(self) -> Agent:
         """
         创建工程微生物组识别智能体
         """
@@ -40,10 +52,12 @@ class EngineeringMicroorganismIdentificationAgent:
               * KEGG工具：查询生物体内的代谢路径、基因、酶等生物代谢信息
               * PollutantDataQueryTool：查询本地数据库中存储的污染物相关基因和微生物数据
               * NCBIGenomeQueryTool：查询微生物的NCBI基因组Assembly Accession信息，用于获取全基因组数据
+              * MicrobialComplementarityDBQueryTool：查询预先计算并存储在数据库中的微生物互补性数据，包括竞争指数和互补指数
             - 工具调用策略：
               * 首先使用EnviPathTool查询环境代谢路径信息，明确获取污染物的完整降解路径、每步反应的EC编号和酶名称
               * 然后使用KEGG工具基于EC编号查询对应的基因和代谢信息
               * 使用NCBIGenomeQueryTool查询推荐微生物的基因组信息，获取Assembly Accession
+              * 使用MicrobialComplementarityDBQueryTool查询微生物间的互补性数据，获取预先计算的竞争指数和互补指数
               * 最后使用PollutantDataQueryTool查询本地数据，获取实际可应用的基因和微生物信息
               * 综合分析所有工具返回的结果，形成完整的代谢网络图
             - EnviPathTool调用策略：
@@ -58,6 +72,10 @@ class EngineeringMicroorganismIdentificationAgent:
               * 对于每个推荐的微生物，使用该工具查询其基因组Assembly Accession
               * 记录Assembly Accession编号，用于后续全基因组分析
               * 优先选择具有完整基因组数据的菌株
+            - MicrobialComplementarityDBQueryTool调用策略：
+              * 在确定候选微生物组合后，使用该工具查询它们之间的竞争指数和互补指数
+              * 可以查询单个微生物相关的所有互补性数据，也可以查询两个特定微生物之间的互补性
+              * 优先使用数据库中的预先计算结果，避免复杂的代谢模型计算
             - 控制查询结果数量，避免返回过多数据，limit参数建议设置为3-5
             - 工具调用时要确保参数完整且正确，避免传递None值
             - 如果某个工具调用失败，应记录错误并继续使用其他工具
@@ -69,6 +87,7 @@ class EngineeringMicroorganismIdentificationAgent:
             - 当某些工具无法获取确凿数据时，必须明确标注并提供替代方案
             - 必须列出每步反应的EC编号和酶名称
             - 必须提供每个推荐微生物的NCBI Assembly Accession编号
+            - 必须提供微生物组合的竞争指数和互补指数（优先使用数据库查询结果）
             
             输出要求：
             - 必须基于实际查询到的数据
@@ -79,6 +98,7 @@ class EngineeringMicroorganismIdentificationAgent:
             - 对于每个推荐的微生物，需要提供其科学名称和置信度评估
             - 必须明确列出污染物的完整降解路径，包括每步反应的EC编号和酶名称
             - 必须提供每个推荐微生物的NCBI Assembly Accession编号
+            - 必须提供推荐微生物组合的竞争指数和互补指数
             
             微生物名称精确度要求：
             - 所有推荐的微生物必须精确到种（species level）
@@ -87,6 +107,31 @@ class EngineeringMicroorganismIdentificationAgent:
             - 如果数据库返回的是菌株信息，需要提取其种名，例如从"Rhodococcus jostii RHA1"中提取"Rhodococcus jostii"
             - 必须提供完整的科学分类信息，包括：界、门、纲、目、科、属、种
             - 在输出表格中，"微生物名称"列应仅包含精确到种的名称，完整分类信息可在其他列中提供
+            
+            代谢互补性分析要求：
+            - 分析推荐微生物之间的代谢互补关系
+            - 优先使用MicrobialComplementarityDBQueryTool查询预先计算的互补性数据
+            - 基于基因组规模代谢模型（Genome-scale metabolic models, GEMs）计算微生物间的互补性
+            - 真正的代谢互补性应该基于：
+              * 微生物A产生的代谢物可以被微生物B利用作为生长基质
+              * 微生物B产生的代谢物可以被微生物A利用作为生长基质
+              * 考虑代谢物在不同微生物间的交换和利用
+            - 竞争指数和互补指数的计算应基于：
+              * SeedSet(A)：微生物A能够利用的代谢物集合（从环境中获取或由其他微生物提供）
+              * SeedSet(B)：微生物B能够利用的代谢物集合（从环境中获取或由其他微生物提供）
+              * ProductionSet(A)：微生物A能够生产的代谢物集合
+              * ProductionSet(B)：微生物B能够生产的代谢物集合
+              * NonSeedSet(A)：微生物A不能从环境中直接获取，但可以由其他微生物提供的代谢物集合
+              * NonSeedSet(B)：微生物B不能从环境中直接获取，但可以由其他微生物提供的代谢物集合
+            - 竞争指数计算公式应为：
+              * MI_competition(A,B) = |SeedSet(A) ∩ SeedSet(B)| / |SeedSet(A) ∪ SeedSet(B)|
+              * 这表示两个微生物对相同代谢物的需求程度
+            - 互补指数计算公式应为：
+              * MI_complementarity(A,B) = (|ProductionSet(A) ∩ NonSeedSet(B)| + |ProductionSet(B) ∩ NonSeedSet(A)|) / (|ProductionSet(A)| + |ProductionSet(B)|)
+              * 这表示一个微生物生产的代谢物可以被另一个微生物利用的程度
+            - 基于指数值推荐最优微生物组合，优先选择互补指数高而竞争指数低的组合
+            - 当无法构建完整代谢模型时，可以基于已知的代谢路径和基因信息进行近似计算
+            - 当数据库中有预先计算的互补性数据时，优先使用这些数据
             
             信息整合要求：
             - 必须综合所有工具返回的数据，而不是简单堆叠各部分查询结果

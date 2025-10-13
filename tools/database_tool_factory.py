@@ -1,101 +1,118 @@
 #!/usr/bin/env python3
 """
 数据库工具工厂
-用于创建各种数据库查询工具的实例
+用于创建和管理各种数据库查询工具
 """
 
-import sys
-import os
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+try:
+    from tools.engineering_microorganism_identification.envipath_tool import EnviPathTool
+except ImportError:
+    EnviPathTool = None
+
+try:
+    from tools.engineering_microorganism_identification.kegg_tool import KeggTool
+except ImportError:
+    KeggTool = None
+
+try:
+    from tools.microbial_agent_design.pollutant_data_query_tool import PollutantDataQueryTool
+except ImportError:
+    PollutantDataQueryTool = None
+
+try:
+    from tools.microbial_agent_design.gene_data_query_tool import GeneDataQueryTool
+except ImportError:
+    GeneDataQueryTool = None
+
+try:
+    from tools.microbial_agent_design.organism_data_query_tool import OrganismDataQueryTool
+except ImportError:
+    OrganismDataQueryTool = None
+
+try:
+    from tools.microbial_agent_design.pollutant_summary_tool import PollutantSummaryTool
+except ImportError:
+    PollutantSummaryTool = None
+
+try:
+    from tools.engineering_microorganism_identification.ncbi_genome_query_tool import NCBIGenomeQueryTool
+except ImportError:
+    NCBIGenomeQueryTool = None
+
+try:
+    from tools.engineering_microorganism_identification.microbial_complementarity_db_query_tool import MicrobialComplementarityDBQueryTool
+except ImportError:
+    MicrobialComplementarityDBQueryTool = None
+
 
 class DatabaseToolFactory:
+    """数据库工具工厂类"""
+    
     @staticmethod
     def create_all_tools():
         """
         创建所有数据库工具实例
-        """
-        try:
-            # 导入所有工具类
-            from tools.pollutant_data_query_tool import PollutantDataQueryTool
-            from tools.gene_data_query_tool import GeneDataQueryTool
-            from tools.organism_data_query_tool import OrganismDataQueryTool
-            from tools.pollutant_summary_tool import PollutantSummaryTool
-            from tools.pollutant_search_tool import PollutantSearchTool
-            from tools.envipath_tool import EnviPathTool
-            from tools.kegg_tool import KeggTool
-            from tools.ncbi_genome_query_tool import NCBIGenomeQueryTool  # 新增的工具
-            
-            # 创建工具实例
-            tools = [
-                EnviPathTool(),
-                KeggTool(),
-                PollutantDataQueryTool(),
-                GeneDataQueryTool(),
-                OrganismDataQueryTool(),
-                PollutantSummaryTool(),
-                PollutantSearchTool(),
-                NCBIGenomeQueryTool()  # 添加新工具到列表
-            ]
-            
-            return tools
-        except Exception as e:
-            print(f"创建工具时出错: {e}")
-            # 返回部分可用工具
-            available_tools = []
-            
-            # 尝试单独导入每个工具
-            tool_classes = [
-                ('EnviPathTool', 'envipath_tool'),
-                ('KeggTool', 'kegg_tool'),
-                ('PollutantDataQueryTool', 'pollutant_data_query_tool'),
-                ('GeneDataQueryTool', 'gene_data_query_tool'),
-                ('OrganismDataQueryTool', 'organism_data_query_tool'),
-                ('PollutantSummaryTool', 'pollutant_summary_tool'),
-                ('PollutantSearchTool', 'pollutant_search_tool'),
-                ('NCBIGenomeQueryTool', 'ncbi_genome_query_tool')  # 新增的工具
-            ]
-            
-            for tool_name, module_name in tool_classes:
-                try:
-                    module = __import__(f"tools.{module_name}", fromlist=[tool_name])
-                    tool_class = getattr(module, tool_name)
-                    available_tools.append(tool_class())
-                except Exception as import_error:
-                    print(f"无法导入 {tool_name}: {import_error}")
-            
-            return available_tools
-
-    @staticmethod
-    def create_tool(tool_name):
-        """
-        根据工具名称创建特定工具实例
         
-        Args:
-            tool_name: 工具名称
-            
         Returns:
-            工具实例或None
+            list: 所有工具实例的列表
         """
-        try:
-            # 工具名称到模块和类名的映射
-            tool_mapping = {
-                'EnviPathTool': ('envipath_tool', 'EnviPathTool'),
-                'KeggTool': ('kegg_tool', 'KeggTool'),
-                'PollutantDataQueryTool': ('pollutant_data_query_tool', 'PollutantDataQueryTool'),
-                'GeneDataQueryTool': ('gene_data_query_tool', 'GeneDataQueryTool'),
-                'OrganismDataQueryTool': ('organism_data_query_tool', 'OrganismDataQueryTool'),
-                'PollutantSummaryTool': ('pollutant_summary_tool', 'PollutantSummaryTool'),
-                'PollutantSearchTool': ('pollutant_search_tool', 'PollutantSearchTool'),
-                'NCBIGenomeQueryTool': ('ncbi_genome_query_tool', 'NCBIGenomeQueryTool')  # 新增的工具
-            }
-            
-            if tool_name not in tool_mapping:
-                raise ValueError(f"未知的工具名称: {tool_name}")
-            
-            module_name, class_name = tool_mapping[tool_name]
-            module = __import__(f"tools.{module_name}", fromlist=[class_name])
-            tool_class = getattr(module, class_name)
-            return tool_class()
-        except Exception as e:
-            print(f"创建工具 {tool_name} 时出错: {e}")
-            return None
+        tools = []
+        
+        if EnviPathTool:
+            tools.append(EnviPathTool())
+        if KeggTool:
+            tools.append(KeggTool())
+        if PollutantDataQueryTool:
+            tools.append(PollutantDataQueryTool())
+        if GeneDataQueryTool:
+            tools.append(GeneDataQueryTool())
+        if OrganismDataQueryTool:
+            tools.append(OrganismDataQueryTool())
+        if PollutantSummaryTool:
+            tools.append(PollutantSummaryTool())
+        if NCBIGenomeQueryTool:
+            tools.append(NCBIGenomeQueryTool())
+        if MicrobialComplementarityDBQueryTool:
+            tools.append(MicrobialComplementarityDBQueryTool())
+        
+        return tools
+    
+    @staticmethod
+    def create_envi_path_tool():
+        """创建EnviPath工具实例"""
+        return EnviPathTool()
+    
+    @staticmethod
+    def create_kegg_pathway_tool():
+        """创建KEGG通路工具实例"""
+        return KeggTool()
+    
+    @staticmethod
+    def create_pollutant_data_query_tool():
+        """创建污染物数据查询工具实例"""
+        return PollutantDataQueryTool()
+    
+    @staticmethod
+    def create_gene_data_query_tool():
+        """创建基因数据查询工具实例"""
+        return GeneDataQueryTool()
+    
+    @staticmethod
+    def create_organism_data_query_tool():
+        """创建微生物数据查询工具实例"""
+        return OrganismDataQueryTool()
+    
+    @staticmethod
+    def create_pollutant_summary_tool():
+        """创建污染物摘要工具实例"""
+        return PollutantSummaryTool()
+    
+    @staticmethod
+    def create_ncbi_genome_query_tool():
+        """创建NCBI基因组查询工具实例"""
+        return NCBIGenomeQueryTool()
+    
+    @staticmethod
+    def create_microbial_complementarity_db_query_tool():
+        """创建微生物互补性数据库查询工具实例"""
+        return MicrobialComplementarityDBQueryTool()

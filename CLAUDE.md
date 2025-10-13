@@ -103,16 +103,30 @@ BioCrew/
 │   ├── implementation_plan_generation_task.py  # 实施方案生成任务
 │   └── task_coordination_task.py               # 任务协调任务
 ├── tools/                 # 自定义工具（部分实现）
-│   ├── evaluation_tool.py                     # 评估工具
 │   ├── database_tool_factory.py               # 数据库工具工厂
-│   ├── pollutant_data_query_tool.py           # 查询指定污染物的所有数据
-│   ├── gene_data_query_tool.py                # 查询指定污染物的基因数据
-│   ├── organism_data_query_tool.py            # 查询指定污染物的微生物数据
-│   ├── pollutant_summary_tool.py              # 获取指定污染物的摘要统计信息
-│   ├── pollutant_search_tool.py               # 根据关键字搜索污染物
-│   ├── pollutant_name_utils.py                # 污染物名称标准化工具
-│   ├── envipath_tool.py                      # EnviPath数据库访问工具
-│   └── kegg_tool.py                          # KEGG数据库访问工具
+│   ├── engineering_microorganism_identification/     # 工程微生物识别工具
+│   │   ├── envipath_tool.py                  # EnviPath数据库访问工具
+│   │   ├── kegg_tool.py                      # KEGG数据库访问工具
+│   │   ├── ncbi_genome_query_tool.py         # NCBI基因组查询工具
+│   │   ├── microbial_complementarity_db_query_tool.py  # 微生物互补性数据库查询工具
+│   │   ├── microbial_complementarity_model.py          # 微生物互补性数据模型
+│   │   └── microbial_complementarity_query_tool.py     # 微生物互补性查询工具
+│   ├── microbial_agent_design/               # 微生物菌剂设计工具
+│   │   ├── gene_data_query_tool.py           # 基因数据查询工具
+│   │   ├── organism_data_query_tool.py       # 微生物数据查询工具
+│   │   ├── pollutant_data_query_tool.py      # 污染物数据查询工具
+│   │   ├── pollutant_summary_tool.py         # 污染物摘要工具
+│   │   ├── pollutant_search_tool.py          # 污染物搜索工具
+│   │   ├── pollutant_name_utils.py           # 污染物名称标准化工具
+│   │   ├── genome_spot_tool/                 # GenomeSPOT工具
+│   │   ├── dlkcat_tool/                      # DLkcat工具
+│   │   ├── carveme_tool/                     # Carveme工具
+│   │   ├── phylomint_tool/                   # Phylomint工具
+│   │   └── ctfba_tool/                       # ctFBA工具
+│   ├── microbial_agent_evaluation/           # 微生物菌剂评估工具
+│   │   └── evaluation_tool.py                # 评估工具
+│   ├── implementation_plan_generation/       # 实施方案生成工具
+│   └── task_coordination/                    # 任务协调工具
 └── models/                # 模型配置（待完善）
 ```
 
@@ -172,12 +186,27 @@ BioCrew/
    - 操作：`get_database_info`、`list_entries`、`find_entries`、`get_entry`、`link_entries`、`convert_id`、`search_pathway_by_compound`、`search_genes_by_pathway`、`search_enzymes_by_compound`
    - 也支持每个操作的直接方法调用
 
+3. **NCBIGenomeQueryTool** - 访问NCBI数据库中的微生物基因组数据
+   - `_run(operation, **kwargs)` - 所有NCBI基因组查询操作的统一接口
+   - 操作：`search_genome`、`get_genome_info`
+   - 也支持直接方法调用
+
+### 微生物菌剂设计专用工具
+
+系统包含多个微生物菌剂设计专用工具：
+
+1. **GenomeSPOTTool** - 预测微生物的环境适应性特征
+2. **DLkcatTool** - 预测降解酶对于特定底物的降解速率
+3. **CarvemeTool** - 构建基因组规模代谢模型(GSMM)
+4. **PhylomintTool** - 分析微生物间的代谢互补性和竞争性
+5. **CtfbaTool** - 计算微生物群落的代谢通量
+
 ### 评估工具
 
-3. **EvaluationTool** - 分析和评估微生物菌剂效果
-   - `_run(operation, **kwargs)` - 评估操作的统一接口
-   - 操作：`analyze_evaluation_result`、`check_core_standards`
-   - 也支持直接方法调用：`analyze_evaluation_result(evaluation_report)`、`check_core_standards(evaluation_report)`
+**EvaluationTool** - 分析和评估微生物菌剂效果
+- `_run(operation, **kwargs)` - 评估操作的统一接口
+- 操作：`analyze_evaluation_result`、`check_core_standards`
+- 也支持直接方法调用：`analyze_evaluation_result(evaluation_report)`、`check_core_standards(evaluation_report)`
 
 ## 开发指南
 

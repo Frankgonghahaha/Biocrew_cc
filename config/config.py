@@ -5,6 +5,7 @@
 
 import os
 from dotenv import load_dotenv
+from langchain_openai import ChatOpenAI
 
 # 加载环境变量
 load_dotenv()
@@ -37,3 +38,16 @@ class Config:
     DB_NAME = os.getenv('DB_NAME', 'Bio_data')
     DB_USER = os.getenv('DB_USER', 'nju_bio')
     DB_PASSWORD = os.getenv('DB_PASSWORD', '980605Hyz')
+    
+    def get_llm(self):
+        """
+        获取LLM实例
+        """
+        return ChatOpenAI(
+            base_url=self.OPENAI_API_BASE,
+            api_key=self.OPENAI_API_KEY,
+            model="openai/qwen3-30b-a3b-instruct-2507",
+            temperature=self.MODEL_TEMPERATURE,
+            streaming=False,
+            max_tokens=self.MODEL_MAX_TOKENS
+        )

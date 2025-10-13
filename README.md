@@ -84,16 +84,30 @@ BioCrew/
 │   ├── microbial_agent_evaluation_task.py      # 菌剂评估任务
 │   └── implementation_plan_generation_task.py  # 实施方案生成任务
 ├── tools/                 # 自定义工具
-│   ├── evaluation_tool.py                     # 评价工具
 │   ├── database_tool_factory.py               # 数据库工具工厂
-│   ├── pollutant_data_query_tool.py           # 污染物数据查询工具
-│   ├── gene_data_query_tool.py                # 基因数据查询工具
-│   ├── organism_data_query_tool.py            # 微生物数据查询工具
-│   ├── pollutant_summary_tool.py              # 污染物摘要工具
-│   ├── pollutant_search_tool.py               # 污染物搜索工具
-│   ├── pollutant_name_utils.py                # 污染物名称标准化工具
-│   ├── envipath_tool.py                      # EnviPath数据库访问工具
-│   └── kegg_tool.py                          # KEGG数据库访问工具
+│   ├── engineering_microorganism_identification/     # 工程微生物识别工具
+│   │   ├── envipath_tool.py                  # EnviPath数据库访问工具
+│   │   ├── kegg_tool.py                      # KEGG数据库访问工具
+│   │   ├── ncbi_genome_query_tool.py         # NCBI基因组查询工具
+│   │   ├── microbial_complementarity_db_query_tool.py  # 微生物互补性数据库查询工具
+│   │   ├── microbial_complementarity_model.py          # 微生物互补性数据模型
+│   │   └── microbial_complementarity_query_tool.py     # 微生物互补性查询工具
+│   ├── microbial_agent_design/               # 微生物菌剂设计工具
+│   │   ├── gene_data_query_tool.py           # 基因数据查询工具
+│   │   ├── organism_data_query_tool.py       # 微生物数据查询工具
+│   │   ├── pollutant_data_query_tool.py      # 污染物数据查询工具
+│   │   ├── pollutant_summary_tool.py         # 污染物摘要工具
+│   │   ├── pollutant_search_tool.py          # 污染物搜索工具
+│   │   ├── pollutant_name_utils.py           # 污染物名称标准化工具
+│   │   ├── genome_spot_tool/                 # GenomeSPOT工具
+│   │   ├── dlkcat_tool/                      # DLkcat工具
+│   │   ├── carveme_tool/                     # Carveme工具
+│   │   ├── phylomint_tool/                   # Phylomint工具
+│   │   └── ctfba_tool/                       # ctFBA工具
+│   ├── microbial_agent_evaluation/           # 微生物菌剂评估工具
+│   │   └── evaluation_tool.py                # 评估工具
+│   ├── implementation_plan_generation/       # 实施方案生成工具
+│   └── task_coordination/                    # 任务协调工具
 ├── data/                  # 本地数据文件 (不被git跟踪)
 │   ├── Genes/             # 基因数据文件
 │   └── Organism/          # 微生物数据文件
@@ -206,10 +220,21 @@ python main.py
 
 ### 公开数据库工具
 
-项目包含两个公开数据库访问工具，用于获取环境和生物代谢信息：
+项目包含多个公开数据库访问工具，用于获取环境和生物代谢信息：
 
 1. **EnviPathTool** - 用于查询环境化合物代谢路径信息
 2. **KeggTool** - 用于查询KEGG数据库中的pathway、ko、genome、reaction、enzyme、genes等生物代谢信息
+3. **NCBIGenomeQueryTool** - 用于查询NCBI数据库中的微生物基因组信息
+
+### 微生物菌剂设计专用工具
+
+项目包含多个微生物菌剂设计专用工具：
+
+1. **GenomeSPOTTool** - 预测微生物的环境适应性特征
+2. **DLkcatTool** - 预测降解酶对于特定底物的降解速率
+3. **CarvemeTool** - 构建基因组规模代谢模型(GSMM)
+4. **PhylomintTool** - 分析微生物间的代谢互补性和竞争性
+5. **CtfbaTool** - 计算微生物群落的代谢通量
 
 ## 系统优化与扩展
 
