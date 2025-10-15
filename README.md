@@ -68,7 +68,12 @@ BioCrew/
 ├── CLAUDE.md              # Claude Code开发指南
 ├── tests/                 # 测试文件
 │   ├── test_Agent_Search.py               # Agent搜索测试
-│   └── test_database_query_user_input.py  # 数据库查询测试（支持用户输入）
+│   ├── test_database_query_user_input.py  # 数据库查询测试（支持用户输入）
+│   ├── test_functional_microorganism_identification.py  # 功能微生物识别测试
+│   ├── test_microbial_agent_design.py     # 微生物菌剂设计测试
+│   ├── test_microbial_agent_design_tool_usage.py  # 微生物菌剂设计工具调用测试
+│   ├── test_microbial_identification_and_design.py  # 功能微生物识别和菌剂设计集成测试
+│   └── test_microbial_complementarity_db_query_tool.py  # 微生物互补性数据库查询工具测试
 ├── config/
 │   └── config.py          # 配置文件
 ├── agents/                # 智能体定义
@@ -197,6 +202,36 @@ pip install -r requirements.txt
 
 ```bash
 python main.py
+```
+
+### 运行测试
+
+项目包含多个测试文件，用于验证不同功能模块的正确性：
+
+```bash
+# 运行主应用程序测试
+python main.py
+
+# 运行Agent搜索测试
+python tests/test_Agent_Search.py
+
+# 运行数据库查询测试（支持用户输入）
+python tests/test_database_query_user_input.py
+
+# 运行功能微生物识别测试
+python tests/test_functional_microorganism_identification.py
+
+# 运行微生物菌剂设计测试
+python tests/test_microbial_agent_design.py
+
+# 运行微生物菌剂设计工具调用测试
+python tests/test_microbial_agent_design_tool_usage.py
+
+# 运行功能微生物识别和菌剂设计集成测试
+python tests/test_microbial_identification_and_design.py
+
+# 运行微生物互补性数据库查询工具测试
+python tests/test_microbial_complementarity_db_query_tool.py
 ```
 
 程序启动后会提示用户选择处理模式：

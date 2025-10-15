@@ -57,6 +57,11 @@ python3 main.py
 # 运行测试
 python3 tests/test_Agent_Search.py
 python3 tests/test_database_query_user_input.py
+python3 tests/test_functional_microorganism_identification.py
+python3 tests/test_microbial_agent_design.py
+python3 tests/test_microbial_agent_design_tool_usage.py
+python3 tests/test_microbial_identification_and_design.py
+python3 tests/test_microbial_complementarity_db_query_tool.py
 ```
 
 ### 代码验证
@@ -86,7 +91,12 @@ BioCrew/
 ├── CLAUDE.md              # Claude Code开发指南
 ├── tests/                 # 测试文件
 │   ├── test_Agent_Search.py               # Agent搜索测试
-│   └── test_database_query_user_input.py  # 数据库查询测试（支持用户输入）
+│   ├── test_database_query_user_input.py  # 数据库查询测试（支持用户输入）
+│   ├── test_functional_microorganism_identification.py  # 功能微生物识别测试
+│   ├── test_microbial_agent_design.py     # 微生物菌剂设计测试
+│   ├── test_microbial_agent_design_tool_usage.py  # 微生物菌剂设计工具调用测试
+│   ├── test_microbial_identification_and_design.py  # 功能微生物识别和菌剂设计集成测试
+│   └── test_microbial_complementarity_db_query_tool.py  # 微生物互补性数据库查询工具测试
 ├── config/
 │   └── config.py          # 配置文件（已完全实现）
 ├── agents/                # 智能体定义（已完全实现，核心算法有TODO）
@@ -257,6 +267,7 @@ BioCrew/
 3. 在`main.py`中注册新智能体和任务
 4. 更新`main.py`中的Crew配置以包含新智能体和任务
 5. 对于数据访问功能，在`tools/`目录中实现新工具
+6. 为新功能添加相应的测试文件，确保功能正确性
 
 ## 近期架构优化
 
@@ -325,3 +336,9 @@ BioCrew/
 - 优化了智能体工具调用策略，要求全面使用所有可用工具
 - 加强了数据注释要求，明确区分直接查询结果和综合分析结论
 - 标准化了输出格式，要求特定的数据源和置信度评估
+
+### 测试文件增强
+
+- 添加了多个新的测试文件，用于验证功能微生物识别和菌剂设计功能
+- 创建了专门的测试文件来验证工具调用能力
+- 增强了测试覆盖度，确保各个功能模块的正确性
