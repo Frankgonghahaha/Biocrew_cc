@@ -55,13 +55,13 @@ cp .env.example .env
 python3 main.py
 
 # 运行测试
-python3 tests/test_Agent_Search.py
-python3 tests/test_database_query_user_input.py
-python3 tests/test_functional_microorganism_identification.py
+python3 tests/test_all_design_tools.py
+python3 tests/test_engineering_microorganism_identification.py
 python3 tests/test_microbial_agent_design.py
 python3 tests/test_microbial_agent_design_tool_usage.py
-python3 tests/test_microbial_identification_and_design.py
-python3 tests/test_microbial_complementarity_db_query_tool.py
+python3 tests/test_microbial_agent_evaluation_tools.py
+python3 tests/test_real_tool_execution.py
+python3 tests/test_tool_call_verification.py
 ```
 
 ### 代码验证
@@ -90,13 +90,14 @@ BioCrew/
 ├── .env.example           # 环境变量配置示例
 ├── CLAUDE.md              # Claude Code开发指南
 ├── tests/                 # 测试文件
-│   ├── test_Agent_Search.py               # Agent搜索测试
-│   ├── test_database_query_user_input.py  # 数据库查询测试（支持用户输入）
-│   ├── test_functional_microorganism_identification.py  # 功能微生物识别测试
-│   ├── test_microbial_agent_design.py     # 微生物菌剂设计测试
+│   ├── test_all_design_tools.py                   # 所有设计工具测试
+│   ├── test_engineering_microorganism_identification.py  # 工程微生物识别测试
+│   ├── test_microbial_agent_design.py             # 微生物菌剂设计测试
 │   ├── test_microbial_agent_design_tool_usage.py  # 微生物菌剂设计工具调用测试
-│   ├── test_microbial_identification_and_design.py  # 功能微生物识别和菌剂设计集成测试
-│   └── test_microbial_complementarity_db_query_tool.py  # 微生物互补性数据库查询工具测试
+│   ├── test_microbial_agent_evaluation_tools.py   # 微生物菌剂评估工具调用测试
+│   ├── test_real_tool_execution.py                # 真实工具执行测试
+│   ├── test_tool_call_verification.py             # 工具调用验证测试
+│   └── compare_envipath_outputs.py                # EnviPath输出比较工具
 ├── config/
 │   └── config.py          # 配置文件（已完全实现）
 ├── agents/                # 智能体定义（已完全实现，核心算法有TODO）
@@ -129,14 +130,31 @@ BioCrew/
 │   │   ├── pollutant_search_tool.py          # 污染物搜索工具
 │   │   ├── pollutant_name_utils.py           # 污染物名称标准化工具
 │   │   ├── genome_spot_tool/                 # GenomeSPOT工具
+│   │   │   ├── genome_spot_tool.py           # GenomeSPOT工具实现
+│   │   │   └── test_genome_spot.py           # GenomeSPOT工具测试
 │   │   ├── dlkcat_tool/                      # DLkcat工具
+│   │   │   ├── dlkcat_tool.py                # DLkcat工具实现
+│   │   │   ├── test_dlkcat.py                # DLkcat工具测试
+│   │   │   └── test_data.xlsx                # DLkcat测试数据
 │   │   ├── carveme_tool/                     # Carveme工具
+│   │   │   └── carveme_tool.py               # Carveme工具实现
 │   │   ├── phylomint_tool/                   # Phylomint工具
-│   │   └── ctfba_tool/                       # ctFBA工具
+│   │   │   └── phylomint_tool.py             # Phylomint工具实现
+│   │   ├── ctfba_tool/                       # ctFBA工具
+│   │   │   ├── __init__.py                   # ctFBA工具初始化
+│   │   │   └── ctfba_tool.py                 # ctFBA工具实现
+│   │   └── README.md                         # 微生物菌剂设计工具说明
 │   ├── microbial_agent_evaluation/           # 微生物菌剂评估工具
-│   │   └── evaluation_tool.py                # 评估工具
+│   │   ├── evaluation_tool.py                # 评估工具
+│   │   ├── reaction_addition_tool/           # 代谢反应填充工具
+│   │   └── medium_recommendation_tool/       # 培养基推荐工具
 │   ├── implementation_plan_generation/       # 实施方案生成工具
-│   └── task_coordination/                    # 任务协调工具
+│   ├── task_coordination/                    # 任务协调工具
+│   └── external_tools/                       # 外部工具脚本（项目内部集成）
+│       ├── genome_spot/                      # GenomeSPOT工具脚本
+│       ├── dlkcat/                           # DLkcat工具脚本
+│       ├── carveme/                          # Carveme工具脚本
+│       └── phylomint/                        # Phylomint工具脚本
 └── models/                # 模型配置（待完善）
 ```
 
@@ -211,12 +229,25 @@ BioCrew/
 4. **PhylomintTool** - 分析微生物间的代谢互补性和竞争性
 5. **CtfbaTool** - 计算微生物群落的代谢通量
 
-### 评估工具
+### 外部工具集成
 
-**EvaluationTool** - 分析和评估微生物菌剂效果
-- `_run(operation, **kwargs)` - 评估操作的统一接口
-- 操作：`analyze_evaluation_result`、`check_core_standards`
-- 也支持直接方法调用：`analyze_evaluation_result(evaluation_report)`、`check_core_standards(evaluation_report)`
+系统通过`external_tools/`目录内部集成了多个外部工具脚本，避免了对外部路径的依赖：
+
+1. **GenomeSPOT** - 预测微生物环境适应性的机器学习工具
+2. **DLkcat** - 预测酶催化速率的工具
+3. **Carveme** - 构建基因组规模代谢模型的工具
+4. **Phylomint** - 分析微生物间代谢互补性的工具
+
+这些外部工具脚本被复制到项目内部，确保了项目的可移植性和一致性。
+
+### 微生物菌剂评估专用工具
+
+系统包含多个微生物菌剂评估专用工具：
+
+1. **ReactionAdditionTool** - 批量为SBML模型添加代谢反应
+2. **MediumRecommendationTool** - 使用MICOM生成推荐培养基组分
+3. **EvaluationTool** - 分析和评估微生物菌剂效果
+4. **CtfbaTool** - 计算微生物群落的代谢通量
 
 ## 开发指南
 
@@ -342,3 +373,11 @@ BioCrew/
 - 添加了多个新的测试文件，用于验证功能微生物识别和菌剂设计功能
 - 创建了专门的测试文件来验证工具调用能力
 - 增强了测试覆盖度，确保各个功能模块的正确性
+- 清理了冗余的测试文件，优化了测试结构，提高了维护性
+
+### 菌剂评估工具增强
+
+- 实现了ReactionAdditionTool工具，用于批量为SBML模型添加代谢反应
+- 实现了MediumRecommendationTool工具，使用MICOM生成推荐培养基组分
+- 增强了菌剂评估智能体，集成了新工具并更新了评估流程
+- 创建了专门的测试文件验证新工具的功能

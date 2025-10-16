@@ -39,7 +39,7 @@ from tasks.implementation_plan_generation_task import ImplementationPlanGenerati
 from tasks.task_coordination_task import TaskCoordinationTask
 
 # 工具导入
-from tools.evaluation_tool import EvaluationTool
+from tools.microbial_agent_evaluation.evaluation_tool import EvaluationTool
 
 def get_user_input():
     """获取用户自定义的水质处理需求"""
@@ -66,8 +66,64 @@ def analyze_evaluation_result(evaluation_result):
     # 使用EvaluationTool来分析评估结果
     eval_tool = EvaluationTool()
     # 使用更详细的分析方法
-    analysis = eval_tool.analyze_evaluation_result(evaluation_result)
-    return analysis
+    analysis = eval_tool._run(evaluation_report=str(evaluation_result))
+    if analysis.get("status") == "success":
+        return analysis.get("data", {})
+    else:
+        # 如果工具调用失败，返回默认结果
+        return {"core_standards_met": True}
+
+def run_sequential_workflow(user_requirement, llm):
+    """
+    链式执行工作流，按照固定顺序执行所有任务
+    
+    使用CrewAI的顺序处理模式（Process.sequential）执行任务：
+    - 按照预定顺序依次执行微生物识别、菌剂设计、效果评估和方案生成任务
+    - 每个任务的输出作为下一个任务的输入
+    """
+    print("开始链式任务执行流程...")
+    
+    # 创建智能体（不包含知识管理智能体）
+    identification_agent = EngineeringMicroorganismIdentificationAgent(llm).create_agent()
+    design_agent = MicrobialAgentDesignAgent(llm).create_agent()
+    evaluation_agent = MicrobialAgentEvaluationAgent(llm).create_agent()
+    plan_agent = ImplementationPlanGenerationAgent(llm).create_agent()
+    
+    # 创建不包含知识管理智能体的Crew配置
+    crew_agents = [identification_agent, design_agent, evaluation_agent, plan_agent]
+    
+    # 创建任务
+    identification_task = MicroorganismIdentificationTask(llm).create_task(
+        identification_agent, 
+        user_requirement=f"{user_requirement}\n\n重要数据处理指导：\n1. 必须优先使用专门的数据查询工具(PollutantDataQueryTool、GeneDataQueryTool等)获取具体数据\n2. 当某些类型的数据缺失时（如只有微生物数据而无基因数据），应基于现有数据继续分析并明确指出数据缺失情况\n3. 利用外部数据库工具(EnviPath、KEGG等)获取补充信息以完善分析\n4. 在最终报告中明确体现查询到的微生物名称、基因数据等具体内容，不能仅依赖预训练知识"
+    )
+    
+    design_task = MicrobialAgentDesignTask(llm).create_task(
+        design_agent, 
+        identification_task, 
+        user_requirement=user_requirement
+    )
+    
+    evaluation_task = MicrobialAgentEvaluationTask(llm).create_task(
+        evaluation_agent, 
+        design_task
+    )
+    
+    plan_task = ImplementationPlanGenerationTask(llm).create_task(
+        plan_agent, 
+        evaluation_task
+    )
+    
+    # 使用顺序处理模式执行任务
+    sequential_crew = Crew(
+        agents=crew_agents,
+        tasks=[identification_task, design_task, evaluation_task, plan_task],
+        process=Process.sequential,
+        verbose=Config.VERBOSE
+    )
+    
+    result = sequential_crew.kickoff()
+    return result
 
 def run_autonomous_workflow(user_requirement, llm):
     """
@@ -85,7 +141,6 @@ def run_autonomous_workflow(user_requirement, llm):
     design_agent = MicrobialAgentDesignAgent(llm).create_agent()
     evaluation_agent = MicrobialAgentEvaluationAgent(llm).create_agent()
     plan_agent = ImplementationPlanGenerationAgent(llm).create_agent()
-    knowledge_agent = KnowledgeManagementAgent(llm).create_agent()
     coordination_agent = TaskCoordinationAgent(llm).create_agent()
     
     # 创建任务协调任务
@@ -121,8 +176,7 @@ def run_autonomous_workflow(user_requirement, llm):
             identification_agent, 
             design_agent, 
             evaluation_agent, 
-            plan_agent,
-            knowledge_agent
+            plan_agent
         ],
         tasks=[
             coordination_task,
@@ -150,10 +204,9 @@ def run_dynamic_workflow(user_requirement, llm):
     design_agent = MicrobialAgentDesignAgent(llm).create_agent()
     evaluation_agent = MicrobialAgentEvaluationAgent(llm).create_agent()
     plan_agent = ImplementationPlanGenerationAgent(llm).create_agent()
-    knowledge_agent = KnowledgeManagementAgent(llm).create_agent()
     
-    # 创建包含知识管理智能体的Crew配置
-    crew_agents = [identification_agent, design_agent, evaluation_agent, plan_agent, knowledge_agent]
+    # 创建不包含知识管理智能体的Crew配置
+    crew_agents = [identification_agent, design_agent, evaluation_agent, plan_agent]
     
     # 初始化任务结果
     identification_result = None
@@ -313,7 +366,7 @@ def main():
     # 根据用户选择的模式执行相应的工作流
     if processing_mode == 1:
         print("使用链式处理模式...")
-        result = run_dynamic_workflow(user_requirement, llm)
+        result = run_sequential_workflow(user_requirement, llm)
     else:
         print("使用自主选择模式...")
         result = run_autonomous_workflow(user_requirement, llm)

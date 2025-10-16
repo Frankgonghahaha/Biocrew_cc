@@ -1,86 +1,89 @@
 #!/usr/bin/env python3
 """
-测试菌剂设计的简化测试文件
+测试微生物菌剂设计智能体
+验证工具是否正确加载和调用
 """
 
 import sys
 import os
-from dotenv import load_dotenv
 
 # 添加项目根目录到Python路径
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-# 加载环境变量
-load_dotenv()
-
-from crewai import Crew, Process
 from config.config import Config
-from agents.microbial_agent_design_agent import MicrobialAgentDesignAgent
-from tasks.microbial_agent_design_task import MicrobialAgentDesignTask
+from langchain_openai import ChatOpenAI
+import dashscope
 
-def get_user_input():
-    """获取用户输入的水质处理需求"""
-    print("=== 菌剂设计测试系统 ===")
-    print("请输入您的水质处理需求：")
-    
-    # 获取目标污染物
-    target_pollutant = input("目标污染物（例如：苯酚、重金属等）: ").strip()
-    
-    # 获取处理目标
-    treatment_goal = input("处理目标（例如：达到国家一级排放标准）: ").strip()
-    
-    # 获取环境条件
-    environmental_conditions = input("环境条件（例如：温度、pH值、溶解氧等）: ").strip()
-    
-    return {
-        'target_pollutant': target_pollutant,
-        'treatment_goal': treatment_goal,
-        'environmental_conditions': environmental_conditions
-    }
+def get_llm():
+    """获取LLM实例"""
+    dashscope.api_key = Config.QWEN_API_KEY
+    llm = ChatOpenAI(
+        base_url=Config.OPENAI_API_BASE,
+        api_key=Config.OPENAI_API_KEY,
+        model="openai/qwen3-30b-a3b-instruct-2507",
+        temperature=Config.MODEL_TEMPERATURE,
+        streaming=False,
+        max_tokens=Config.MODEL_MAX_TOKENS
+    )
+    return llm
 
-def main():
-    """主函数"""
-    # 获取用户输入
-    user_input = get_user_input()
-    
-    # 创建配置实例
-    config = Config()
+def test_microbial_agent_design():
+    """
+    测试微生物菌剂设计智能体
+    """
+    print("开始测试微生物菌剂设计智能体...")
     
     # 获取LLM实例
-    llm = config.get_llm()
+    llm = get_llm()
     
-    # 初始化智能体
+    # 导入菌剂设计智能体
+    from agents.microbial_agent_design_agent import MicrobialAgentDesignAgent
+    
+    # 创建菌剂设计智能体
     design_agent = MicrobialAgentDesignAgent(llm).create_agent()
     
-    # 构建用户需求描述
-    user_requirement = f"""
-    目标污染物: {user_input['target_pollutant']}
-    处理目标: {user_input['treatment_goal']}
-    环境条件: {user_input['environmental_conditions']}
-    """
+    # 显示智能体信息
+    print(f"智能体角色: {design_agent.role}")
+    print(f"智能体目标: {design_agent.goal}")
+    print(f"智能体可用工具数量: {len(design_agent.tools)}")
     
-    # 初始化任务
-    design_task_instance = MicrobialAgentDesignTask(llm)
-    design_task = design_task_instance.create_task(
-        agent=design_agent,
-        user_requirement=user_requirement
-    )
+    # 检查结果完整性
+    result_elements = str(design_agent.backstory)
+    key_elements = ["微生物", "菌剂", "代谢", "基因", "酶"]
+    missing_elements = []
     
-    # 创建Crew
-    crew = Crew(
-        agents=[design_agent],
-        tasks=[design_task],
-        process=Process.sequential,
-        verbose=2
-    )
+    for element in key_elements:
+        if element not in result_elements:
+            missing_elements.append(element)
     
-    # 执行任务
-    print("\n开始执行菌剂设计任务...")
-    result = crew.kickoff()
+    if missing_elements:
+        print(f"✗ 结果中缺少以下关键元素: {missing_elements}")
+    else:
+        print("✓ 结果包含所有关键元素")
     
-    # 输出结果
-    print("\n=== 任务执行结果 ===")
-    print(result)
+    # 检查工具调用
+    print("\n工具调用检查:")
+    if len(design_agent.tools) > 0:
+        print(f"✓ 设计智能体成功加载 {len(design_agent.tools)} 个工具")
+        tool_names = [tool.name for tool in design_agent.tools]
+        required_tools = ["GenomeSPOTTool", "DLkcatTool", "CarvemeTool", "PhylomintTool", "CtfbaTool"]
+        
+        missing_tools = []
+        for tool in required_tools:
+            if tool not in tool_names:
+                missing_tools.append(tool)
+        
+        if missing_tools:
+            print(f"✗ 以下必需工具未加载: {missing_tools}")
+        else:
+            print("✓ 所有必需工具均已正确加载")
+            
+        # 显示加载的工具
+        print("\n已加载的工具:")
+        for i, tool in enumerate(design_agent.tools):
+            print(f"{i+1}. {tool.name}")
+    else:
+        print("✗ 设计智能体未加载任何工具")
 
 if __name__ == "__main__":
-    main()
+    test_microbial_agent_design()

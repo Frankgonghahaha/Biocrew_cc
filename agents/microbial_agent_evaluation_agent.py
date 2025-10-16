@@ -15,6 +15,36 @@ class MicrobialAgentEvaluationAgent:
         # 初始化评估工具
         evaluation_tool = EvaluationTool()
         
+        # 初始化ctFBA工具
+        ctfba_tools = []
+        try:
+            from tools.microbial_agent_design.ctfba_tool.ctfba_tool import CtfbaTool
+            ctfba_tools.append(CtfbaTool())
+        except Exception as e:
+            print(f"ctFBA工具初始化失败: {e}")
+        
+        # 初始化代谢反应填充工具
+        reaction_tools = []
+        try:
+            from tools.microbial_agent_evaluation.reaction_addition_tool import ReactionAdditionTool
+            reaction_tools.append(ReactionAdditionTool())
+        except Exception as e:
+            print(f"代谢反应填充工具初始化失败: {e}")
+        
+        # 初始化培养基推荐工具
+        medium_tools = []
+        try:
+            from tools.microbial_agent_evaluation.medium_recommendation_tool import MediumRecommendationTool
+            medium_tools.append(MediumRecommendationTool())
+        except Exception as e:
+            print(f"培养基推荐工具初始化失败: {e}")
+        
+        # 合并所有工具
+        all_tools = [evaluation_tool]
+        all_tools.extend(ctfba_tools)
+        all_tools.extend(reaction_tools)
+        all_tools.extend(medium_tools)
+        
         return Agent(
             role='菌剂评估专家',
             goal='评估微生物菌剂的生物净化效果和生态特性',
@@ -30,15 +60,21 @@ class MicrobialAgentEvaluationAgent:
             #    - 结构稳定性：物种敲除指数（I_KO越近1越稳）、通路阻断恢复能力
             
             # 评估流程：
-            # 1. 分析菌剂设计方案和相关数据
-            # 2. 计算各项评估指标
-            # 3. 重点关注群落稳定性和结构稳定性是否达到标准（这是核心标准）
-            # 4. 如果核心标准不达标，需要明确指出问题并建议回退到工程微生物组识别阶段
-            # 5. 如果核心标准达标，再综合评估其他维度
+            # 1. 使用代谢反应填充工具为模型添加必要的代谢反应
+            # 2. 使用培养基推荐工具生成推荐培养基
+            # 3. 使用ctFBA工具计算菌剂的实际代谢通量和生长率
+            # 4. 分析菌剂设计方案和相关数据
+            # 5. 计算各项评估指标
+            # 6. 重点关注群落稳定性和结构稳定性是否达到标准（这是核心标准）
+            # 7. 如果核心标准不达标，需要明确指出问题并建议回退到工程微生物组识别阶段
+            # 8. 如果核心标准达标，再综合评估其他维度
             
             # 决策规则：
             # - 群落稳定性和结构稳定性是必须达标的两个核心标准
             # - 如果任一核心标准不达标，整个菌剂方案需要重新设计
+            # - 使用ReactionAdditionTool工具为模型添加代谢反应
+            # - 使用MediumRecommendationTool工具生成推荐培养基
+            # - 使用CtfbaTool工具计算实际的代谢通量和生长性能
             # - 使用EvaluationTool工具来判断核心标准是否达标
             # - 评估结果将直接影响是否需要重新进行微生物识别和设计
             
@@ -47,8 +83,9 @@ class MicrobialAgentEvaluationAgent:
             # - 重点突出核心标准评估结果
             # - 提供明确的决策建议（通过或回退重新识别）
             # - 如果需要回退，提供具体的改进建议
+            # - 包含培养基推荐、ctFBA计算的具体结果
             """,
-            tools=[evaluation_tool],
+            tools=all_tools,
             verbose=True,
             allow_delegation=True,
             llm=self.llm

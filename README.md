@@ -62,61 +62,20 @@
 
 ```
 BioCrew/
-├── main.py                 # 主程序入口
-├── requirements.txt        # 项目依赖
-├── .env.example           # 环境变量配置示例
-├── CLAUDE.md              # Claude Code开发指南
-├── tests/                 # 测试文件
-│   ├── test_Agent_Search.py               # Agent搜索测试
-│   ├── test_database_query_user_input.py  # 数据库查询测试（支持用户输入）
-│   ├── test_functional_microorganism_identification.py  # 功能微生物识别测试
-│   ├── test_microbial_agent_design.py     # 微生物菌剂设计测试
-│   ├── test_microbial_agent_design_tool_usage.py  # 微生物菌剂设计工具调用测试
-│   ├── test_microbial_identification_and_design.py  # 功能微生物识别和菌剂设计集成测试
-│   └── test_microbial_complementarity_db_query_tool.py  # 微生物互补性数据库查询工具测试
-├── config/
-│   └── config.py          # 配置文件
-├── agents/                # 智能体定义
-│   ├── task_coordination_agent.py              # 任务协调专家
-│   ├── engineering_microorganism_identification_agent.py  # 工程微生物组识别专家
-│   ├── microbial_agent_design_agent.py         # 微生物菌剂设计专家
-│   ├── microbial_agent_evaluation_agent.py     # 菌剂评估专家
-│   ├── implementation_plan_generation_agent.py  # 实施方案生成专家
-│   └── knowledge_management_agent.py           # 知识管理专家
-├── tasks/                 # 任务定义
-│   ├── microorganism_identification_task.py    # 工程微生物组识别任务
-│   ├── microbial_agent_design_task.py          # 微生物菌剂设计任务
-│   ├── microbial_agent_evaluation_task.py      # 菌剂评估任务
-│   └── implementation_plan_generation_task.py  # 实施方案生成任务
-├── tools/                 # 自定义工具
-│   ├── database_tool_factory.py               # 数据库工具工厂
-│   ├── engineering_microorganism_identification/     # 工程微生物识别工具
-│   │   ├── envipath_tool.py                  # EnviPath数据库访问工具
-│   │   ├── kegg_tool.py                      # KEGG数据库访问工具
-│   │   ├── ncbi_genome_query_tool.py         # NCBI基因组查询工具
-│   │   ├── microbial_complementarity_db_query_tool.py  # 微生物互补性数据库查询工具
-│   │   ├── microbial_complementarity_model.py          # 微生物互补性数据模型
-│   │   └── microbial_complementarity_query_tool.py     # 微生物互补性查询工具
-│   ├── microbial_agent_design/               # 微生物菌剂设计工具
-│   │   ├── gene_data_query_tool.py           # 基因数据查询工具
-│   │   ├── organism_data_query_tool.py       # 微生物数据查询工具
-│   │   ├── pollutant_data_query_tool.py      # 污染物数据查询工具
-│   │   ├── pollutant_summary_tool.py         # 污染物摘要工具
-│   │   ├── pollutant_search_tool.py          # 污染物搜索工具
-│   │   ├── pollutant_name_utils.py           # 污染物名称标准化工具
-│   │   ├── genome_spot_tool/                 # GenomeSPOT工具
-│   │   ├── dlkcat_tool/                      # DLkcat工具
-│   │   ├── carveme_tool/                     # Carveme工具
-│   │   ├── phylomint_tool/                   # Phylomint工具
-│   │   └── ctfba_tool/                       # ctFBA工具
-│   ├── microbial_agent_evaluation/           # 微生物菌剂评估工具
-│   │   └── evaluation_tool.py                # 评估工具
-│   ├── implementation_plan_generation/       # 实施方案生成工具
-│   └── task_coordination/                    # 任务协调工具
-├── data/                  # 本地数据文件 (不被git跟踪)
-│   ├── Genes/             # 基因数据文件
-│   └── Organism/          # 微生物数据文件
-└── models/                # 模型配置（待完善）
+├── agents/                 # 智能体定义
+├── tools/                  # 工具实现
+│   ├── external_tools/     # 外部工具脚本（项目内部集成）
+│   │   ├── genome_spot/    # GenomeSPOT工具
+│   │   ├── dlkcat/         # DLkcat工具
+│   │   ├── carveme/        # Carveme工具
+│   │   └── phylomint/      # Phylomint工具
+│   ├── microbial_agent_design/     # 菌剂设计工具
+│   ├── microbial_agent_evaluation/ # 菌剂评估工具
+│   └── engineering_microorganism_identification/ # 工程微生物识别工具
+├── tasks/                  # 任务定义
+├── config/                 # 配置文件
+├── tests/                  # 测试文件
+└── docs/                   # 文档
 ```
 
 ## 智能体调度模式
@@ -209,29 +168,29 @@ python main.py
 项目包含多个测试文件，用于验证不同功能模块的正确性：
 
 ```bash
-# 运行主应用程序测试
+# 运行主应用程序
 python main.py
 
-# 运行Agent搜索测试
-python tests/test_Agent_Search.py
+# 运行综合工具执行测试
+python tests/test_comprehensive_tool_execution.py
 
-# 运行数据库查询测试（支持用户输入）
-python tests/test_database_query_user_input.py
-
-# 运行功能微生物识别测试
-python tests/test_functional_microorganism_identification.py
-
-# 运行微生物菌剂设计测试
-python tests/test_microbial_agent_design.py
+# 运行所有设计工具测试
+python tests/test_all_design_tools.py
 
 # 运行微生物菌剂设计工具调用测试
 python tests/test_microbial_agent_design_tool_usage.py
 
-# 运行功能微生物识别和菌剂设计集成测试
-python tests/test_microbial_identification_and_design.py
+# 运行微生物菌剂评估工具调用测试
+python tests/test_microbial_agent_evaluation_tools.py
 
-# 运行微生物互补性数据库查询工具测试
-python tests/test_microbial_complementarity_db_query_tool.py
+# 运行完整智能体任务执行测试
+python tests/test_complete_agent_task_execution.py
+
+# 运行真实工具执行测试
+python tests/test_real_tool_execution.py
+
+# 运行工具调用验证测试
+python tests/test_tool_call_verification.py
 ```
 
 程序启动后会提示用户选择处理模式：
@@ -269,7 +228,17 @@ python tests/test_microbial_complementarity_db_query_tool.py
 2. **DLkcatTool** - 预测降解酶对于特定底物的降解速率
 3. **CarvemeTool** - 构建基因组规模代谢模型(GSMM)
 4. **PhylomintTool** - 分析微生物间的代谢互补性和竞争性
-5. **CtfbaTool** - 计算微生物群落的代谢通量
+
+### 微生物菌剂评估专用工具
+
+项目包含多个微生物菌剂评估专用工具：
+
+1. **ReactionAdditionTool** - 批量为SBML模型添加代谢反应
+2. **MediumRecommendationTool** - 使用MICOM生成推荐培养基组分
+3. **EvaluationTool** - 分析和评估微生物菌剂效果
+4. **CtfbaTool** - 计算微生物群落的代谢通量
+
+- **技术创新**：大语言模型+生物信息学工具结合，理性+数据双驱动
 
 ## 系统优化与扩展
 
@@ -325,3 +294,22 @@ python tests/test_microbial_complementarity_db_query_tool.py
 项目维护者: Axl1Huang - [GitHub](https://github.com/Axl1Huang)
 
 项目链接: [https://github.com/Water-Quality-Risk-Control-Engineering/BioCrew](https://github.com/Water-Quality-Risk-Control-Engineering/BioCrew)
+
+## 工具架构说明
+
+本项目采用内部集成的工具架构，将外部工具脚本复制到项目内部的 `tools/external_tools/` 目录中，避免了对外部路径的依赖。
+
+### 优势
+
+1. **更好的可移植性** - 所有工具都在项目内部，便于部署和分享
+2. **降低配置复杂性** - 无需配置外部工具路径
+3. **提高稳定性** - 避免因外部路径变更导致的工具失效
+4. **容错机制** - 工具执行失败时自动回退到模拟执行
+
+### 工具列表
+
+1. **GenomeSPOT** - 预测微生物环境适应性特征
+2. **DLkcat** - 预测降解酶催化速率
+3. **Carveme** - 构建基因组规模代谢模型
+4. **Phylomint** - 分析微生物间代谢互补性和竞争性
+5. **ctFBA** - 计算微生物群落代谢通量（目前为模拟实现）
