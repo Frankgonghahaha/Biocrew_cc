@@ -14,7 +14,7 @@ PROJECT_ROOT = Path(__file__).parent.parent.resolve()
 MODELS_DIR = PROJECT_ROOT / "outputs" / "metabolic_models"
 
 # 统一的反应数据目录
-REACTIONS_DIR = PROJECT_ROOT / "tools" / "data" / "reactions"
+REACTIONS_DIR = PROJECT_ROOT / "data" / "reactions"
 
 # 统一的测试数据目录
 TEST_DATA_DIR = PROJECT_ROOT / "test_data"
@@ -29,4 +29,4 @@ TEST_DATA_DIR.mkdir(parents=True, exist_ok=True)
 OUTPUTS_DIR.mkdir(parents=True, exist_ok=True)
 
 # 外部工具目录
-EXTERNAL_TOOLS_DIR = PROJECT_ROOT / "tools" / "external_tools"
+EXTERNAL_TOOLS_DIR = PROJECT_ROOT / "core" / "tools" / "external"

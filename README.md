@@ -62,20 +62,90 @@
 
 ```
 BioCrew/
-├── agents/                 # 智能体定义
-├── tools/                  # 工具实现
-│   ├── external_tools/     # 外部工具脚本（项目内部集成）
-│   │   ├── genome_spot/    # GenomeSPOT工具
-│   │   ├── dlkcat/         # DLkcat工具
-│   │   ├── carveme/        # Carveme工具
-│   │   └── phylomint/      # Phylomint工具
-│   ├── microbial_agent_design/     # 菌剂设计工具
-│   ├── microbial_agent_evaluation/ # 菌剂评估工具
-│   └── engineering_microorganism_identification/ # 工程微生物识别工具
-├── tasks/                  # 任务定义
-├── config/                 # 配置文件
-├── tests/                  # 测试文件
-└── docs/                   # 文档
+├── main.py                 # 主程序入口
+├── requirements.txt        # 项目依赖
+├── .env.example           # 环境变量配置示例
+├── README.md              # 项目说明文档
+├── CLAUDE.md              # Claude Code开发指南
+├── config/                # 配置文件
+│   ├── __init__.py
+│   ├── config.py          # 主配置文件
+│   └── paths.py           # 路径配置
+├── core/                  # 核心模块
+│   ├── agents/            # 智能体定义
+│   │   ├── __init__.py
+│   │   ├── identification_agent.py     # 工程微生物组识别智能体
+│   │   ├── design_agent.py             # 微生物菌剂设计智能体
+│   │   ├── evaluation_agent.py         # 菌剂评估智能体
+│   │   ├── implementation_agent.py     # 实施方案生成智能体
+│   │   ├── coordination_agent.py       # 任务协调智能体
+│   │   └── knowledge_agent.py          # 知识管理智能体
+│   ├── tasks/             # 任务定义
+│   │   ├── __init__.py
+│   │   ├── identification_task.py      # 微生物组识别任务
+│   │   ├── design_task.py              # 微生物菌剂设计任务
+│   │   ├── evaluation_task.py          # 菌剂评估任务
+│   │   ├── implementation_task.py      # 实施方案生成任务
+│   │   └── coordination_task.py        # 任务协调任务
+│   └── tools/             # 自定义工具（统一管理）
+│       ├── __init__.py
+│       ├── database/      # 数据库工具
+│       │   ├── __init__.py
+│       │   ├── factory.py              # 数据库工具工厂
+│       │   ├── envipath.py             # EnviPath数据库访问工具
+│       │   ├── kegg.py                 # KEGG数据库访问工具
+│       │   ├── ncbi.py                 # NCBI基因组查询工具
+│       │   ├── complementarity_query.py # 微生物互补性查询工具
+│       │   ├── complementarity_model.py # 微生物互补性数据模型
+│       │   ├── complementarity_tool.py # 微生物互补性查询工具
+│       │   ├── pollutant_query.py      # 污染物数据查询工具
+│       │   ├── gene_query.py           # 基因数据查询工具
+│       │   ├── organism_query.py       # 微生物数据查询工具
+│       │   ├── summary.py              # 污染物摘要工具
+│       │   ├── search.py               # 污染物搜索工具
+│       │   └── name_utils.py           # 污染物名称标准化工具
+│       ├── external/      # 外部数据库工具
+│       │   ├── __init__.py
+│       │   └── genome.py               # 基因组工具
+│       ├── design/        # 菌剂设计工具
+│       │   ├── __init__.py
+│       │   ├── genome_processing.py    # 基因组处理工具
+│       │   ├── genome_spot.py          # GenomeSPOT工具
+│       │   ├── dlkcat.py               # DLkcat工具
+│       │   ├── carveme.py              # Carveme工具
+│       │   ├── phylomint.py            # Phylomint工具
+│       │   └── ctfba.py                # ctFBA工具
+│       ├── evaluation/    # 菌剂评估工具
+│       │   ├── __init__.py
+│       │   ├── evaluation.py           # 评估工具
+│       │   ├── reaction_addition.py    # 代谢反应填充工具
+│       │   ├── medium_recommendation.py # 培养基推荐工具
+│       │   └── ctfba.py                # ctFBA工具（共享）
+│       └── services/      # 服务工具
+│           ├── __init__.py
+│           ├── genomic_data.py         # 基因组数据服务
+│           └── intermediate_check.py   # 中间产物检查工具
+├── data/                  # 本地数据
+│   ├── genomes/           # 基因组数据
+│   ├── reactions/         # 反应数据
+│   └── medium/            # 培养基数据
+├── outputs/               # 输出文件
+│   ├── genome_features/   # 基因组特征
+│   ├── metabolic_models/  # 代谢模型
+│   └── results/           # 结果文件
+├── tests/                 # 测试文件
+│   ├── __init__.py
+│   ├── test_workflow.py               # 完整工作流测试
+│   ├── test_identification.py         # 识别阶段测试
+│   ├── test_design.py                 # 设计阶段测试
+│   ├── test_evaluation.py             # 评估阶段测试
+│   ├── test_tools.py                  # 工具测试
+│   └── test_integration.py            # 集成测试
+└── docs/                  # 文档
+    ├── AGENTS.md         # 智能体文档
+    ├── TASKS.md          # 任务文档
+    ├── TOOLS.md          # 工具文档
+    └── TESTS.md          # 测试文档
 ```
 
 ## 智能体调度模式
@@ -165,33 +235,29 @@ python main.py
 
 ### 运行测试
 
-项目包含多个测试文件，用于验证不同功能模块的正确性：
+项目包含多个测试文件，用于验证不同阶段的功能：
 
 ```bash
 # 运行主应用程序
 python main.py
 
-# 运行综合工具执行测试
-python tests/test_comprehensive_tool_execution.py
+# 运行全流程执行测试
+python tests/test_workflow.py
 
-# 运行所有设计工具测试
-python tests/test_all_design_tools.py
-
-# 运行微生物菌剂设计工具调用测试
-python tests/test_microbial_agent_design_tool_usage.py
-
-# 运行微生物菌剂评估工具调用测试
-python tests/test_microbial_agent_evaluation_tools.py
-
-# 运行完整智能体任务执行测试
-python tests/test_complete_agent_task_execution.py
-
-# 运行真实工具执行测试
-python tests/test_real_tool_execution.py
-
-# 运行工具调用验证测试
-python tests/test_tool_call_verification.py
+# 运行分阶段测试
+python tests/test_identification_phase.py    # 工程微生物组识别阶段测试
+python tests/test_design_phase.py           # 微生物菌剂设计阶段测试
+python tests/test_evaluation_phase.py       # 菌剂评估阶段测试
+python tests/test_intermediate_product_check.py  # 中间产物检查测试
 ```
+
+### 测试文件作用说明
+
+1. **test_workflow.py** - 完整工作流测试，依次执行识别、设计、评估三个阶段
+2. **test_identification_phase.py** - 专门测试工程微生物组识别阶段的功能
+3. **test_design_phase.py** - 专门测试微生物菌剂设计阶段的功能
+4. **test_evaluation_phase.py** - 专门测试菌剂评估阶段的功能
+5. **test_intermediate_product_check.py** - 检查各阶段生成的中间产物文件完整性
 
 程序启动后会提示用户选择处理模式：
 1. 链式处理模式（按固定顺序执行）
@@ -297,19 +363,20 @@ python tests/test_tool_call_verification.py
 
 ## 工具架构说明
 
-本项目采用内部集成的工具架构，将外部工具脚本复制到项目内部的 `tools/external_tools/` 目录中，避免了对外部路径的依赖。
+本项目采用模块化的工具架构，将所有工具统一管理在 `core/tools/` 目录下，并按功能划分为不同的子模块，避免了对外部路径的依赖。
 
 ### 优势
 
-1. **更好的可移植性** - 所有工具都在项目内部，便于部署和分享
-2. **降低配置复杂性** - 无需配置外部工具路径
+1. **更好的可移植性** - 所有工具都在项目内部统一管理，便于部署和分享
+2. **降低配置复杂性** - 工具按功能模块化组织，结构清晰
 3. **提高稳定性** - 避免因外部路径变更导致的工具失效
 4. **容错机制** - 工具执行失败时自动回退到模拟执行
+5. **易于维护** - 模块化设计便于工具的更新和维护
 
-### 工具列表
+### 工具分类
 
-1. **GenomeSPOT** - 预测微生物环境适应性特征
-2. **DLkcat** - 预测降解酶催化速率
-3. **Carveme** - 构建基因组规模代谢模型
-4. **Phylomint** - 分析微生物间代谢互补性和竞争性
-5. **ctFBA** - 计算微生物群落代谢通量（目前为模拟实现）
+1. **数据库工具** - 访问本地和外部数据库
+2. **菌剂设计工具** - 用于微生物菌剂的设计和分析
+3. **菌剂评估工具** - 用于微生物菌剂的评估和优化
+4. **服务工具** - 提供通用的服务功能
+5. **外部工具** - 集成的第三方工具脚本

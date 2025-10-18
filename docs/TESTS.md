@@ -8,7 +8,7 @@
 
 ### 1. 真实Agent工具调用测试 (test_real_agent_tool_call.py)
 
-**文件**: `tests/test_real_agent_tool_call.py`
+**文件**: `tests/test_workflow.py`
 
 **功能**: 测试真实Agent工具调用，用于验证Agent是否可以正确调用工具，不使用模拟数据和模拟流程。
 
@@ -39,7 +39,7 @@
 
 **使用方法**:
 ```bash
-python tests/test_real_agent_tool_call.py
+python tests/test_workflow.py
 ```
 
 ## 测试执行
@@ -52,7 +52,7 @@ python tests/test_real_agent_tool_call.py
 ### 执行测试
 ```bash
 cd tests
-python test_real_agent_tool_call.py
+python test_workflow.py
 ```
 
 ### 测试验证点

@@ -182,7 +182,13 @@ Thumbs.db
 
 # Data files (specific to this project)
 data/
-
+outputs/
 
 # Example files (specific to this project)
 *_example.py
+
+# Test results
+test_results/
+
+# Environment files
+.env

@@ -8,7 +8,7 @@
 
 ### 1. 微生物识别任务 (MicroorganismIdentificationTask)
 
-**文件**: `tasks/microorganism_identification_task.py`
+**文件**: `core/tasks/identification_task.py`
 
 **关联智能体**: EngineeringMicroorganismIdentificationAgent
 
@@ -32,7 +32,7 @@
 
 ### 2. 微生物菌剂设计任务 (MicrobialAgentDesignTask)
 
-**文件**: `tasks/microbial_agent_design_task.py`
+**文件**: `core/tasks/design_task.py`
 
 **关联智能体**: MicrobialAgentDesignAgent
 
@@ -56,7 +56,7 @@
 
 ### 3. 微生物菌剂评估任务 (MicrobialAgentEvaluationTask)
 
-**文件**: `tasks/microbial_agent_evaluation_task.py`
+**文件**: `core/tasks/evaluation_task.py`
 
 **关联智能体**: MicrobialAgentEvaluationAgent
 
@@ -79,7 +79,7 @@
 
 ### 4. 实施方案生成任务 (ImplementationPlanGenerationTask)
 
-**文件**: `tasks/implementation_plan_generation_task.py`
+**文件**: `core/tasks/implementation_task.py`
 
 **关联智能体**: ImplementationPlanGenerationAgent
 
@@ -102,7 +102,7 @@
 
 ### 5. 任务协调任务 (TaskCoordinationTask)
 
-**文件**: `tasks/task_coordination_task.py`
+**文件**: `core/tasks/coordination_task.py`
 
 **关联智能体**: TaskCoordinationAgent
 

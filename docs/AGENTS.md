@@ -8,7 +8,7 @@
 
 ### 1. 工程微生物组识别智能体 (EngineeringMicroorganismIdentificationAgent)
 
-**文件**: `agents/engineering_microorganism_identification_agent.py`
+**文件**: `core/agents/identification_agent.py`
 
 **角色**: 功能微生物组识别专家
 
@@ -37,7 +37,7 @@
 
 ### 2. 微生物菌剂设计智能体 (MicrobialAgentDesignAgent)
 
-**文件**: `agents/microbial_agent_design_agent.py`
+**文件**: `core/agents/design_agent.py`
 
 **角色**: 微生物菌剂设计专家
 
@@ -64,7 +64,7 @@
 
 ### 3. 菌剂评估智能体 (MicrobialAgentEvaluationAgent)
 
-**文件**: `agents/microbial_agent_evaluation_agent.py`
+**文件**: `core/agents/evaluation_agent.py`
 
 **角色**: 菌剂评估专家
 
@@ -92,7 +92,7 @@
 
 ### 4. 实施方案生成智能体 (ImplementationPlanGenerationAgent)
 
-**文件**: `agents/implementation_plan_generation_agent.py`
+**文件**: `core/agents/implementation_agent.py`
 
 **角色**: 实施方案生成专家
 
@@ -125,7 +125,7 @@
 
 ### 5. 知识管理智能体 (KnowledgeManagementAgent)
 
-**文件**: `agents/knowledge_management_agent.py`
+**文件**: `core/agents/knowledge_agent.py`
 
 **角色**: 知识管理专家
 
@@ -151,7 +151,7 @@
 
 ### 6. 任务协调智能体 (TaskCoordinationAgent)
 
-**文件**: `agents/task_coordination_agent.py`
+**文件**: `core/agents/coordination_agent.py`
 
 **角色**: 任务协调专家
 

@@ -8,7 +8,7 @@
 
 ### 1. PollutantDataQueryTool
 
-**文件**: `tools/pollutant_data_query_tool.py`
+**文件**: `core/tools/database/pollutant_query.py`
 
 **功能**: 查询指定污染物的所有相关数据，包括基因数据和微生物数据
 
@@ -30,7 +30,7 @@ result = tool._run(pollutant_name="endrin", data_type="both")
 
 ### 2. GeneDataQueryTool
 
-**文件**: `tools/gene_data_query_tool.py`
+**文件**: `core/tools/database/gene_query.py`
 
 **功能**: 查询指定污染物的基因数据
 
@@ -50,7 +50,7 @@ result = tool._run(pollutant_name="endrin")
 
 ### 3. OrganismDataQueryTool
 
-**文件**: `tools/organism_data_query_tool.py`
+**文件**: `core/tools/database/organism_query.py`
 
 **功能**: 查询指定污染物的微生物数据
 
@@ -70,7 +70,7 @@ result = tool._run(pollutant_name="endrin")
 
 ### 4. PollutantSummaryTool
 
-**文件**: `tools/pollutant_summary_tool.py`
+**文件**: `core/tools/database/summary.py`
 
 **功能**: 获取指定污染物的摘要统计信息
 
@@ -90,7 +90,7 @@ result = tool._run(pollutant_name="endrin")
 
 ### 5. PollutantSearchTool
 
-**文件**: `tools/pollutant_search_tool.py`
+**文件**: `core/tools/database/search.py`
 
 **功能**: 根据关键字搜索污染物
 
@@ -110,7 +110,7 @@ result = tool._run(keyword="endrin")
 
 ### 6. DatabaseToolFactory
 
-**文件**: `tools/database_tool_factory.py`
+**文件**: `core/tools/database/factory.py`
 
 **功能**: 工具工厂类，用于创建和管理所有数据库工具
 
@@ -128,7 +128,7 @@ tools = DatabaseToolFactory.create_all_tools()
 
 ### 1. EnviPathTool
 
-**文件**: `tools/envipath_tool.py`
+**文件**: `core/tools/database/envipath.py`
 
 **功能**: 访问enviPath数据库中的环境污染物生物转化路径数据
 
@@ -149,7 +149,7 @@ result = tool.search_compound("endrin")
 
 ### 2. KeggTool
 
-**文件**: `tools/kegg_tool.py`
+**文件**: `core/tools/database/kegg.py`
 
 **功能**: 访问KEGG数据库中的生物通路和基因组数据
 
@@ -177,7 +177,7 @@ result = tool.get_database_info("pathway")
 
 ### 1. EvaluationTool
 
-**文件**: `tools/evaluation_tool.py`
+**文件**: `core/tools/evaluation/evaluation.py`
 
 **功能**: 分析和评估微生物菌剂的有效性
 

@@ -55,13 +55,9 @@ cp .env.example .env
 python3 main.py
 
 # 运行测试
-python3 tests/test_all_design_tools.py
-python3 tests/test_engineering_microorganism_identification.py
-python3 tests/test_microbial_agent_design.py
-python3 tests/test_microbial_agent_design_tool_usage.py
-python3 tests/test_microbial_agent_evaluation_tools.py
-python3 tests/test_real_tool_execution.py
-python3 tests/test_tool_call_verification.py
+python3 tests/test_workflow.py
+
+# 运行结果分析
 ```
 
 ### 代码验证
@@ -89,73 +85,85 @@ BioCrew/
 ├── requirements.txt        # 项目依赖
 ├── .env.example           # 环境变量配置示例
 ├── CLAUDE.md              # Claude Code开发指南
+├── config/                # 配置文件
+│   ├── __init__.py
+│   ├── config.py          # 主配置文件（已完全实现）
+│   └── paths.py           # 路径配置
+├── core/                  # 核心模块
+│   ├── agents/            # 智能体定义（已完全实现，核心算法有TODO）
+│   │   ├── __init__.py
+│   │   ├── identification_agent.py     # 工程微生物组识别智能体
+│   │   ├── design_agent.py             # 微生物菌剂设计智能体
+│   │   ├── evaluation_agent.py         # 菌剂评估智能体
+│   │   ├── implementation_agent.py     # 实施方案生成智能体
+│   │   ├── coordination_agent.py       # 任务协调智能体
+│   │   └── knowledge_agent.py          # 知识管理智能体
+│   ├── tasks/             # 任务定义（已完全实现，核心算法有TODO）
+│   │   ├── __init__.py
+│   │   ├── identification_task.py      # 微生物组识别任务
+│   │   ├── design_task.py              # 微生物菌剂设计任务
+│   │   ├── evaluation_task.py          # 菌剂评估任务
+│   │   ├── implementation_task.py      # 实施方案生成任务
+│   │   └── coordination_task.py        # 任务协调任务
+│   └── tools/             # 自定义工具（统一管理）
+│       ├── __init__.py
+│       ├── database/      # 数据库工具
+│       │   ├── __init__.py
+│       │   ├── factory.py              # 数据库工具工厂
+│       │   ├── envipath.py             # EnviPath数据库访问工具
+│       │   ├── kegg.py                 # KEGG数据库访问工具
+│       │   ├── ncbi.py                 # NCBI基因组查询工具
+│       │   ├── complementarity_query.py # 微生物互补性查询工具
+│       │   ├── complementarity_model.py # 微生物互补性数据模型
+│       │   ├── complementarity_tool.py # 微生物互补性查询工具
+│       │   ├── pollutant_query.py      # 污染物数据查询工具
+│       │   ├── gene_query.py           # 基因数据查询工具
+│       │   ├── organism_query.py       # 微生物数据查询工具
+│       │   ├── summary.py              # 污染物摘要工具
+│       │   ├── search.py               # 污染物搜索工具
+│       │   └── name_utils.py           # 污染物名称标准化工具
+│       ├── external/      # 外部数据库工具
+│       │   ├── __init__.py
+│       │   └── genome.py               # 基因组工具
+│       ├── design/        # 菌剂设计工具
+│       │   ├── __init__.py
+│       │   ├── genome_processing.py    # 基因组处理工具
+│       │   ├── genome_spot.py          # GenomeSPOT工具
+│       │   ├── dlkcat.py               # DLkcat工具
+│       │   ├── carveme.py              # Carveme工具
+│       │   ├── phylomint.py            # Phylomint工具
+│       │   └── ctfba.py                # ctFBA工具
+│       ├── evaluation/    # 菌剂评估工具
+│       │   ├── __init__.py
+│       │   ├── evaluation.py           # 评估工具
+│       │   ├── reaction_addition.py    # 代谢反应填充工具
+│       │   ├── medium_recommendation.py # 培养基推荐工具
+│       │   └── ctfba.py                # ctFBA工具（共享）
+│       └── services/      # 服务工具
+│           ├── __init__.py
+│           ├── genomic_data.py         # 基因组数据服务
+│           └── intermediate_check.py   # 中间产物检查工具
+├── data/                  # 本地数据
+│   ├── genomes/           # 基因组数据
+│   ├── reactions/         # 反应数据
+│   └── medium/            # 培养基数据
+├── outputs/               # 输出文件
+│   ├── genome_features/   # 基因组特征
+│   ├── metabolic_models/  # 代谢模型
+│   └── results/           # 结果文件
 ├── tests/                 # 测试文件
-│   ├── test_all_design_tools.py                   # 所有设计工具测试
-│   ├── test_engineering_microorganism_identification.py  # 工程微生物识别测试
-│   ├── test_microbial_agent_design.py             # 微生物菌剂设计测试
-│   ├── test_microbial_agent_design_tool_usage.py  # 微生物菌剂设计工具调用测试
-│   ├── test_microbial_agent_evaluation_tools.py   # 微生物菌剂评估工具调用测试
-│   ├── test_real_tool_execution.py                # 真实工具执行测试
-│   ├── test_tool_call_verification.py             # 工具调用验证测试
-│   └── compare_envipath_outputs.py                # EnviPath输出比较工具
-├── config/
-│   └── config.py          # 配置文件（已完全实现）
-├── agents/                # 智能体定义（已完全实现，核心算法有TODO）
-│   ├── task_coordination_agent.py              # 任务协调智能体
-│   ├── engineering_microorganism_identification_agent.py  # 工程微生物组识别智能体
-│   ├── microbial_agent_design_agent.py         # 微生物菌剂设计智能体
-│   ├── microbial_agent_evaluation_agent.py     # 菌剂评估智能体
-│   ├── implementation_plan_generation_agent.py  # 实施方案生成智能体
-│   └── knowledge_management_agent.py           # 知识管理智能体
-├── tasks/                 # 任务定义（已完全实现，核心算法有TODO）
-│   ├── microorganism_identification_task.py    # 微生物组识别任务
-│   ├── microbial_agent_design_task.py          # 微生物菌剂设计任务
-│   ├── microbial_agent_evaluation_task.py      # 菌剂评估任务
-│   ├── implementation_plan_generation_task.py  # 实施方案生成任务
-│   └── task_coordination_task.py               # 任务协调任务
-├── tools/                 # 自定义工具（部分实现）
-│   ├── database_tool_factory.py               # 数据库工具工厂
-│   ├── engineering_microorganism_identification/     # 工程微生物识别工具
-│   │   ├── envipath_tool.py                  # EnviPath数据库访问工具
-│   │   ├── kegg_tool.py                      # KEGG数据库访问工具
-│   │   ├── ncbi_genome_query_tool.py         # NCBI基因组查询工具
-│   │   ├── microbial_complementarity_db_query_tool.py  # 微生物互补性数据库查询工具
-│   │   ├── microbial_complementarity_model.py          # 微生物互补性数据模型
-│   │   └── microbial_complementarity_query_tool.py     # 微生物互补性查询工具
-│   ├── microbial_agent_design/               # 微生物菌剂设计工具
-│   │   ├── gene_data_query_tool.py           # 基因数据查询工具
-│   │   ├── organism_data_query_tool.py       # 微生物数据查询工具
-│   │   ├── pollutant_data_query_tool.py      # 污染物数据查询工具
-│   │   ├── pollutant_summary_tool.py         # 污染物摘要工具
-│   │   ├── pollutant_search_tool.py          # 污染物搜索工具
-│   │   ├── pollutant_name_utils.py           # 污染物名称标准化工具
-│   │   ├── genome_spot_tool/                 # GenomeSPOT工具
-│   │   │   ├── genome_spot_tool.py           # GenomeSPOT工具实现
-│   │   │   └── test_genome_spot.py           # GenomeSPOT工具测试
-│   │   ├── dlkcat_tool/                      # DLkcat工具
-│   │   │   ├── dlkcat_tool.py                # DLkcat工具实现
-│   │   │   ├── test_dlkcat.py                # DLkcat工具测试
-│   │   │   └── test_data.xlsx                # DLkcat测试数据
-│   │   ├── carveme_tool/                     # Carveme工具
-│   │   │   └── carveme_tool.py               # Carveme工具实现
-│   │   ├── phylomint_tool/                   # Phylomint工具
-│   │   │   └── phylomint_tool.py             # Phylomint工具实现
-│   │   ├── ctfba_tool/                       # ctFBA工具
-│   │   │   ├── __init__.py                   # ctFBA工具初始化
-│   │   │   └── ctfba_tool.py                 # ctFBA工具实现
-│   │   └── README.md                         # 微生物菌剂设计工具说明
-│   ├── microbial_agent_evaluation/           # 微生物菌剂评估工具
-│   │   ├── evaluation_tool.py                # 评估工具
-│   │   ├── reaction_addition_tool/           # 代谢反应填充工具
-│   │   └── medium_recommendation_tool/       # 培养基推荐工具
-│   ├── implementation_plan_generation/       # 实施方案生成工具
-│   ├── task_coordination/                    # 任务协调工具
-│   └── external_tools/                       # 外部工具脚本（项目内部集成）
-│       ├── genome_spot/                      # GenomeSPOT工具脚本
-│       ├── dlkcat/                           # DLkcat工具脚本
-│       ├── carveme/                          # Carveme工具脚本
-│       └── phylomint/                        # Phylomint工具脚本
-└── models/                # 模型配置（待完善）
+│   ├── __init__.py
+│   ├── test_workflow.py               # 完整工作流测试
+│   ├── test_identification.py         # 识别阶段测试
+│   ├── test_design.py                 # 设计阶段测试
+│   ├── test_evaluation.py             # 评估阶段测试
+│   ├── test_tools.py                  # 工具测试
+│   └── test_integration.py            # 集成测试
+└── docs/                  # 文档
+    ├── AGENTS.md         # 智能体文档
+    ├── TASKS.md          # 任务文档
+    ├── TOOLS.md          # 工具文档
+    └── TESTS.md          # 测试文档
 ```
 
 ## 关键实现细节
@@ -231,7 +239,7 @@ BioCrew/
 
 ### 外部工具集成
 
-系统通过`external_tools/`目录内部集成了多个外部工具脚本，避免了对外部路径的依赖：
+系统通过`core/tools/external/`目录内部集成了多个外部工具脚本，避免了对外部路径的依赖：
 
 1. **GenomeSPOT** - 预测微生物环境适应性的机器学习工具
 2. **DLkcat** - 预测酶催化速率的工具

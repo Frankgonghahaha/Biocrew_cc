@@ -24,22 +24,22 @@ from config.config import Config
 import dashscope
 
 # 智能体导入
-from agents.engineering_microorganism_identification_agent import EngineeringMicroorganismIdentificationAgent
-from agents.microbial_agent_design_agent import MicrobialAgentDesignAgent
-from agents.microbial_agent_evaluation_agent import MicrobialAgentEvaluationAgent
-from agents.implementation_plan_generation_agent import ImplementationPlanGenerationAgent
-from agents.knowledge_management_agent import KnowledgeManagementAgent
-from agents.task_coordination_agent import TaskCoordinationAgent
+from core.agents.identification_agent import EngineeringMicroorganismIdentificationAgent
+from core.agents.design_agent import MicrobialAgentDesignAgent
+from core.agents.evaluation_agent import MicrobialAgentEvaluationAgent
+from core.agents.implementation_agent import ImplementationPlanGenerationAgent
+from core.agents.knowledge_agent import KnowledgeManagementAgent
+from core.agents.coordination_agent import TaskCoordinationAgent
 
 # 任务导入
-from tasks.microorganism_identification_task import MicroorganismIdentificationTask
-from tasks.microbial_agent_design_task import MicrobialAgentDesignTask
-from tasks.microbial_agent_evaluation_task import MicrobialAgentEvaluationTask
-from tasks.implementation_plan_generation_task import ImplementationPlanGenerationTask
-from tasks.task_coordination_task import TaskCoordinationTask
+from core.tasks.identification_task import MicroorganismIdentificationTask
+from core.tasks.design_task import MicrobialAgentDesignTask
+from core.tasks.evaluation_task import MicrobialAgentEvaluationTask
+from core.tasks.implementation_task import ImplementationPlanGenerationTask
+from core.tasks.coordination_task import TaskCoordinationTask
 
 # 工具导入
-from tools.microbial_agent_evaluation.evaluation_tool import EvaluationTool
+from core.tools.evaluation.evaluation import EvaluationTool
 
 def get_user_input():
     """获取用户自定义的水质处理需求"""
