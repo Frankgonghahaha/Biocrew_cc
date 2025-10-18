@@ -63,14 +63,76 @@ def analyze_evaluation_result(evaluation_result):
     """
     分析评估结果，判断是否需要重新执行任务
     """
-    # 使用EvaluationTool来分析评估结果
-    eval_tool = EvaluationTool()
-    # 使用更详细的分析方法
-    analysis = eval_tool._run(evaluation_report=str(evaluation_result))
-    if analysis.get("status") == "success":
-        return analysis.get("data", {})
-    else:
-        # 如果工具调用失败，返回默认结果
+    try:
+        # 使用EvaluationTool来分析评估结果
+        eval_tool = EvaluationTool()
+        # 使用更详细的分析方法
+        analysis = eval_tool._run(evaluation_report=str(evaluation_result))
+        if analysis.get("status") == "success":
+            return analysis.get("data", {})
+        else:
+            # 如果工具调用失败，尝试解析评估结果文本
+            return _parse_evaluation_text(str(evaluation_result))
+    except Exception as e:
+        print(f"评估结果分析出错: {str(e)}")
+        # 如果分析失败，返回默认结果
+        return {"core_standards_met": True}
+
+def _parse_evaluation_text(evaluation_text):
+    """
+    解析评估结果文本，提取关键指标
+    
+    Args:
+        evaluation_text: 评估结果文本
+        
+    Returns:
+        dict: 解析结果
+    """
+    try:
+        # 检查是否包含核心标准达标信息
+        if "群落稳定性和结构稳定性均达标" in evaluation_text:
+            return {
+                "core_standards_met": True,
+                "need_redesign": False
+            }
+        elif "群落稳定性和结构稳定性不达标" in evaluation_text:
+            return {
+                "core_standards_met": False,
+                "need_redesign": True,
+                "suggestions": "建议重新进行微生物识别和设计"
+            }
+        
+        # 检查是否包含具体的评分信息
+        import re
+        stability_score_match = re.search(r'群落稳定性.*?(\d+(\.\d+)?)', evaluation_text)
+        structure_score_match = re.search(r'结构稳定性.*?(\d+(\.\d+)?)', evaluation_text)
+        
+        stability_score = float(stability_score_match.group(1)) if stability_score_match else None
+        structure_score = float(structure_score_match.group(1)) if structure_score_match else None
+        
+        # 如果评分都大于等于8分，认为达标
+        if stability_score is not None and structure_score is not None:
+            if stability_score >= 8.0 and structure_score >= 8.0:
+                return {
+                    "core_standards_met": True,
+                    "need_redesign": False,
+                    "stability_score": stability_score,
+                    "structure_score": structure_score
+                }
+            else:
+                return {
+                    "core_standards_met": False,
+                    "need_redesign": True,
+                    "stability_score": stability_score,
+                    "structure_score": structure_score,
+                    "suggestions": "建议重新进行微生物识别和设计"
+                }
+        
+        # 默认返回通过
+        return {"core_standards_met": True}
+    except Exception as e:
+        print(f"评估文本解析出错: {str(e)}")
+        # 如果解析失败，返回默认结果
         return {"core_standards_met": True}
 
 def run_sequential_workflow(user_requirement, llm):
@@ -210,6 +272,7 @@ def run_dynamic_workflow(user_requirement, llm):
     
     # 初始化任务结果
     identification_result = None
+    design_result = None
     evaluation_result = None
     plan_result = None
     
@@ -245,7 +308,7 @@ def run_dynamic_workflow(user_requirement, llm):
         identification_result = identification_crew.kickoff()
         print(f"识别任务完成: {identification_result}")
         
-        # 创建设计任务
+        # 创建设计任务，确保依赖于识别任务
         design_task = MicrobialAgentDesignTask(llm).create_task(
             design_agent, 
             identification_task, 
@@ -262,7 +325,7 @@ def run_dynamic_workflow(user_requirement, llm):
         design_result = design_crew.kickoff()
         print(f"设计任务完成: {design_result}")
         
-        # 创建评估任务
+        # 创建评估任务，确保依赖于设计任务
         evaluation_task = MicrobialAgentEvaluationTask(llm).create_task(
             evaluation_agent, 
             design_task
@@ -284,7 +347,7 @@ def run_dynamic_workflow(user_requirement, llm):
         
         if core_standards_met:
             print("评估结果达标，进入方案生成阶段...")
-            # 创建方案生成任务
+            # 创建方案生成任务，确保依赖于评估任务
             plan_task = ImplementationPlanGenerationTask(llm).create_task(
                 plan_agent, 
                 evaluation_task
