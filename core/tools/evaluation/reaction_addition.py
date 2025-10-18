@@ -157,24 +157,43 @@ class ReactionAdditionTool(BaseTool):
                         reaction.upper_bound = row.get('upper_bound', 1000.0)
                         
                         # 如果提供了反应物和产物信息，则添加到反应中
-                        if 'reactants' in row and 'products' in row:
+                        if 'reactants' in row and pd.notna(row['reactants']) and row['reactants']:
                             # 解析反应物（格式：metabolite_id:stoichiometry|metabolite_id:stoichiometry）
                             reactants_str = row['reactants']
-                            if pd.notna(reactants_str) and reactants_str:
+                            if reactants_str:
                                 for reactant_part in reactants_str.split('|'):
                                     if ':' in reactant_part:
-                                        met_id, stoich = reactant_part.split(':')
-                                        metabolite = model.metabolites.get_by_id(met_id.strip())
-                                        reaction.add_metabolites({metabolite: -float(stoich)})  # 负值表示反应物
+                                        parts = reactant_part.split(':')
+                                        if len(parts) == 2:
+                                            met_id, stoich = parts
+                                            # 尝试获取代谢物，如果不存在则创建
+                                            try:
+                                                metabolite = model.metabolites.get_by_id(met_id.strip())
+                                            except KeyError:
+                                                # 如果代谢物不存在，创建新的代谢物
+                                                metabolite = Metabolite(met_id.strip())
+                                                metabolite.compartment = 'c'  # 默认细胞质 compartment
+                                                model.add_metabolites(metabolite)
+                                            reaction.add_metabolites({metabolite: -abs(float(stoich))})  # 负值表示反应物
                         
+                        if 'products' in row and pd.notna(row['products']) and row['products']:
                             # 解析产物（格式：metabolite_id:stoichiometry|metabolite_id:stoichiometry）
                             products_str = row['products']
-                            if pd.notna(products_str) and products_str:
+                            if products_str:
                                 for product_part in products_str.split('|'):
                                     if ':' in product_part:
-                                        met_id, stoich = product_part.split(':')
-                                        metabolite = model.metabolites.get_by_id(met_id.strip())
-                                        reaction.add_metabolites({metabolite: float(stoich)})  # 正值表示产物
+                                        parts = product_part.split(':')
+                                        if len(parts) == 2:
+                                            met_id, stoich = parts
+                                            # 尝试获取代谢物，如果不存在则创建
+                                            try:
+                                                metabolite = model.metabolites.get_by_id(met_id.strip())
+                                            except KeyError:
+                                                # 如果代谢物不存在，创建新的代谢物
+                                                metabolite = Metabolite(met_id.strip())
+                                                metabolite.compartment = 'c'  # 默认细胞质 compartment
+                                                model.add_metabolites(metabolite)
+                                            reaction.add_metabolites({metabolite: abs(float(stoich))})  # 正值表示产物
                         
                         # 添加反应到模型
                         model.add_reactions([reaction])
@@ -230,14 +249,16 @@ class ReactionAdditionTool(BaseTool):
         
         logger.warning(f"未能获取到 {pollutant_name} 的反应数据，创建模拟数据")
         
-        # 创建模拟数据
+        # 创建模拟数据，包含反应物和产物信息
         reactions_data = [
             {
                 "id": f"reaction_{i+1}",
                 "name": f"{pollutant_name} degradation reaction {i+1}",
                 "subsystem": "Degradation",
                 "lower_bound": -1000.0,
-                "upper_bound": 1000.0
+                "upper_bound": 1000.0,
+                "reactants": f"C0001:1.0|C{i+1000}:1.0",
+                "products": f"C{i+2000}:1.0|C0009:1.0"
             }
             for i in range(4)  # 生成4个模拟反应
         ]

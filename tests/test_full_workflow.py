@@ -5,17 +5,27 @@
 
 import os
 import sys
+import logging
 from pathlib import Path
+
+# 配置日志
+logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
+logger = logging.getLogger(__name__)
 
 # 添加项目根目录到Python路径
 project_root = Path(__file__).parent
 sys.path.insert(0, str(project_root))
 
-from tools.microbial_agent_design.carveme_tool.carveme_tool import CarvemeTool
-from tools.microbial_agent_evaluation.reaction_addition_tool.reaction_addition_tool import ReactionAdditionTool
-from tools.microbial_agent_evaluation.medium_recommendation_tool.medium_recommendation_tool import MediumRecommendationTool
-from tools.microbial_agent_design.ctfba_tool.ctfba_tool import CtfbaTool
-from tools.microbial_agent_evaluation.evaluation_tool import EvaluationTool
+# 导入工具类
+try:
+    from core.tools.design.carveme import CarvemeTool
+    from core.tools.evaluation.reaction_addition import ReactionAdditionTool
+    from core.tools.evaluation.medium_recommendation import MediumRecommendationTool
+    from core.tools.design.ctfba import CtfbaTool
+    from core.tools.evaluation.evaluation import EvaluationTool
+except ImportError as e:
+    logger.error(f"无法导入核心工具模块: {e}")
+    sys.exit(1)
 
 def test_full_workflow():
     """测试完整的工作流程"""
@@ -43,9 +53,12 @@ def test_full_workflow():
     # 2. 使用ReactionAdditionTool为模型添加反应
     print("\n2. 使用ReactionAdditionTool为模型添加反应...")
     reaction_tool = ReactionAdditionTool()
+    # 使用改进的反应数据文件
+    reactions_csv = str(project_root / "data" / "reactions" / "phthalic_acid_reactions.csv")
     reaction_result = reaction_tool._run(
         models_path=output_path,
-        pollutant_name="phthalic acid"
+        pollutant_name="phthalic acid",
+        reactions_csv=reactions_csv
     )
     
     print(f"ReactionAdditionTool工具执行结果: {reaction_result}")
@@ -58,18 +71,28 @@ def test_full_workflow():
     print("\n3. 使用MediumRecommendationTool生成推荐培养基...")
     medium_tool = MediumRecommendationTool()
     medium_output = str(project_root / "outputs" / "test_medium.csv")
+    # 提供更丰富的碳源候选
+    candidate_ex = [
+        "EX_glc__D_e=10.0",  # 葡萄糖
+        "EX_ac_e=5.0",       # 乙酸
+        "EX_pyr_e=5.0",      # 丙酮酸
+        "EX_lac__D_e=5.0",   # 乳酸
+        "EX_succ_e=5.0"      # 琥珀酸
+    ]
+    
     medium_result = medium_tool._run(
         models_path=output_path,
         output_path=medium_output,
         community_growth=0.2,
         min_growth=0.05,
-        max_import=10.0
+        max_import=10.0,
+        candidate_ex=candidate_ex
     )
     
     print(f"MediumRecommendationTool工具执行结果: {medium_result}")
     
     # 4. 使用CtfbaTool计算代谢通量
-    print("\n4. 使用CtfbaTool计算代谢通量...")
+    logger.info("4. 使用CtfbaTool计算代谢通量...")
     ctfba_tool = CtfbaTool()
     
     # 构造社区组成（使用模拟数据）
@@ -78,17 +101,18 @@ def test_full_workflow():
         "GCF_039596375_1_protein": 0.4
     }
     
+    # 使用更平衡的权衡系数
     ctfba_result = ctfba_tool._run(
         models_path=output_path,
         target_compound="phthalic acid",
         community_composition=community_composition,
-        tradeoff_coefficient=0.7
+        tradeoff_coefficient=0.3  # 降低权衡系数，更注重群落稳定性
     )
     
     print(f"CtfbaTool工具执行结果: {ctfba_result}")
     
     # 5. 使用EvaluationTool评估结果
-    print("\n5. 使用EvaluationTool评估结果...")
+    logger.info("5. 使用EvaluationTool评估结果...")
     eval_tool = EvaluationTool()
     eval_result = eval_tool._run(
         ctfba_results=ctfba_result,
@@ -97,15 +121,15 @@ def test_full_workflow():
     
     print(f"EvaluationTool工具执行结果: {eval_result}")
     
-    print("\n完整流程测试完成！")
+    logger.info("完整流程测试完成！")
     
     # 汇总结果
-    print("\n=== 测试结果汇总 ===")
-    print(f"CarveMe工具: {'✅ 成功' if carveme_result.get('status') == 'success' else '❌ 失败'}")
-    print(f"ReactionAdditionTool工具: {'✅ 成功' if reaction_result.get('status') == 'success' else '❌ 失败'}")
-    print(f"MediumRecommendationTool工具: {'✅ 成功' if medium_result.get('status') == 'success' else '❌ 失败'}")
-    print(f"CtfbaTool工具: {'✅ 成功' if ctfba_result.get('status') == 'success' else '❌ 失败'}")
-    print(f"EvaluationTool工具: {'✅ 成功' if eval_result.get('status') == 'success' else '❌ 失败'}")
+    logger.info("=== 测试结果汇总 ===")
+    logger.info(f"CarveMe工具: {'✅ 成功' if carveme_result.get('status') == 'success' else '❌ 失败'}")
+    logger.info(f"ReactionAdditionTool工具: {'✅ 成功' if reaction_result.get('status') == 'success' else '❌ 失败'}")
+    logger.info(f"MediumRecommendationTool工具: {'✅ 成功' if medium_result.get('status') == 'success' else '❌ 失败'}")
+    logger.info(f"CtfbaTool工具: {'✅ 成功' if ctfba_result.get('status') == 'success' else '❌ 失败'}")
+    logger.info(f"EvaluationTool工具: {'✅ 成功' if eval_result.get('status') == 'success' else '❌ 失败'}")
 
 if __name__ == "__main__":
     test_full_workflow()

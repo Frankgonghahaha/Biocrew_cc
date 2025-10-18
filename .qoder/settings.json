@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "ask": [
+      "Read(!/home/axlhuang/BioCrew/**)",
+      "Edit(!/home/axlhuang/BioCrew/**)"
+    ],
+    "allow": [
+      "Read(/home/axlhuang/BioCrew/**)",
+      "Edit(/home/axlhuang/BioCrew/**)"
+    ]
+  },
+  "memoryImport": {},
+  "monitoring": {}
+}

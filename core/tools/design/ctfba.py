@@ -238,13 +238,14 @@ class CtfbaTool(BaseTool):
             # 尝试读取模型文件
             model, errors = validate_sbml_model(model_path)
             # 检查模型是否包含必要的组件
-            # 即使有错误，只要模型可以被读取就返回成功
             if model is not None:
                 logger.info(f"模型可以被读取: {model_path}")
+                # 即使有错误也返回True，因为模型可以被读取
                 return True
-            return (len(model.reactions) > 0 and 
-                   len(model.metabolites) > 0 and
-                   (not errors or not (errors['SBML_ERROR'] or errors['COBRA_ERROR'])))
+            else:
+                # 模型无法读取
+                logger.error(f"模型无法读取: {model_path}")
+                return False
         except Exception as e:
             logger.warning(f"模型文件验证失败 ({model_path}): {str(e)}")
             # 即使验证失败，也尝试直接读取模型
@@ -296,13 +297,22 @@ class CtfbaTool(BaseTool):
             else:
                 fluxes = {}
             
+            # 获取目标化合物的通量
+            target_flux = 0.0
+            if isinstance(fluxes, dict):
+                target_flux = fluxes.get(target_compound, 0.0)
+            elif hasattr(fluxes, 'loc'):
+                # 如果fluxes是pandas Series
+                if target_compound in fluxes.index:
+                    target_flux = fluxes.loc[target_compound]
+            
             # 构建结果
             result = {
                 "status": "success",
                 "data": {
                     "community_growth": getattr(solution, 'objective_value', 0.0),
                     "species_growth_rates": growth_rates.to_dict() if growth_rates is not None else {},
-                    "target_compound_flux": fluxes.get(target_compound, 0.0) if isinstance(fluxes, dict) else 0.0,
+                    "target_compound_flux": target_flux,
                     "tradeoff_coefficient": tradeoff_coefficient
                 }
             }

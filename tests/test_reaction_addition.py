@@ -11,7 +11,7 @@ from pathlib import Path
 project_root = Path(__file__).parent
 sys.path.insert(0, str(project_root))
 
-from tools.microbial_agent_evaluation.reaction_addition_tool.reaction_addition_tool import ReactionAdditionTool
+from core.tools.evaluation.reaction_addition import ReactionAdditionTool
 
 def test_reaction_addition_tool():
     """测试ReactionAdditionTool工具"""

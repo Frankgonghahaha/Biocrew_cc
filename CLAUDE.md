@@ -154,16 +154,26 @@ BioCrew/
 ├── tests/                 # 测试文件
 │   ├── __init__.py
 │   ├── test_workflow.py               # 完整工作流测试
-│   ├── test_identification.py         # 识别阶段测试
-│   ├── test_design.py                 # 设计阶段测试
-│   ├── test_evaluation.py             # 评估阶段测试
-│   ├── test_tools.py                  # 工具测试
-│   └── test_integration.py            # 集成测试
+│   ├── test_identification_phase.py   # 工程微生物组识别阶段测试
+│   ├── test_design_phase.py           # 微生物菌剂设计阶段测试
+│   ├── test_evaluation_phase.py       # 菌剂评估阶段测试
+│   ├── test_intermediate_product_check.py  # 中间产物检查测试
+│   ├── test_tool_integration.py       # 工具集成测试
+│   ├── test_carveme_fix.py            # Carveme工具测试
+│   ├── test_reaction_addition.py      # 反应添加工具测试
+│   └── test_full_workflow.py          # 完整工作流程测试
 └── docs/                  # 文档
     ├── AGENTS.md         # 智能体文档
     ├── TASKS.md          # 任务文档
     ├── TOOLS.md          # 工具文档
-    └── TESTS.md          # 测试文档
+    ├── TESTS.md          # 测试文档
+    ├── workflow/          # 工作流程文档
+    │   └── complete_workflow.md  # 完整工作流程说明
+    └── tools/             # 工具详细说明
+        ├── detailed/      # 详细工具说明
+        │   ├── carveme_tool.md     # Carveme工具详细说明
+        │   └── reaction_addition_tool.md  # ReactionAdditionTool详细说明
+        └── ...
 ```
 
 ## 关键实现细节
