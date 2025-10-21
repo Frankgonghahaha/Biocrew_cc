@@ -157,10 +157,6 @@ BioCrew/
 │   ├── test_identification_phase.py   # 工程微生物组识别阶段测试
 │   ├── test_design_phase.py           # 微生物菌剂设计阶段测试
 │   ├── test_evaluation_phase.py       # 菌剂评估阶段测试
-│   ├── test_intermediate_product_check.py  # 中间产物检查测试
-│   ├── test_tool_integration.py       # 工具集成测试
-│   ├── test_carveme_fix.py            # Carveme工具测试
-│   ├── test_reaction_addition.py      # 反应添加工具测试
 │   └── test_full_workflow.py          # 完整工作流程测试
 └── docs/                  # 文档
     ├── AGENTS.md         # 智能体文档

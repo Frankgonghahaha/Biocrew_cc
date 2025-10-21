@@ -139,10 +139,6 @@ BioCrew/
 │   ├── test_identification_phase.py   # 工程微生物组识别阶段测试
 │   ├── test_design_phase.py           # 微生物菌剂设计阶段测试
 │   ├── test_evaluation_phase.py       # 菌剂评估阶段测试
-│   ├── test_intermediate_product_check.py  # 中间产物检查测试
-│   ├── test_tool_integration.py       # 工具集成测试
-│   ├── test_carveme_fix.py            # Carveme工具测试
-│   ├── test_reaction_addition.py      # 反应添加工具测试
 │   └── test_full_workflow.py          # 完整工作流程测试
 └── docs/                  # 文档
     ├── AGENTS.md         # 智能体文档
@@ -258,10 +254,6 @@ python tests/test_workflow.py
 python tests/test_identification_phase.py    # 工程微生物组识别阶段测试
 python tests/test_design_phase.py           # 微生物菌剂设计阶段测试
 python tests/test_evaluation_phase.py       # 菌剂评估阶段测试
-python tests/test_intermediate_product_check.py  # 中间产物检查测试
-python tests/test_tool_integration.py       # 工具集成测试
-python tests/test_carveme_fix.py            # Carveme工具测试
-python tests/test_reaction_addition.py      # 反应添加工具测试
 python tests/test_full_workflow.py          # 完整工作流程测试
 ```
 
@@ -271,11 +263,19 @@ python tests/test_full_workflow.py          # 完整工作流程测试
 2. **test_identification_phase.py** - 专门测试工程微生物组识别阶段的功能
 3. **test_design_phase.py** - 专门测试微生物菌剂设计阶段的功能
 4. **test_evaluation_phase.py** - 专门测试菌剂评估阶段的功能
-5. **test_intermediate_product_check.py** - 检查各阶段生成的中间产物文件完整性
-6. **test_tool_integration.py** - 测试工具集成和协同工作能力
-7. **test_carveme_fix.py** - 测试Carveme工具的功能和修复效果
-8. **test_reaction_addition.py** - 测试反应添加工具的功能
-9. **test_full_workflow.py** - 完整的端到端工作流程测试
+5. **test_full_workflow.py** - 完整的端到端工作流程测试，包含工具链测试
+
+### 工具链测试
+
+工具链测试（test_full_workflow.py）验证从菌剂设计到菌剂评估的完整流程：
+
+1. **CarveMe工具** - 生成基因组规模代谢模型
+2. **ReactionAdditionTool** - 为模型添加特定污染物的代谢反应
+3. **MediumRecommendationTool** - 生成推荐培养基组分
+4. **CtfbaTool** - 计算微生物群落的代谢通量
+5. **EvaluationTool** - 评估菌剂效果
+
+该测试验证了所有工具的协同工作能力，确保数据在各工具间正确传递。
 
 程序启动后会提示用户选择处理模式：
 1. 链式处理模式（按固定顺序执行）

@@ -4,7 +4,7 @@
 用于创建和管理各种数据库查询工具
 """
 
-from core.tools.database.envipath import EnviPathTool
+from core.tools.database.envipath_enhanced import EnviPathEnhancedTool
 from core.tools.database.kegg import KeggTool
 from core.tools.database.pollutant_query import PollutantDataQueryTool
 from core.tools.database.gene_query import GeneDataQueryTool
@@ -26,7 +26,7 @@ class DatabaseToolFactory:
             list: 所有工具实例的列表
         """
         tools = [
-            EnviPathTool(),
+            EnviPathEnhancedTool(),
             KeggTool(),
             PollutantDataQueryTool(),
             GeneDataQueryTool(),
@@ -41,7 +41,7 @@ class DatabaseToolFactory:
     @staticmethod
     def create_envi_path_tool():
         """创建EnviPath工具实例"""
-        return EnviPathTool()
+        return EnviPathEnhancedTool()
     
     @staticmethod
     def create_kegg_pathway_tool():

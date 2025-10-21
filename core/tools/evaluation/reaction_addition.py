@@ -184,11 +184,16 @@ class ReactionAdditionTool(BaseTool):
                 reaction_count = 0
                 for _, row in reactions_df.iterrows():
                     try:
-                        # 检查反应是否已存在
+                        # 创建反应对象
                         reaction_id = str(row['id']).replace('.', '_')
+                        
+                        # 检查反应是否已存在，如果存在则先删除
                         if reaction_id in [r.id for r in model.reactions]:
-                            logger.warning(f"反应 {reaction_id} 已存在，跳过")
-                            continue
+                            # 删除现有反应
+                            reaction_to_remove = model.reactions.get_by_id(reaction_id)
+                            model.remove_reactions([reaction_to_remove])
+                            logger.info(f"已删除现有反应: {reaction_id}")
+                            reaction_count -= 1  # 减少计数，因为我们要重新添加
                         
                         # 创建反应对象
                         reaction = Reaction(reaction_id)
@@ -209,13 +214,20 @@ class ReactionAdditionTool(BaseTool):
                                         parts = reactant_part.split(':')
                                         if len(parts) == 2:
                                             met_id, stoich = parts
+                                            # 处理目标化合物的特殊命名
+                                            if 'target_compound' in row and met_id == row['target_compound']:
+                                                actual_met_id = pollutant_name.replace(' ', '_')
+                                            else:
+                                                actual_met_id = met_id.strip()
+                                            
                                             # 尝试获取代谢物，如果不存在则创建
                                             try:
-                                                metabolite = model.metabolites.get_by_id(met_id.strip())
+                                                metabolite = model.metabolites.get_by_id(actual_met_id)
                                             except KeyError:
                                                 # 如果代谢物不存在，创建新的代谢物
-                                                metabolite = Metabolite(met_id.strip())
+                                                metabolite = Metabolite(actual_met_id)
                                                 metabolite.compartment = 'c'  # 默认细胞质 compartment
+                                                metabolite.name = met_id  # 设置代谢物名称
                                                 model.add_metabolites(metabolite)
                                             reaction.add_metabolites({metabolite: -abs(float(stoich))})  # 负值表示反应物
                         
@@ -228,13 +240,20 @@ class ReactionAdditionTool(BaseTool):
                                         parts = product_part.split(':')
                                         if len(parts) == 2:
                                             met_id, stoich = parts
+                                            # 处理特殊代谢物命名
+                                            if met_id == 'protocatechuic_acid':
+                                                actual_met_id = 'protocatechuic_acid'
+                                            else:
+                                                actual_met_id = met_id.strip()
+                                            
                                             # 尝试获取代谢物，如果不存在则创建
                                             try:
-                                                metabolite = model.metabolites.get_by_id(met_id.strip())
+                                                metabolite = model.metabolites.get_by_id(actual_met_id)
                                             except KeyError:
                                                 # 如果代谢物不存在，创建新的代谢物
-                                                metabolite = Metabolite(met_id.strip())
+                                                metabolite = Metabolite(actual_met_id)
                                                 metabolite.compartment = 'c'  # 默认细胞质 compartment
+                                                metabolite.name = met_id  # 设置代谢物名称
                                                 model.add_metabolites(metabolite)
                                             reaction.add_metabolites({metabolite: abs(float(stoich))})  # 正值表示产物
                         
@@ -301,8 +320,9 @@ class ReactionAdditionTool(BaseTool):
                 "subsystem": "Degradation",
                 "lower_bound": -1000.0,
                 "upper_bound": 1000.0,
-                "reactants": f"C0001:1.0|C{i+1000}:1.0",
-                "products": f"C{i+2000}:1.0|C0009:1.0"
+                "reactants": f"{pollutant_name.replace(' ', '_')}:1.0|C{i+1000}:1.0",
+                "products": f"C{i+2000}:1.0|protocatechuic_acid:1.0",
+                "target_compound": pollutant_name.replace(' ', '_')
             }
             for i in range(4)  # 生成4个模拟反应
         ]

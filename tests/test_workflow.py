@@ -49,6 +49,50 @@ def setup_logging():
     
     return str(log_file), str(result_file), str(tool_call_file)
 
+def cleanup_previous_results():
+    """清理之前的测试结果"""
+    try:
+        # 清理测试结果目录
+        test_results_dir = Path("test_results")
+        if test_results_dir.exists():
+            import shutil
+            shutil.rmtree(test_results_dir)
+            test_results_dir.mkdir(exist_ok=True)
+        
+        # 清理代谢模型目录
+        models_dir = Path("outputs/metabolic_models")
+        if models_dir.exists():
+            import shutil
+            shutil.rmtree(models_dir)
+            models_dir.mkdir(exist_ok=True)
+            
+        # 清理反应数据文件
+        reactions_file = Path("data/reactions/phthalic_acid_degradation_reactions.csv")
+        if reactions_file.exists():
+            reactions_file.unlink()
+            
+        print("已清理之前的测试结果")
+    except Exception as e:
+        print(f"清理测试结果时出错: {e}")
+
+def initialize_directories():
+    """初始化必要的目录"""
+    try:
+        # 确保必要的目录存在
+        directories = [
+            "test_results",
+            "outputs/metabolic_models",
+            "data/reactions"
+        ]
+        
+        for directory in directories:
+            dir_path = Path(directory)
+            dir_path.mkdir(parents=True, exist_ok=True)
+            
+        print("已初始化必要的目录")
+    except Exception as e:
+        print(f"初始化目录时出错: {e}")
+
 def log_message(message, log_file):
     """记录日志消息"""
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -91,10 +135,11 @@ def initialize_llm():
         llm = ChatOpenAI(
             base_url=Config.OPENAI_API_BASE,
             api_key=Config.OPENAI_API_KEY,
-            model="openai/qwen3-30b-a3b-instruct-2507",
+            model="openai/qwen3-next-80b-a3b-thinking",
             temperature=Config.MODEL_TEMPERATURE,
             streaming=False,
-            max_tokens=Config.MODEL_MAX_TOKENS
+            max_tokens=Config.MODEL_MAX_TOKENS,
+            request_timeout=300  # 增加超时时间到5分钟
         )
         return llm
     except Exception as e:
@@ -119,7 +164,7 @@ def run_identification_phase(llm, user_requirement, log_file, tool_call_file):
         log_message("微生物识别任务创建成功", log_file)
         log_tool_call("identification_agent", "Task Creation", tool_call_file)
         
-        # 使用Crew执行任务
+        # 使用Crew执行任务，增加重试机制
         log_message("开始执行微生物识别任务", log_file)
         crew = Crew(
             agents=[identification_agent],
@@ -127,11 +172,22 @@ def run_identification_phase(llm, user_requirement, log_file, tool_call_file):
             process=Process.sequential,
             verbose=True
         )
-        result = crew.kickoff()
-        log_message("微生物识别任务执行完成", log_file)
-        log_tool_call("identification_agent", "Task Execution", tool_call_file)
         
-        return result, identification_task
+        # 执行任务，最多重试3次
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                result = crew.kickoff()
+                log_message("微生物识别任务执行完成", log_file)
+                log_tool_call("identification_agent", "Task Execution", tool_call_file)
+                return result, identification_task
+            except Exception as e:
+                if attempt < max_retries - 1:
+                    log_message(f"微生物识别任务执行失败 (尝试 {attempt + 1}/{max_retries}): {e}", log_file)
+                    time.sleep(10)  # 等待10秒后重试，给网络更多时间
+                else:
+                    raise e  # 最后一次尝试失败，抛出异常
+        
     except Exception as e:
         log_message(f"工程微生物组识别阶段执行失败: {e}", log_file)
         return None, None
@@ -142,7 +198,7 @@ def run_design_phase(llm, identification_result, identification_task, user_requi
     
     try:
         # 创建智能体
-        design_agent = MicrobialAgentDesignAgent(llm).create_agent()  # 修复：传入LLM参数
+        design_agent = MicrobialAgentDesignAgent(llm).create_agent()  # 传入LLM参数
         log_message("微生物菌剂设计智能体创建成功", log_file)
         log_tool_call("design_agent", "Agent Creation", tool_call_file)
         
@@ -155,7 +211,7 @@ def run_design_phase(llm, identification_result, identification_task, user_requi
         log_message("微生物菌剂设计任务创建成功", log_file)
         log_tool_call("design_agent", "Task Creation", tool_call_file)
         
-        # 使用Crew执行任务
+        # 使用Crew执行任务，增加重试机制
         log_message("开始执行微生物菌剂设计任务", log_file)
         crew = Crew(
             agents=[design_agent],
@@ -163,11 +219,22 @@ def run_design_phase(llm, identification_result, identification_task, user_requi
             process=Process.sequential,
             verbose=True
         )
-        result = crew.kickoff()
-        log_message("微生物菌剂设计任务执行完成", log_file)
-        log_tool_call("design_agent", "Task Execution", tool_call_file)
         
-        return result, design_task
+        # 执行任务，最多重试3次
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                result = crew.kickoff()
+                log_message("微生物菌剂设计任务执行完成", log_file)
+                log_tool_call("design_agent", "Task Execution", tool_call_file)
+                return result, design_task
+            except Exception as e:
+                if attempt < max_retries - 1:
+                    log_message(f"微生物菌剂设计任务执行失败 (尝试 {attempt + 1}/{max_retries}): {e}", log_file)
+                    time.sleep(10)  # 等待10秒后重试，给网络更多时间
+                else:
+                    raise e  # 最后一次尝试失败，抛出异常
+        
     except Exception as e:
         log_message(f"微生物菌剂设计阶段执行失败: {e}", log_file)
         return None, None
@@ -190,7 +257,7 @@ def run_evaluation_phase(llm, design_result, design_task, log_file, tool_call_fi
         log_message("菌剂评估任务创建成功", log_file)
         log_tool_call("evaluation_agent", "Task Creation", tool_call_file)
         
-        # 使用Crew执行任务
+        # 使用Crew执行任务，增加重试机制
         log_message("开始执行菌剂评估任务", log_file)
         crew = Crew(
             agents=[evaluation_agent],
@@ -198,11 +265,22 @@ def run_evaluation_phase(llm, design_result, design_task, log_file, tool_call_fi
             process=Process.sequential,
             verbose=True
         )
-        result = crew.kickoff()
-        log_message("菌剂评估任务执行完成", log_file)
-        log_tool_call("evaluation_agent", "Task Execution", tool_call_file)
         
-        return result
+        # 执行任务，最多重试3次
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                result = crew.kickoff()
+                log_message("菌剂评估任务执行完成", log_file)
+                log_tool_call("evaluation_agent", "Task Execution", tool_call_file)
+                return result
+            except Exception as e:
+                if attempt < max_retries - 1:
+                    log_message(f"菌剂评估任务执行失败 (尝试 {attempt + 1}/{max_retries}): {e}", log_file)
+                    time.sleep(10)  # 等待10秒后重试，给网络更多时间
+                else:
+                    raise e  # 最后一次尝试失败，抛出异常
+        
     except Exception as e:
         log_message(f"菌剂评估阶段执行失败: {e}", log_file)
         return None
@@ -258,6 +336,12 @@ def analyze_results(identification_result, design_result, evaluation_result, res
 def main():
     """主函数"""
     print("开始功能菌剂-菌剂设计-菌剂评估完整工作流测试")
+    
+    # 清理之前的测试结果
+    cleanup_previous_results()
+    
+    # 初始化必要的目录
+    initialize_directories()
     
     # 设置日志
     log_file, result_file, tool_call_file = setup_logging()

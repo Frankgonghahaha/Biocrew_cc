@@ -12,6 +12,10 @@
 
 import sys
 import os
+import json
+import time
+from datetime import datetime
+from pathlib import Path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 # 确保环境变量已加载
@@ -41,6 +45,54 @@ from core.tasks.coordination_task import TaskCoordinationTask
 # 工具导入
 from core.tools.evaluation.evaluation import EvaluationTool
 
+def setup_logging():
+    """设置日志记录"""
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    log_dir = Path("outputs/logs")
+    log_dir.mkdir(parents=True, exist_ok=True)
+    
+    # 创建日志文件
+    log_file = log_dir / f"workflow_{timestamp}.log"
+    tool_call_file = log_dir / f"tool_call_log_{timestamp}.json"
+    
+    return str(log_file), str(tool_call_file)
+
+def log_message(message, log_file):
+    """记录日志消息"""
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    log_entry = f"[{timestamp}] {message}\n"
+    
+    with open(log_file, "a", encoding="utf-8") as f:
+        f.write(log_entry)
+    
+    print(log_entry.strip())
+
+def log_tool_call(agent_name, tool_name, tool_call_file):
+    """记录工具调用"""
+    timestamp = datetime.now().isoformat()
+    tool_call_entry = {
+        "agent": agent_name,
+        "tool": tool_name,
+        "timestamp": timestamp
+    }
+    
+    # 读取现有记录
+    if os.path.exists(tool_call_file):
+        with open(tool_call_file, "r", encoding="utf-8") as f:
+            try:
+                data = json.load(f)
+            except:
+                data = {"tool_calls": []}
+    else:
+        data = {"tool_calls": []}
+    
+    # 添加新记录
+    data["tool_calls"].append(tool_call_entry)
+    
+    # 写入文件
+    with open(tool_call_file, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
+
 def get_user_input():
     """获取用户自定义的水质处理需求"""
     print("请输入您的水质处理需求:")
@@ -53,11 +105,12 @@ def get_processing_mode():
     print("\n请选择处理模式:")
     print("1. 链式处理模式（按固定顺序执行）")
     print("2. 自主选择模式（智能体根据情况自主选择）")
+    print("3. 动态处理模式（根据评估结果自动重试）")
     while True:
-        choice = input("请输入模式选择 (1 或 2): ")
-        if choice in ['1', '2']:
+        choice = input("请输入模式选择 (1、2 或 3): ")
+        if choice in ['1', '2', '3']:
             return int(choice)
-        print("无效输入，请输入 1 或 2")
+        print("无效输入，请输入 1、2 或 3")
 
 def analyze_evaluation_result(evaluation_result):
     """
@@ -135,7 +188,25 @@ def _parse_evaluation_text(evaluation_text):
         # 如果解析失败，返回默认结果
         return {"core_standards_met": True}
 
-def run_sequential_workflow(user_requirement, llm):
+def initialize_llm():
+    """初始化LLM模型"""
+    try:
+        llm = ChatOpenAI(
+            base_url=Config.OPENAI_API_BASE,
+            api_key=Config.OPENAI_API_KEY,
+            model="openai/qwen3-next-80b-a3b-thinking",
+            temperature=Config.MODEL_TEMPERATURE,
+            streaming=False,
+            max_tokens=Config.MODEL_MAX_TOKENS,
+            request_timeout=300  # 增加超时时间到5分钟
+        )
+        print("   ✓ LLM模型初始化成功")
+        return llm
+    except Exception as e:
+        print(f"   ✗ LLM模型初始化失败: {e}")
+        return None
+
+def run_sequential_workflow(user_requirement, llm, log_file, tool_call_file):
     """
     链式执行工作流，按照固定顺序执行所有任务
     
@@ -143,51 +214,117 @@ def run_sequential_workflow(user_requirement, llm):
     - 按照预定顺序依次执行微生物识别、菌剂设计、效果评估和方案生成任务
     - 每个任务的输出作为下一个任务的输入
     """
-    print("开始链式任务执行流程...")
+    log_message("开始链式任务执行流程...", log_file)
+    log_tool_call("main", "Sequential Workflow Start", tool_call_file)
     
     # 创建智能体（不包含知识管理智能体）
     identification_agent = EngineeringMicroorganismIdentificationAgent(llm).create_agent()
+    log_tool_call("identification_agent", "Agent Creation", tool_call_file)
+    
     design_agent = MicrobialAgentDesignAgent(llm).create_agent()
+    log_tool_call("design_agent", "Agent Creation", tool_call_file)
+    
     evaluation_agent = MicrobialAgentEvaluationAgent(llm).create_agent()
+    log_tool_call("evaluation_agent", "Agent Creation", tool_call_file)
+    
     plan_agent = ImplementationPlanGenerationAgent(llm).create_agent()
+    log_tool_call("plan_agent", "Agent Creation", tool_call_file)
     
     # 创建不包含知识管理智能体的Crew配置
     crew_agents = [identification_agent, design_agent, evaluation_agent, plan_agent]
     
-    # 创建任务
-    identification_task = MicroorganismIdentificationTask(llm).create_task(
-        identification_agent, 
-        user_requirement=f"{user_requirement}\n\n重要数据处理指导：\n1. 必须优先使用专门的数据查询工具(PollutantDataQueryTool、GeneDataQueryTool等)获取具体数据\n2. 当某些类型的数据缺失时（如只有微生物数据而无基因数据），应基于现有数据继续分析并明确指出数据缺失情况\n3. 利用外部数据库工具(EnviPath、KEGG等)获取补充信息以完善分析\n4. 在最终报告中明确体现查询到的微生物名称、基因数据等具体内容，不能仅依赖预训练知识"
-    )
+    # 创建任务，最多重试3次
+    max_retries = 3
+    identification_task = None
+    for attempt in range(max_retries):
+        try:
+            identification_task = MicroorganismIdentificationTask(llm).create_task(
+                identification_agent, 
+                user_requirement=f"{user_requirement}\n\n重要数据处理指导：\n1. 必须优先使用专门的数据查询工具(PollutantDataQueryTool、GeneDataQueryTool等)获取具体数据\n2. 当某些类型的数据缺失时（如只有微生物数据而无基因数据），应基于现有数据继续分析并明确指出数据缺失情况\n3. 利用外部数据库工具(EnviPath、KEGG等)获取补充信息以完善分析\n4. 在最终报告中明确体现查询到的微生物名称、基因数据等具体内容，不能仅依赖预训练知识"
+            )
+            log_tool_call("identification_agent", "Task Creation", tool_call_file)
+            break
+        except Exception as e:
+            if attempt < max_retries - 1:
+                log_message(f"创建识别任务失败 (尝试 {attempt + 1}/{max_retries}): {e}", log_file)
+                time.sleep(10)  # 等待10秒后重试
+            else:
+                raise e
     
-    design_task = MicrobialAgentDesignTask(llm).create_task(
-        design_agent, 
-        identification_task, 
-        user_requirement=user_requirement
-    )
+    design_task = None
+    for attempt in range(max_retries):
+        try:
+            design_task = MicrobialAgentDesignTask(llm).create_task(
+                design_agent, 
+                identification_task, 
+                user_requirement=user_requirement
+            )
+            log_tool_call("design_agent", "Task Creation", tool_call_file)
+            break
+        except Exception as e:
+            if attempt < max_retries - 1:
+                log_message(f"创建设计任务失败 (尝试 {attempt + 1}/{max_retries}): {e}", log_file)
+                time.sleep(10)
+            else:
+                raise e
     
-    evaluation_task = MicrobialAgentEvaluationTask(llm).create_task(
-        evaluation_agent, 
-        design_task
-    )
+    evaluation_task = None
+    for attempt in range(max_retries):
+        try:
+            evaluation_task = MicrobialAgentEvaluationTask(llm).create_task(
+                evaluation_agent, 
+                design_task
+            )
+            log_tool_call("evaluation_agent", "Task Creation", tool_call_file)
+            break
+        except Exception as e:
+            if attempt < max_retries - 1:
+                log_message(f"创建评估任务失败 (尝试 {attempt + 1}/{max_retries}): {e}", log_file)
+                time.sleep(10)
+            else:
+                raise e
     
-    plan_task = ImplementationPlanGenerationTask(llm).create_task(
-        plan_agent, 
-        evaluation_task
-    )
+    plan_task = None
+    for attempt in range(max_retries):
+        try:
+            plan_task = ImplementationPlanGenerationTask(llm).create_task(
+                plan_agent, 
+                evaluation_task
+            )
+            log_tool_call("plan_agent", "Task Creation", tool_call_file)
+            break
+        except Exception as e:
+            if attempt < max_retries - 1:
+                log_message(f"创建方案生成任务失败 (尝试 {attempt + 1}/{max_retries}): {e}", log_file)
+                time.sleep(10)
+            else:
+                raise e
     
-    # 使用顺序处理模式执行任务
-    sequential_crew = Crew(
-        agents=crew_agents,
-        tasks=[identification_task, design_task, evaluation_task, plan_task],
-        process=Process.sequential,
-        verbose=Config.VERBOSE
-    )
+    # 使用顺序处理模式执行任务，最多重试3次
+    result = None
+    for attempt in range(max_retries):
+        try:
+            sequential_crew = Crew(
+                agents=crew_agents,
+                tasks=[identification_task, design_task, evaluation_task, plan_task],
+                process=Process.sequential,
+                verbose=Config.VERBOSE
+            )
+            
+            result = sequential_crew.kickoff()
+            log_message("链式任务执行完成", log_file)
+            log_tool_call("main", "Sequential Workflow End", tool_call_file)
+            break
+        except Exception as e:
+            if attempt < max_retries - 1:
+                log_message(f"链式任务执行失败 (尝试 {attempt + 1}/{max_retries}): {e}", log_file)
+                time.sleep(10)  # 等待10秒后重试
+            else:
+                raise e
     
-    result = sequential_crew.kickoff()
     return result
 
-def run_autonomous_workflow(user_requirement, llm):
+def run_autonomous_workflow(user_requirement, llm, log_file, tool_call_file):
     """
     自主执行工作流，智能体根据情况自主选择需要调度的智能体
     
@@ -196,76 +333,113 @@ def run_autonomous_workflow(user_requirement, llm):
     - 其他智能体作为执行者，负责执行具体的任务
     - 管理者可以将任务委托给适当的执行者智能体
     """
-    print("开始自主任务执行流程...")
+    log_message("开始自主任务执行流程...", log_file)
+    log_tool_call("main", "Autonomous Workflow Start", tool_call_file)
     
     # 创建智能体
     identification_agent = EngineeringMicroorganismIdentificationAgent(llm).create_agent()
+    log_tool_call("identification_agent", "Agent Creation", tool_call_file)
+    
     design_agent = MicrobialAgentDesignAgent(llm).create_agent()
+    log_tool_call("design_agent", "Agent Creation", tool_call_file)
+    
     evaluation_agent = MicrobialAgentEvaluationAgent(llm).create_agent()
+    log_tool_call("evaluation_agent", "Agent Creation", tool_call_file)
+    
     plan_agent = ImplementationPlanGenerationAgent(llm).create_agent()
+    log_tool_call("plan_agent", "Agent Creation", tool_call_file)
+    
     coordination_agent = TaskCoordinationAgent(llm).create_agent()
+    log_tool_call("coordination_agent", "Agent Creation", tool_call_file)
     
     # 创建任务协调任务
     coordination_task = TaskCoordinationTask(llm).create_task(coordination_agent)
+    log_tool_call("coordination_agent", "Task Creation", tool_call_file)
     
     # 创建其他任务
     identification_task = MicroorganismIdentificationTask(llm).create_task(
         identification_agent, 
         user_requirement=user_requirement
     )
+    log_tool_call("identification_agent", "Task Creation", tool_call_file)
     
     design_task = MicrobialAgentDesignTask(llm).create_task(
         design_agent, 
         identification_task, 
         user_requirement=user_requirement
     )
+    log_tool_call("design_agent", "Task Creation", tool_call_file)
     
     evaluation_task = MicrobialAgentEvaluationTask(llm).create_task(
         evaluation_agent, 
         design_task
     )
+    log_tool_call("evaluation_agent", "Task Creation", tool_call_file)
     
     plan_task = ImplementationPlanGenerationTask(llm).create_task(
         plan_agent, 
         evaluation_task
     )
+    log_tool_call("plan_agent", "Task Creation", tool_call_file)
     
     # 使用分层处理模式执行任务
     # 任务协调智能体作为管理器来控制其他智能体的执行
     # 注意：在分层处理模式中，管理器智能体不应包含在agents列表中
-    autonomous_crew = Crew(
-        agents=[
-            identification_agent, 
-            design_agent, 
-            evaluation_agent, 
-            plan_agent
-        ],
-        tasks=[
-            coordination_task,
-            identification_task,
-            design_task,
-            evaluation_task,
-            plan_task
-        ],
-        process=Process.hierarchical,
-        manager_agent=coordination_agent,
-        verbose=Config.VERBOSE
-    )
+    max_retries = 3
+    result = None
+    for attempt in range(max_retries):
+        try:
+            autonomous_crew = Crew(
+                agents=[
+                    identification_agent, 
+                    design_agent, 
+                    evaluation_agent, 
+                    plan_agent
+                ],
+                tasks=[
+                    coordination_task,
+                    identification_task,
+                    design_task,
+                    evaluation_task,
+                    plan_task
+                ],
+                process=Process.hierarchical,
+                manager_agent=coordination_agent,
+                verbose=Config.VERBOSE
+            )
+            
+            result = autonomous_crew.kickoff()
+            log_message("自主任务执行完成", log_file)
+            log_tool_call("main", "Autonomous Workflow End", tool_call_file)
+            break
+        except Exception as e:
+            if attempt < max_retries - 1:
+                log_message(f"自主任务执行失败 (尝试 {attempt + 1}/{max_retries}): {e}", log_file)
+                time.sleep(10)  # 等待10秒后重试
+            else:
+                raise e
     
-    result = autonomous_crew.kickoff()
     return result
 
-def run_dynamic_workflow(user_requirement, llm):
+def run_dynamic_workflow(user_requirement, llm, log_file, tool_call_file):
     """
     动态执行工作流，根据评估结果决定是否需要重新执行任务
     """
-    print("开始动态任务执行流程...")
+    log_message("开始动态任务执行流程...", log_file)
+    log_tool_call("main", "Dynamic Workflow Start", tool_call_file)
     
     # 创建智能体
     identification_agent = EngineeringMicroorganismIdentificationAgent(llm).create_agent()
+    log_tool_call("identification_agent", "Agent Creation", tool_call_file)
+    
     design_agent = MicrobialAgentDesignAgent(llm).create_agent()
+    log_tool_call("design_agent", "Agent Creation", tool_call_file)
+    
     evaluation_agent = MicrobialAgentEvaluationAgent(llm).create_agent()
+    log_tool_call("evaluation_agent", "Agent Creation", tool_call_file)
+    
     plan_agent = ImplementationPlanGenerationAgent(llm).create_agent()
+    log_tool_call("plan_agent", "Agent Creation", tool_call_file)
     
     # 创建不包含知识管理智能体的Crew配置
     crew_agents = [identification_agent, design_agent, evaluation_agent, plan_agent]
@@ -282,13 +456,14 @@ def run_dynamic_workflow(user_requirement, llm):
     
     while iteration < max_iterations:
         iteration += 1
-        print(f"执行第 {iteration} 轮任务流程...")
+        log_message(f"执行第 {iteration} 轮任务流程...", log_file)
         
         # 创建识别任务，添加数据完整性处理指导
         identification_task = MicroorganismIdentificationTask(llm).create_task(
             identification_agent, 
             user_requirement=f"{user_requirement}\n\n重要数据处理指导：\n1. 必须优先使用专门的数据查询工具(PollutantDataQueryTool、GeneDataQueryTool等)获取具体数据\n2. 当某些类型的数据缺失时（如只有微生物数据而无基因数据），应基于现有数据继续分析并明确指出数据缺失情况\n3. 利用外部数据库工具(EnviPath、KEGG等)获取补充信息以完善分析\n4. 在最终报告中明确体现查询到的微生物名称、基因数据等具体内容，不能仅依赖预训练知识"
         )
+        log_tool_call("identification_agent", "Task Creation", tool_call_file)
         
         # 如果不是第一轮，添加反馈信息和数据完整性处理指导
         if identification_result:
@@ -297,16 +472,28 @@ def run_dynamic_workflow(user_requirement, llm):
                 user_requirement=user_requirement,
                 feedback=f"根据上一轮评估结果，需要重新进行微生物识别。之前的识别结果: {identification_result}\n\n重要数据处理指导：\n1. 必须优先使用专门的数据查询工具(PollutantDataQueryTool、GeneDataQueryTool等)获取具体数据\n2. 当某些类型的数据缺失时（如只有微生物数据而无基因数据），应基于现有数据继续分析并明确指出数据缺失情况\n3. 利用外部数据库工具(EnviPath、KEGG等)获取补充信息以完善分析\n4. 在最终报告中明确体现查询到的微生物名称、基因数据等具体内容，不能仅依赖预训练知识"
             )
+            log_tool_call("identification_agent", "Task Creation (Retry)", tool_call_file)
         
-        # 执行识别任务
-        identification_crew = Crew(
-            agents=crew_agents,
-            tasks=[identification_task],
-            process=Process.sequential,
-            verbose=Config.VERBOSE
-        )
-        identification_result = identification_crew.kickoff()
-        print(f"识别任务完成: {identification_result}")
+        # 执行识别任务，最多重试3次
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                identification_crew = Crew(
+                    agents=crew_agents,
+                    tasks=[identification_task],
+                    process=Process.sequential,
+                    verbose=Config.VERBOSE
+                )
+                identification_result = identification_crew.kickoff()
+                log_message(f"识别任务完成: {identification_result}", log_file)
+                log_tool_call("identification_agent", "Task Execution", tool_call_file)
+                break
+            except Exception as e:
+                if attempt < max_retries - 1:
+                    log_message(f"识别任务执行失败 (尝试 {attempt + 1}/{max_retries}): {e}", log_file)
+                    time.sleep(10)
+                else:
+                    raise e
         
         # 创建设计任务，确保依赖于识别任务
         design_task = MicrobialAgentDesignTask(llm).create_task(
@@ -314,62 +501,98 @@ def run_dynamic_workflow(user_requirement, llm):
             identification_task, 
             user_requirement=user_requirement
         )
+        log_tool_call("design_agent", "Task Creation", tool_call_file)
         
-        # 执行设计任务
-        design_crew = Crew(
-            agents=crew_agents,
-            tasks=[design_task],
-            process=Process.sequential,
-            verbose=Config.VERBOSE
-        )
-        design_result = design_crew.kickoff()
-        print(f"设计任务完成: {design_result}")
+        # 执行设计任务，最多重试3次
+        for attempt in range(max_retries):
+            try:
+                design_crew = Crew(
+                    agents=crew_agents,
+                    tasks=[design_task],
+                    process=Process.sequential,
+                    verbose=Config.VERBOSE
+                )
+                design_result = design_crew.kickoff()
+                log_message(f"设计任务完成: {design_result}", log_file)
+                log_tool_call("design_agent", "Task Execution", tool_call_file)
+                break
+            except Exception as e:
+                if attempt < max_retries - 1:
+                    log_message(f"设计任务执行失败 (尝试 {attempt + 1}/{max_retries}): {e}", log_file)
+                    time.sleep(10)
+                else:
+                    raise e
         
         # 创建评估任务，确保依赖于设计任务
         evaluation_task = MicrobialAgentEvaluationTask(llm).create_task(
             evaluation_agent, 
             design_task
         )
+        log_tool_call("evaluation_agent", "Task Creation", tool_call_file)
         
-        # 执行评估任务
-        evaluation_crew = Crew(
-            agents=crew_agents,
-            tasks=[evaluation_task],
-            process=Process.sequential,
-            verbose=Config.VERBOSE
-        )
-        evaluation_result = evaluation_crew.kickoff()
-        print(f"评估任务完成: {evaluation_result}")
+        # 执行评估任务，最多重试3次
+        for attempt in range(max_retries):
+            try:
+                evaluation_crew = Crew(
+                    agents=crew_agents,
+                    tasks=[evaluation_task],
+                    process=Process.sequential,
+                    verbose=Config.VERBOSE
+                )
+                evaluation_result = evaluation_crew.kickoff()
+                log_message(f"评估任务完成: {evaluation_result}", log_file)
+                log_tool_call("evaluation_agent", "Task Execution", tool_call_file)
+                break
+            except Exception as e:
+                if attempt < max_retries - 1:
+                    log_message(f"评估任务执行失败 (尝试 {attempt + 1}/{max_retries}): {e}", log_file)
+                    time.sleep(10)
+                else:
+                    raise e
         
         # 分析评估结果
         analysis_result = analyze_evaluation_result(str(evaluation_result))
         core_standards_met = analysis_result.get("core_standards_met", False) if isinstance(analysis_result, dict) else analysis_result
         
         if core_standards_met:
-            print("评估结果达标，进入方案生成阶段...")
+            log_message("评估结果达标，进入方案生成阶段...", log_file)
             # 创建方案生成任务，确保依赖于评估任务
             plan_task = ImplementationPlanGenerationTask(llm).create_task(
                 plan_agent, 
                 evaluation_task
             )
+            log_tool_call("plan_agent", "Task Creation", tool_call_file)
             
-            # 执行方案生成任务
-            plan_crew = Crew(
-                agents=crew_agents,
-                tasks=[plan_task],
-                process=Process.sequential,
-                verbose=Config.VERBOSE
-            )
-            plan_result = plan_crew.kickoff()
-            print(f"方案生成任务完成: {plan_result}")
+            # 执行方案生成任务，最多重试3次
+            for attempt in range(max_retries):
+                try:
+                    plan_crew = Crew(
+                        agents=crew_agents,
+                        tasks=[plan_task],
+                        process=Process.sequential,
+                        verbose=Config.VERBOSE
+                    )
+                    plan_result = plan_crew.kickoff()
+                    log_message(f"方案生成任务完成: {plan_result}", log_file)
+                    log_tool_call("plan_agent", "Task Execution", tool_call_file)
+                    break
+                except Exception as e:
+                    if attempt < max_retries - 1:
+                        log_message(f"方案生成任务执行失败 (尝试 {attempt + 1}/{max_retries}): {e}", log_file)
+                        time.sleep(10)
+                    else:
+                        raise e
+            
+            log_message("动态任务执行完成", log_file)
+            log_tool_call("main", "Dynamic Workflow End", tool_call_file)
             break  # 退出循环
         else:
-            print("评估结果不达标，需要重新进行微生物识别和设计...")
+            log_message("评估结果不达标，需要重新进行微生物识别和设计...", log_file)
             # 获取具体的改进建议
             if isinstance(analysis_result, dict) and "suggestions" in analysis_result:
-                print(f"改进建议: {analysis_result['suggestions']}")
+                log_message(f"改进建议: {analysis_result['suggestions']}", log_file)
             if iteration >= max_iterations:
-                print(f"已达到最大迭代次数 ({max_iterations})，停止循环。")
+                log_message(f"已达到最大迭代次数 ({max_iterations})，停止循环。", log_file)
                 break
     
     # 返回最终结果
@@ -410,32 +633,35 @@ def main():
     # 设置dashscope的API密钥
     dashscope.api_key = Config.QWEN_API_KEY
     
+    # 初始化日志
+    log_file, tool_call_file = setup_logging()
+    log_message("工作流开始", log_file)
+    log_message(f"用户需求: {user_requirement}", log_file)
+    log_message(f"处理模式: {processing_mode}", log_file)
+    
     # 初始化LLM模型，使用DashScope专用方式
     # 注意：必须正确指定提供商（openai/前缀）以避免"LLM Provider NOT provided"错误
-    try:
-        llm = ChatOpenAI(
-            base_url=Config.OPENAI_API_BASE,
-            api_key=Config.OPENAI_API_KEY,  # 使用原始API密钥
-            model="openai/qwen3-30b-a3b-instruct-2507",  # 指定openai提供商
-            temperature=Config.MODEL_TEMPERATURE,
-            streaming=False,
-            max_tokens=Config.MODEL_MAX_TOKENS
-        )
-        print("   ✓ LLM模型初始化成功")
-    except Exception as e:
-        print(f"   ✗ LLM模型初始化失败: {e}")
+    log_message("初始化LLM模型", log_file)
+    llm = initialize_llm()
+    if not llm:
+        log_message("LLM模型初始化失败，工作流终止", log_file)
         return
     
     # 根据用户选择的模式执行相应的工作流
     if processing_mode == 1:
         print("使用链式处理模式...")
-        result = run_sequential_workflow(user_requirement, llm)
-    else:
+        result = run_sequential_workflow(user_requirement, llm, log_file, tool_call_file)
+    elif processing_mode == 2:
         print("使用自主选择模式...")
-        result = run_autonomous_workflow(user_requirement, llm)
+        result = run_autonomous_workflow(user_requirement, llm, log_file, tool_call_file)
+    else:
+        print("使用动态处理模式...")
+        result = run_dynamic_workflow(user_requirement, llm, log_file, tool_call_file)
     
+    log_message("工作流完成", log_file)
     print("最终结果:")
     print(result)
+    log_message(f"最终结果: {result}", log_file)
 
 if __name__ == "__main__":
     main()

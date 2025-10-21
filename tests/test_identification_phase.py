@@ -24,10 +24,10 @@ from langchain_openai import ChatOpenAI
 from config.config import Config
 
 # 智能体导入
-from agents.engineering_microorganism_identification_agent import EngineeringMicroorganismIdentificationAgent
+from core.agents.identification_agent import EngineeringMicroorganismIdentificationAgent
 
 # 任务导入
-from tasks.microorganism_identification_task import MicroorganismIdentificationTask
+from core.tasks.identification_task import MicroorganismIdentificationTask
 
 def setup_logging():
     """设置日志记录"""
