@@ -122,15 +122,21 @@ class CarvemeTool(BaseTool):
             print(f"[CarvemeTool] 命令执行结果 - stderr: {result.stderr}")
             
             if result.returncode != 0:
-                # 如果执行失败，返回模拟结果
-                print(f"[CarvemeTool] 命令执行失败，使用模拟结果，错误信息: {result.stderr}")
-                return self._simulate_carveme(input_path, output_path, genomes_path, threads, overwrite, carve_extra)
+                # 如果执行失败，中断流程并返回错误
+                print(f"[CarvemeTool] 命令执行失败，中断流程，错误信息: {result.stderr}")
+                return {
+                    "status": "error",
+                    "message": f"CarveMe工具执行失败，请检查输入文件或安装CarveMe: {result.stderr}"
+                }
             
             # 检查是否生成了模型文件
             model_files = list(Path(output_path).glob("*.xml"))
             if not model_files:
-                print(f"[CarvemeTool] 未生成模型文件，使用模拟结果")
-                return self._simulate_carveme(input_path, output_path, genomes_path, threads, overwrite, carve_extra)
+                print(f"[CarvemeTool] 未生成模型文件，中断流程")
+                return {
+                    "status": "error",
+                    "message": f"CarveMe工具未生成任何模型文件，请检查输入数据"
+                }
             
             # 对生成的模型进行后处理以修复SBML格式问题
             processed_models = []
@@ -143,14 +149,17 @@ class CarvemeTool(BaseTool):
                     invalid_models.append(str(model_file))
             
             if not processed_models:
-                print(f"[CarvemeTool] 生成的所有模型都无效，使用模拟结果")
+                print(f"[CarvemeTool] 生成的所有模型都无效，中断流程")
                 # 删除无效模型
                 for model_file in model_files:
                     try:
                         os.remove(model_file)
                     except Exception as e:
                         print(f"[CarvemeTool] 删除无效模型文件失败: {str(e)}")
-                return self._simulate_carveme(input_path, output_path, genomes_path, threads, overwrite, carve_extra)
+                return {
+                    "status": "error",
+                    "message": f"CarveMe工具生成的所有模型都无效，请检查输入数据或工具配置"
+                }
             
             print(f"[CarvemeTool] 工具调用成功，返回结果")
             return {
@@ -164,13 +173,19 @@ class CarvemeTool(BaseTool):
             }
             
         except subprocess.TimeoutExpired:
-            # 超时情况下返回模拟结果
-            print(f"[CarvemeTool] 工具调用超时，使用模拟结果")
-            return self._simulate_carveme(input_path, output_path, genomes_path, threads, overwrite, carve_extra)
+            # 超时情况下中断流程并返回错误
+            print(f"[CarvemeTool] 工具调用超时，中断流程")
+            return {
+                "status": "error",
+                "message": f"CarveMe工具调用超时，请检查系统资源或增加超时时间"
+            }
         except Exception as e:
-            # 其他异常情况下返回模拟结果
-            print(f"[CarvemeTool] 工具调用出错，使用模拟结果: {str(e)}")
-            return self._simulate_carveme(input_path, output_path, genomes_path, threads, overwrite, carve_extra)
+            # 其他异常情况下中断流程并返回错误
+            print(f"[CarvemeTool] 工具调用出错，中断流程: {str(e)}")
+            return {
+                "status": "error",
+                "message": f"CarveMe工具调用出错，请检查工具配置: {str(e)}"
+            }
     
     def _simulate_carveme(self, input_path: str, output_path: str, genomes_path: Optional[str] = None, 
                          threads: int = 4, overwrite: bool = False, carve_extra: Optional[List[str]] = None) -> Dict[str, Any]:

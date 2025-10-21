@@ -59,7 +59,6 @@ class ReactionAdditionToolSchema(BaseModel):
         description="反应CSV文件路径"
     )
 
-
 class ReactionAdditionTool(BaseTool):
     name: str = "ReactionAdditionTool"
     description: str = "用于为代谢模型添加反应"
@@ -113,26 +112,6 @@ class ReactionAdditionTool(BaseTool):
         try:
             reactions_df = pd.read_csv(reactions_csv)
             logger.info(f"读取到 {len(reactions_df)} 个反应")
-            
-            # 检查必要的列是否存在
-            required_columns = ['id', 'name']
-            for col in required_columns:
-                if col not in reactions_df.columns:
-                    logger.warning(f"反应CSV文件缺少必要列: {col}")
-                    # 添加默认值
-                    if col == 'id':
-                        reactions_df['id'] = [f"reaction_{i+1}" for i in range(len(reactions_df))]
-                    elif col == 'name':
-                        reactions_df['name'] = [f"Reaction {i+1}" for i in range(len(reactions_df))]
-            
-            # 为缺失的可选列添加默认值
-            optional_columns = ['subsystem', 'lower_bound', 'upper_bound', 'reactants', 'products']
-            for col in optional_columns:
-                if col not in reactions_df.columns:
-                    if col in ['lower_bound', 'upper_bound']:
-                        reactions_df[col] = 1000.0 if col == 'upper_bound' else -1000.0
-                    else:
-                        reactions_df[col] = ""
         except Exception as e:
             logger.error(f"读取反应CSV文件失败: {str(e)}")
             return {"status": "error", "message": f"读取反应CSV文件失败: {str(e)}"}
@@ -162,10 +141,8 @@ class ReactionAdditionTool(BaseTool):
             try:
                 # 尝试读取模型
                 if COBRA_AVAILABLE:
-                    model = read_sbml_model(model_path)
-                    # 验证模型
-                    errors = validate_sbml_model(model_path)[1]
-                    if errors and (errors['SBML_ERROR'] or errors['COBRA_ERROR']):
+                    model, errors = validate_sbml_model(model_path)
+                    if errors:
                         logger.warning(f"模型验证失败 {model_path}: {errors}")
                         # 即使有错误也尝试继续处理
                 else:
@@ -184,25 +161,19 @@ class ReactionAdditionTool(BaseTool):
                 reaction_count = 0
                 for _, row in reactions_df.iterrows():
                     try:
-                        # 检查反应是否已存在
-                        reaction_id = str(row['id']).replace('.', '_')
-                        if reaction_id in [r.id for r in model.reactions]:
-                            logger.warning(f"反应 {reaction_id} 已存在，跳过")
-                            continue
-                        
                         # 创建反应对象
-                        reaction = Reaction(reaction_id)
-                        reaction.name = str(row['name'])
-                        reaction.subsystem = str(row.get('subsystem', ''))
+                        reaction = Reaction(row['id'].replace('.', '_'))  # 修复ID中的非法字符
+                        reaction.name = row['name']
+                        reaction.subsystem = row.get('subsystem', '')
                         
                         # 设置反应的上下限
-                        reaction.lower_bound = float(row.get('lower_bound', -1000.0))
-                        reaction.upper_bound = float(row.get('upper_bound', 1000.0))
+                        reaction.lower_bound = row.get('lower_bound', -1000.0)
+                        reaction.upper_bound = row.get('upper_bound', 1000.0)
                         
                         # 如果提供了反应物和产物信息，则添加到反应中
                         if 'reactants' in row and pd.notna(row['reactants']) and row['reactants']:
                             # 解析反应物（格式：metabolite_id:stoichiometry|metabolite_id:stoichiometry）
-                            reactants_str = str(row['reactants'])
+                            reactants_str = row['reactants']
                             if reactants_str:
                                 for reactant_part in reactants_str.split('|'):
                                     if ':' in reactant_part:
@@ -221,7 +192,7 @@ class ReactionAdditionTool(BaseTool):
                         
                         if 'products' in row and pd.notna(row['products']) and row['products']:
                             # 解析产物（格式：metabolite_id:stoichiometry|metabolite_id:stoichiometry）
-                            products_str = str(row['products'])
+                            products_str = row['products']
                             if products_str:
                                 for product_part in products_str.split('|'):
                                     if ':' in product_part:
@@ -241,7 +212,6 @@ class ReactionAdditionTool(BaseTool):
                         # 添加反应到模型
                         model.add_reactions([reaction])
                         reaction_count += 1
-                        logger.info(f"成功添加反应 {reaction_id}")
                     except Exception as e:
                         logger.warning(f"添加反应 {row['id']} 失败: {str(e)}")
                         continue
@@ -284,7 +254,7 @@ class ReactionAdditionTool(BaseTool):
         Returns:
             str: 生成的CSV文件路径
         """
-        csv_file = os.path.join(REACTIONS_DIR, f"{pollutant_name.replace(' ', '_')}_degradation_reactions.csv")
+        csv_file = os.path.join(REACTIONS_DIR, f"{pollutant_name}_reactions.csv")
         
         # 检查文件是否已存在
         if os.path.exists(csv_file):
