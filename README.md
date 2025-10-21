@@ -92,9 +92,10 @@ BioCrew/
 │       ├── database/      # 数据库工具
 │       │   ├── __init__.py
 │       │   ├── factory.py              # 数据库工具工厂
-│       │   ├── envipath.py             # EnviPath数据库访问工具
+│       │   ├── envipath_enhanced.py    # 增强版EnviPath数据库访问工具
 │       │   ├── kegg.py                 # KEGG数据库访问工具
 │       │   ├── ncbi.py                 # NCBI基因组查询工具
+│       │   ├── ncbi_genome_download_tool.py # NCBI基因组下载工具
 │       │   ├── complementarity_query.py # 微生物互补性查询工具
 │       │   ├── complementarity_model.py # 微生物互补性数据模型
 │       │   ├── complementarity_tool.py # 微生物互补性查询工具
@@ -110,15 +111,23 @@ BioCrew/
 │       ├── design/        # 菌剂设计工具
 │       │   ├── __init__.py
 │       │   ├── genome_processing.py    # 基因组处理工具
+│       │   ├── genome_processing_workflow.py # 基因组处理工作流工具
 │       │   ├── genome_spot.py          # GenomeSPOT工具
 │       │   ├── dlkcat.py               # DLkcat工具
 │       │   ├── carveme.py              # Carveme工具
 │       │   ├── phylomint.py            # Phylomint工具
-│       │   └── ctfba.py                # ctFBA工具
+│       │   ├── ctfba.py                # ctFBA工具
+│       │   ├── pollutant_query.py      # 污染物数据查询工具
+│       │   ├── gene_query.py           # 基因数据查询工具
+│       │   ├── organism_query.py       # 微生物数据查询工具
+│       │   ├── summary.py              # 污染物摘要工具
+│       │   ├── search.py               # 污染物搜索工具
+│       │   └── name_utils.py           # 污染物名称标准化工具
 │       ├── evaluation/    # 菌剂评估工具
 │       │   ├── __init__.py
 │       │   ├── evaluation.py           # 评估工具
 │       │   ├── reaction_addition.py    # 代谢反应填充工具
+│       │   ├── reaction_addition_original.py # 原始代谢反应填充工具
 │       │   ├── medium_recommendation.py # 培养基推荐工具
 │       │   └── ctfba.py                # ctFBA工具（共享）
 │       └── services/      # 服务工具
@@ -135,11 +144,17 @@ BioCrew/
 │   └── results/           # 结果文件
 ├── tests/                 # 测试文件
 │   ├── __init__.py
+│   ├── e2e/               # 端到端测试
+│   │   └── full_workflow_test.py      # 完整工作流测试
 │   ├── test_workflow.py               # 完整工作流测试
 │   ├── test_identification_phase.py   # 工程微生物组识别阶段测试
 │   ├── test_design_phase.py           # 微生物菌剂设计阶段测试
 │   ├── test_evaluation_phase.py       # 菌剂评估阶段测试
-│   └── test_full_workflow.py          # 完整工作流程测试
+│   ├── test_full_workflow.py          # 完整工作流程测试
+│   └── unit/              # 单元测试
+│       ├── final_test_medium.py       # 培养基测试
+│       ├── test_correct_candidate_ex.py # 候选EX测试
+│       └── test_medium_recommendation.py # 培养基推荐测试
 └── docs/                  # 文档
     ├── AGENTS.md         # 智能体文档
     ├── TASKS.md          # 任务文档
@@ -255,6 +270,14 @@ python tests/test_identification_phase.py    # 工程微生物组识别阶段测
 python tests/test_design_phase.py           # 微生物菌剂设计阶段测试
 python tests/test_evaluation_phase.py       # 菌剂评估阶段测试
 python tests/test_full_workflow.py          # 完整工作流程测试
+
+# 运行单元测试
+python tests/unit/test_medium_recommendation.py  # 培养基推荐测试
+python tests/unit/test_correct_candidate_ex.py   # 候选EX测试
+python tests/unit/final_test_medium.py           # 培养基测试
+
+# 运行端到端测试
+python tests/e2e/full_workflow_test.py           # 完整工作流测试
 ```
 
 ### 测试文件作用说明
@@ -264,6 +287,10 @@ python tests/test_full_workflow.py          # 完整工作流程测试
 3. **test_design_phase.py** - 专门测试微生物菌剂设计阶段的功能
 4. **test_evaluation_phase.py** - 专门测试菌剂评估阶段的功能
 5. **test_full_workflow.py** - 完整的端到端工作流程测试，包含工具链测试
+6. **unit/test_medium_recommendation.py** - 测试培养基推荐工具的功能
+7. **unit/test_correct_candidate_ex.py** - 测试候选EX功能
+8. **unit/final_test_medium.py** - 最终培养基测试
+9. **e2e/full_workflow_test.py** - 端到端完整工作流测试
 
 ### 工具链测试
 
@@ -322,8 +349,6 @@ python tests/test_full_workflow.py          # 完整工作流程测试
 3. **EvaluationTool** - 分析和评估微生物菌剂效果
 4. **CtfbaTool** - 计算微生物群落的代谢通量
 
-- **技术创新**：大语言模型+生物信息学工具结合，理性+数据双驱动
-
 ## 系统优化与扩展
 
 ### 当前优化
@@ -378,23 +403,3 @@ python tests/test_full_workflow.py          # 完整工作流程测试
 项目维护者: Axl1Huang - [GitHub](https://github.com/Axl1Huang)
 
 项目链接: [https://github.com/Water-Quality-Risk-Control-Engineering/BioCrew](https://github.com/Water-Quality-Risk-Control-Engineering/BioCrew)
-
-## 工具架构说明
-
-本项目采用模块化的工具架构，将所有工具统一管理在 `core/tools/` 目录下，并按功能划分为不同的子模块，避免了对外部路径的依赖。
-
-### 优势
-
-1. **更好的可移植性** - 所有工具都在项目内部统一管理，便于部署和分享
-2. **降低配置复杂性** - 工具按功能模块化组织，结构清晰
-3. **提高稳定性** - 避免因外部路径变更导致的工具失效
-4. **容错机制** - 工具执行失败时自动回退到模拟执行
-5. **易于维护** - 模块化设计便于工具的更新和维护
-
-### 工具分类
-
-1. **数据库工具** - 访问本地和外部数据库
-2. **菌剂设计工具** - 用于微生物菌剂的设计和分析
-3. **菌剂评估工具** - 用于微生物菌剂的评估和优化
-4. **服务工具** - 提供通用的服务功能
-5. **外部工具** - 集成的第三方工具脚本

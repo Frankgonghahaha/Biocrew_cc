@@ -110,9 +110,10 @@ BioCrew/
 │       ├── database/      # 数据库工具
 │       │   ├── __init__.py
 │       │   ├── factory.py              # 数据库工具工厂
-│       │   ├── envipath.py             # EnviPath数据库访问工具
+│       │   ├── envipath_enhanced.py    # 增强版EnviPath数据库访问工具
 │       │   ├── kegg.py                 # KEGG数据库访问工具
 │       │   ├── ncbi.py                 # NCBI基因组查询工具
+│       │   ├── ncbi_genome_download_tool.py # NCBI基因组下载工具
 │       │   ├── complementarity_query.py # 微生物互补性查询工具
 │       │   ├── complementarity_model.py # 微生物互补性数据模型
 │       │   ├── complementarity_tool.py # 微生物互补性查询工具
@@ -128,15 +129,23 @@ BioCrew/
 │       ├── design/        # 菌剂设计工具
 │       │   ├── __init__.py
 │       │   ├── genome_processing.py    # 基因组处理工具
+│       │   ├── genome_processing_workflow.py # 基因组处理工作流工具
 │       │   ├── genome_spot.py          # GenomeSPOT工具
 │       │   ├── dlkcat.py               # DLkcat工具
 │       │   ├── carveme.py              # Carveme工具
 │       │   ├── phylomint.py            # Phylomint工具
-│       │   └── ctfba.py                # ctFBA工具
+│       │   ├── ctfba.py                # ctFBA工具
+│       │   ├── pollutant_query.py      # 污染物数据查询工具
+│       │   ├── gene_query.py           # 基因数据查询工具
+│       │   ├── organism_query.py       # 微生物数据查询工具
+│       │   ├── summary.py              # 污染物摘要工具
+│       │   ├── search.py               # 污染物搜索工具
+│       │   └── name_utils.py           # 污染物名称标准化工具
 │       ├── evaluation/    # 菌剂评估工具
 │       │   ├── __init__.py
 │       │   ├── evaluation.py           # 评估工具
 │       │   ├── reaction_addition.py    # 代谢反应填充工具
+│       │   ├── reaction_addition_original.py # 原始代谢反应填充工具
 │       │   ├── medium_recommendation.py # 培养基推荐工具
 │       │   └── ctfba.py                # ctFBA工具（共享）
 │       └── services/      # 服务工具
@@ -153,11 +162,17 @@ BioCrew/
 │   └── results/           # 结果文件
 ├── tests/                 # 测试文件
 │   ├── __init__.py
+│   ├── e2e/               # 端到端测试
+│   │   └── full_workflow_test.py      # 完整工作流测试
 │   ├── test_workflow.py               # 完整工作流测试
 │   ├── test_identification_phase.py   # 工程微生物组识别阶段测试
 │   ├── test_design_phase.py           # 微生物菌剂设计阶段测试
 │   ├── test_evaluation_phase.py       # 菌剂评估阶段测试
-│   └── test_full_workflow.py          # 完整工作流程测试
+│   ├── test_full_workflow.py          # 完整工作流程测试
+│   └── unit/              # 单元测试
+│       ├── final_test_medium.py       # 培养基测试
+│       ├── test_correct_candidate_ex.py # 候选EX测试
+│       └── test_medium_recommendation.py # 培养基推荐测试
 └── docs/                  # 文档
     ├── AGENTS.md         # 智能体文档
     ├── TASKS.md          # 任务文档
