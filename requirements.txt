@@ -10,3 +10,4 @@ psycopg2-binary  # PostgreSQL驱动
 SQLAlchemy  # 数据库工具
 micom  # 用于ctFBA计算
 cobra  # 用于代谢网络分析
+dashscope  # 阿里云DashScope API SDK
