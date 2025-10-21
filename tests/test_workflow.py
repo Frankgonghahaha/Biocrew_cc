@@ -333,6 +333,18 @@ def analyze_results(identification_result, design_result, evaluation_result, res
     
     log_message(f"结果分析完成，详细报告已保存到: {result_file}", log_file)
 
+def get_user_input():
+    """获取用户输入的处理需求"""
+    print("请输入您的水质处理需求:")
+    print("例如: 处理含有邻苯二甲酸的工业废水")
+    user_input = input("您的需求: ").strip()
+    
+    if not user_input:
+        print("未输入有效需求，使用默认需求")
+        return "处理含有邻苯二甲酸的工业废水"
+    
+    return user_input
+
 def main():
     """主函数"""
     print("开始功能菌剂-菌剂设计-菌剂评估完整工作流测试")
@@ -347,8 +359,8 @@ def main():
     log_file, result_file, tool_call_file = setup_logging()
     log_message("测试开始", log_file)
     
-    # 用户需求
-    user_requirement = "处理含有邻苯二甲酸的工业废水"
+    # 获取用户需求
+    user_requirement = get_user_input()
     log_message(f"用户需求: {user_requirement}", log_file)
     
     # 初始化LLM
