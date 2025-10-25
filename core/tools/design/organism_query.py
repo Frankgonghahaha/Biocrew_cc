@@ -11,7 +11,7 @@ from typing import Dict, Any, List, Optional
 import requests
 import json
 from pydantic import BaseModel, Field
-from tools.pollutant_name_utils import standardize_pollutant_name
+from core.tools.design.name_utils import standardize_pollutant_name
 
 
 class OrganismDataQueryInput(BaseModel):

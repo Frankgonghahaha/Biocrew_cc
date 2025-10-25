@@ -30,8 +30,7 @@ class MicrobialAgentDesignTask:
         2. 使用GenomeSPOTTool预测微生物的环境适应性特征（温度、pH、盐度和氧气耐受性）
         3. 使用DLkcatTool预测降解酶对于特定底物的降解速率（Kcat值）
         4. 使用CarvemeTool构建基因组规模代谢模型(GSMM)
-        5. 使用PhylomintTool分析微生物间的代谢互补性和竞争性
-        6. 综合分析所有工具的结果，形成完整的菌剂设计方案
+        5. 综合分析所有工具的结果，形成完整的菌剂设计方案
         
         关键参数：
         - 权衡系数（0-1，0=保多样性，1=提降解效率）

@@ -22,6 +22,7 @@ class KeggToolInput(BaseModel):
     compound_id: Optional[str] = Field(None, description="化合物ID")
     compound_name: Optional[str] = Field(None, description="化合物名称，用于智能查询")
     pathway_id: Optional[str] = Field(None, description="pathway ID")
+    ec_number: Optional[str] = Field(None, description="EC编号，用于查询相关基因")
     format_type: Optional[str] = Field("json", description="返回格式")
     organism: Optional[str] = Field(None, description="物种代码")
     limit: Optional[int] = Field(5, description="返回结果的最大数量")
@@ -63,6 +64,10 @@ class KeggTool(BaseTool):
             # 优先处理智能查询
             if "compound_name" in kwargs and kwargs.get("compound_name") is not None:
                 return self.smart_query(kwargs["compound_name"])
+            
+            # 处理EC编号查询
+            if "ec_number" in kwargs and kwargs.get("ec_number") is not None:
+                return self.search_genes_by_ec_number(kwargs["ec_number"])
             
             # 处理compound_id和pathway_id组合情况
             if "compound_id" in kwargs and "pathway_id" in kwargs and kwargs.get("compound_id") is not None and kwargs.get("pathway_id") is not None:
@@ -1055,3 +1060,144 @@ class KeggTool(BaseTool):
                 related_compounds.append(phthalate_result["data"][0])
         
         return related_compounds
+    
+    def search_genes_by_ec_number(self, ec_number: str, timeout: int = None) -> Dict:
+        """
+        根据EC编号查询对应基因名称
+        
+        Args:
+            ec_number (str): EC编号 (如 1.14.12.7)
+            timeout (int): 超时时间（秒），默认使用类的默认超时时间
+            
+        Returns:
+            dict: 相关基因信息
+        """
+        try:
+            # 确保EC编号格式正确，添加"ec:"前缀
+            if not ec_number.startswith("ec:"):
+                clean_ec_number = f"ec:{ec_number}"
+            else:
+                clean_ec_number = ec_number
+            
+            # 1. 直接链接EC编号到基因
+            gene_result = self.link_entries("genes", clean_ec_number, timeout)
+            if gene_result["status"] == "success" and gene_result.get("data"):
+                # 获取基因的详细信息
+                genes_with_details = []
+                for gene_link in gene_result["data"][:10]:  # 限制数量
+                    if "target" in gene_link:
+                        gene_id = gene_link["target"]
+                        # 获取基因详细信息
+                        gene_detail = self.get_entry(gene_id, timeout=timeout//2 if timeout else None)
+                        if gene_detail["status"] == "success":
+                            # 解析基因名称
+                            gene_name = self._extract_gene_name(gene_detail["data"])
+                            genes_with_details.append({
+                                "gene_id": gene_id,
+                                "gene_name": gene_name,
+                                "detail": gene_detail["data"][:200] + "..." if len(gene_detail["data"]) > 200 else gene_detail["data"]
+                            })
+                
+                if genes_with_details:
+                    return {
+                        "status": "success",
+                        "data": genes_with_details,
+                        "ec_number": ec_number,
+                        "count": len(genes_with_details),
+                        "method": "direct_link"
+                    }
+            
+            # 2. 通过KO（KEGG Orthology）作为中介查询
+            ko_result = self.link_entries("ko", clean_ec_number, timeout)
+            if ko_result["status"] == "success" and ko_result.get("data"):
+                genes_via_ko = []
+                for ko_link in ko_result["data"][:5]:  # 限制KO数量
+                    if "target" in ko_link:
+                        ko_id = ko_link["target"]
+                        # 通过KO获取基因
+                        gene_result_via_ko = self.link_entries("genes", ko_id, timeout//2 if timeout else None)
+                        if gene_result_via_ko["status"] == "success" and gene_result_via_ko.get("data"):
+                            for gene_link in gene_result_via_ko["data"][:3]:  # 限制每个KO的基因数量
+                                if "target" in gene_link:
+                                    gene_id = gene_link["target"]
+                                    # 获取基因详细信息
+                                    gene_detail = self.get_entry(gene_id, timeout=timeout//3 if timeout else None)
+                                    if gene_detail["status"] == "success":
+                                        # 解析基因名称
+                                        gene_name = self._extract_gene_name(gene_detail["data"])
+                                        genes_via_ko.append({
+                                            "gene_id": gene_id,
+                                            "gene_name": gene_name,
+                                            "detail": gene_detail["data"][:200] + "..." if len(gene_detail["data"]) > 200 else gene_detail["data"],
+                                            "source_ko": ko_id
+                                        })
+                
+                if genes_via_ko:
+                    return {
+                        "status": "success",
+                        "data": genes_via_ko[:15],  # 最多返回15个基因
+                        "ec_number": ec_number,
+                        "count": len(genes_via_ko[:15]),
+                        "method": "indirect_via_ko"
+                    }
+            
+            # 3. 如果以上方法都失败，返回空结果
+            return {
+                "status": "warning",
+                "message": f"未找到EC编号 {ec_number} 对应的基因信息",
+                "ec_number": ec_number,
+                "data": [],
+                "count": 0
+            }
+            
+        except requests.exceptions.Timeout:
+            return {
+                "status": "error",
+                "message": f"请求超时: search_genes_by_ec_number({ec_number})",
+                "ec_number": ec_number
+            }
+        except requests.exceptions.RequestException as e:
+            return {
+                "status": "error",
+                "message": f"网络请求错误: {str(e)}",
+                "ec_number": ec_number
+            }
+        except Exception as e:
+            return {
+                "status": "error",
+                "message": f"根据EC编号查询基因时出错: {str(e)}",
+                "ec_number": ec_number
+            }
+    
+    def _extract_gene_name(self, gene_detail_text: str) -> str:
+        """
+        从基因详细信息中提取基因名称
+        
+        Args:
+            gene_detail_text (str): 基因详细信息文本
+            
+        Returns:
+            str: 基因名称
+        """
+        try:
+            lines = gene_detail_text.split('\n')
+            for line in lines:
+                if line.startswith("NAME"):
+                    # 提取NAME行的内容
+                    parts = line.split(None, 1)
+                    if len(parts) > 1:
+                        return parts[1].strip()
+                elif line.startswith("GENE"):
+                    # 提取GENE行的内容
+                    parts = line.split(None, 1)
+                    if len(parts) > 1:
+                        # GENE行可能包含多个基因，取第一个
+                        gene_part = parts[1].strip()
+                        if ' ' in gene_part:
+                            return gene_part.split()[0]
+                        else:
+                            return gene_part
+            # 如果没有找到NAME或GENE行，返回空字符串
+            return "Unknown"
+        except Exception:
+            return "Unknown"

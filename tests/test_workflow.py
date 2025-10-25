@@ -328,7 +328,7 @@ def analyze_results(identification_result, design_result, evaluation_result, res
         
         f.write("\n工具调用情况:\n")
         f.write("1. 工程微生物识别智能体工具: EnviPathTool, KeggTool, PollutantSummaryTool, NCBI基因组查询工具\n")
-        f.write("2. 微生物菌剂设计智能体工具: EnviPathTool, KeggTool, PollutantSummaryTool, NCBI基因组查询工具, GenomeSPOTTool, DLkcatTool, CarvemeTool, PhylomintTool, IntegratedGenomeProcessingTool\n")
+        f.write("2. 微生物菌剂设计智能体工具: EnviPathTool, KeggTool, PollutantSummaryTool, NCBI基因组查询工具, GenomeSPOTTool, DLkcatTool, CarvemeTool, IntegratedGenomeProcessingTool\n")
         f.write("3. 菌剂评估智能体工具: EvaluationTool, ReactionAdditionTool, MediumRecommendationTool, CtfbaTool\n")
     
     log_message(f"结果分析完成，详细报告已保存到: {result_file}", log_file)

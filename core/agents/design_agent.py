@@ -6,71 +6,68 @@
 """
 
 from crewai import Agent
-from core.tools.design.genome_processing import IntegratedGenomeProcessingTool
-from core.tools.design.genome_spot import GenomeSPOTTool
-from core.tools.design.dlkcat import DLkcatTool
-from core.tools.design.carveme import CarvemeTool
-from core.tools.design.phylomint import PhylomintTool
 
 
 class MicrobialAgentDesignAgent:
     """工程菌剂设计智能体"""
     
-    def __init__(self, llm=None):
+    def __init__(self, llm):
+        """
+        初始化工程菌剂设计智能体
+        
+        Args:
+            llm: 大语言模型实例
+        """
         self.llm = llm
     
     def create_agent(self):
-        if self.llm is None:
-            raise ValueError("LLM must be provided to create agent")
-            
+        """创建微生物菌剂设计智能体"""
+        # 尝试导入工具
+        try:
+            from core.tools.database.factory import DatabaseToolFactory
+            tools = DatabaseToolFactory.create_all_tools()
+            database_tools_info = "系统集成了EnviPath、KEGG和UniProt数据库访问工具，可以查询环境pathway数据、生物代谢信息和蛋白质功能信息"
+        except Exception as e:
+            tools = []
+            database_tools_info = f"数据库工具初始化失败: {e}"
+        
         return Agent(
-            role="工程菌剂设计专家",
-            goal="设计能够高效降解目标污染物的工程微生物菌剂",
-            backstory="""
-            你是工程微生物菌剂设计专家，专长于设计能够高效降解目标污染物的工程微生物菌剂。
-            你的工作流程如下：
+            role='微生物菌剂设计专家',
+            goal='基于功能微生物组设计高效的微生物菌剂',
+            backstory=f"""你是一位微生物菌剂设计专家，专注于利用功能微生物组数据和代谢模型设计高效的微生物菌剂。
             
-            1. 使用IntegratedGenomeProcessingTool处理微生物基因组数据
-               - organism_names: 从工程微生物识别阶段获取的微生物名称列表
-               - download_path: "/tmp/genomes" (基因组文件下载目录)
-               - models_path: 项目内路径 "tools/external_tools/genome_spot/models" (GenomeSPOT模型目录)
-               - output_prefix: 可选的输出文件前缀
+            # 设计原则：
+            # 1. 基于功能微生物组的代谢互补性设计菌剂配方
+            # 2. 利用基因组规模代谢模型(GSMM)优化菌剂性能
+            # 3. 考虑菌剂中微生物间的协同和竞争关系
+            # 4. 预测菌剂在目标环境中的适应性和稳定性
             
-            2. 使用GenomeSPOTTool预测微生物环境适应性特征
-               - fna_path: 上一步生成的基因组contigs文件路径
-               - faa_path: 上一步生成的基因组蛋白质文件路径
-               - models_path: 项目内路径 "tools/external_tools/genome_spot/models" (GenomeSPOT模型目录)
-               - output_prefix: 可选的输出文件前缀
+            # 数据来源：
+            # 1. 功能微生物组识别阶段的输出数据
+            # 2. 本地基因和微生物数据(data/Genes和data/Organism)
+            # 3. 外部数据库：{database_tools_info}
+            #    - EnviPath：环境化合物代谢路径信息
+            #    - KEGG：生物代谢通路和基因组信息
+            #    - UniProt：蛋白质序列和功能信息
             
-            3. 使用DLkcatTool预测降解酶催化速率
-               - script_path: 项目内路径 "tools/external_tools/dlkcat/prediction_for_input.py"
-               - file_path: 输入Excel文件路径
-               - output_path: 可选的输出Excel文件路径
+            # 可用工具：
+            # - 可使用基因组数据处理工具处理微生物基因组
+            # - 可使用基因组环境适应性预测工具(GenomeSPOT)预测微生物环境适应性
+            # - 可使用酶催化速率预测工具(DLkcat)预测关键酶的催化效率
+            # - 可使用代谢模型构建工具(Carveme)构建基因组规模代谢模型
+            # - 可使用代谢通量计算工具(Ctfba)计算代谢通量分布
+            # - 可使用UniProt工具查询蛋白质功能信息，特别是酶的功能注释
+            # - 可使用EnviPath和KEGG工具查询代谢通路信息
             
-            4. 使用CarvemeTool构建基因组规模代谢模型
-               - input_path: 包含.aa/.faa文件的目录路径
-               - output_path: 输出SBML(.xml)文件的目录
-               - genomes_path: 可选的基因组文件目录路径
-               - threads: 并行线程数，默认为4
-               - overwrite: 是否覆盖已存在的模型文件，默认为False
-            
-            5. 使用PhylomintTool分析微生物间代谢互补性和竞争性
-               - output_path: 输出文件路径
-               - phylo_path: 可选的PhyloMInt可执行文件路径
-               - models_path: 项目内路径 "tools/external_tools/carveme/models" (代谢模型目录)
-               - function_species_csv: 可选的功能物种列表CSV文件路径
-               - skip_preprocess: 是否跳过预处理步骤，默认为False
-            
-            你会严格按照这个顺序调用工具，并确保每一步都得到正确的执行结果。
+            # 工作流程：
+            # 1. 分析功能微生物组的基因组特征
+            # 2. 构建各功能微生物的基因组规模代谢模型
+            # 3. 分析微生物间的代谢互补性和竞争关系
+            # 4. 设计菌剂配方并优化菌剂性能
+            # 5. 预测菌剂在目标环境中的表现
             """,
-            tools=[
-                IntegratedGenomeProcessingTool(),
-                GenomeSPOTTool(),
-                DLkcatTool(),
-                CarvemeTool(),
-                PhylomintTool()
-            ],
+            tools=tools,
             verbose=True,
-            allow_delegation=False,
+            allow_delegation=True,
             llm=self.llm
         )

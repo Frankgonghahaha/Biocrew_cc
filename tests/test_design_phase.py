@@ -118,7 +118,7 @@ def run_design_test():
     try:
         # 创建智能体
         log_message("创建微生物菌剂设计智能体", log_file)
-        design_agent = MicrobialAgentDesignAgent().create_agent(llm)
+        design_agent = MicrobialAgentDesignAgent(llm).create_agent()
         log_message("微生物菌剂设计智能体创建成功", log_file)
         log_tool_call("design_agent", "Agent Creation", tool_call_file)
         

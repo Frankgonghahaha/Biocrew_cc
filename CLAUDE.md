@@ -60,6 +60,24 @@ python3 tests/test_workflow.py
 # 运行结果分析
 ```
 
+### 运行特定测试
+
+```bash
+# 运行分阶段测试
+python3 tests/test_identification_phase.py    # 工程微生物组识别阶段测试
+python3 tests/test_design_phase.py           # 微生物菌剂设计阶段测试
+python3 tests/test_evaluation_phase.py       # 菌剂评估阶段测试
+python3 tests/test_full_workflow.py          # 完整工作流程测试
+
+# 运行单元测试
+python3 tests/unit/test_medium_recommendation.py  # 培养基推荐测试
+python3 tests/unit/test_correct_candidate_ex.py   # 候选EX测试
+python3 tests/unit/final_test_medium.py           # 培养基测试
+
+# 运行端到端测试
+python3 tests/e2e/full_workflow_test.py           # 完整工作流测试
+```
+
 ### 代码验证
 
 ```bash
@@ -133,7 +151,6 @@ BioCrew/
 │       │   ├── genome_spot.py          # GenomeSPOT工具
 │       │   ├── dlkcat.py               # DLkcat工具
 │       │   ├── carveme.py              # Carveme工具
-│       │   ├── phylomint.py            # Phylomint工具
 │       │   ├── ctfba.py                # ctFBA工具
 │       │   ├── pollutant_query.py      # 污染物数据查询工具
 │       │   ├── gene_query.py           # 基因数据查询工具
@@ -255,8 +272,7 @@ BioCrew/
 1. **GenomeSPOTTool** - 预测微生物的环境适应性特征
 2. **DLkcatTool** - 预测降解酶对于特定底物的降解速率
 3. **CarvemeTool** - 构建基因组规模代谢模型(GSMM)
-4. **PhylomintTool** - 分析微生物间的代谢互补性和竞争性
-5. **CtfbaTool** - 计算微生物群落的代谢通量
+4. **CtfbaTool** - 计算微生物群落的代谢通量
 
 ### 外部工具集成
 
@@ -265,7 +281,6 @@ BioCrew/
 1. **GenomeSPOT** - 预测微生物环境适应性的机器学习工具
 2. **DLkcat** - 预测酶催化速率的工具
 3. **Carveme** - 构建基因组规模代谢模型的工具
-4. **Phylomint** - 分析微生物间代谢互补性的工具
 
 这些外部工具脚本被复制到项目内部，确保了项目的可移植性和一致性。
 
@@ -277,6 +292,12 @@ BioCrew/
 2. **MediumRecommendationTool** - 使用MICOM生成推荐培养基组分
 3. **EvaluationTool** - 分析和评估微生物菌剂效果
 4. **CtfbaTool** - 计算微生物群落的代谢通量
+
+### 基于SQL的蛋白质序列查询工具
+
+系统新增了基于SQL数据库的蛋白质序列查询工具：
+
+1. **ProteinSequenceQuerySQLTool** - 用于从SQL数据库中查询蛋白质序列的工具，替代传统的.faa文件处理方式，提供快速、高效的序列比对功能
 
 ## 开发指南
 
@@ -328,6 +349,15 @@ BioCrew/
 4. 更新`main.py`中的Crew配置以包含新智能体和任务
 5. 对于数据访问功能，在`tools/`目录中实现新工具
 6. 为新功能添加相应的测试文件，确保功能正确性
+
+### 新工具开发
+
+对于基于SQL的工具开发：
+1. 在`core/tools/design/`目录中创建新工具文件
+2. 遵循现有的工具结构模式，继承自`BaseTool`
+3. 实现带有显式参数定义的`_run()`方法
+4. 在`core/tools/design/__init__.py`中注册新工具
+5. 更新`docs/TOOLS.md`文档以包含新工具说明
 
 ## 近期架构优化
 
@@ -410,3 +440,10 @@ BioCrew/
 - 实现了MediumRecommendationTool工具，使用MICOM生成推荐培养基组分
 - 增强了菌剂评估智能体，集成了新工具并更新了评估流程
 - 创建了专门的测试文件验证新工具的功能
+
+### 基于SQL的工具开发
+
+- 实现了ProteinSequenceQuerySQLTool工具，用于替代传统的.faa文件处理方式
+- 通过SQL数据库查询蛋白质序列，提供快速、高效的序列比对功能
+- 支持BLAST的三个关键阈值：相似度、E-value和比对长度
+- 创建了相应的文档和测试文件验证新工具的功能

@@ -191,4 +191,4 @@ outputs/
 test_results/
 
 # Environment files
-.env
+.env*.db

@@ -29,6 +29,9 @@ from core.agents.identification_agent import EngineeringMicroorganismIdentificat
 # 任务导入
 from core.tasks.identification_task import MicroorganismIdentificationTask
 
+# 工具导入
+from core.tools.database.uniprot import UniProtTool
+
 def setup_logging():
     """设置日志记录"""
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -78,6 +81,23 @@ def log_tool_call(agent_name, tool_name, tool_call_file):
     with open(tool_call_file, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
 
+
+def test_protein_sequence_query(user_requirement, log_file, tool_call_file):
+    """验证UniProt工具可创建性"""
+    log_message("验证UniProt工具可创建性", log_file)
+    
+    try:
+        # 创建UniProt工具实例（仅验证工具可创建）
+        log_message("创建UniProt工具实例", log_file)
+        uniprot_tool = UniProtTool()
+        log_message("UniProt工具实例创建成功", log_file)
+        log_tool_call("uniprot_tool", "Tool Creation", tool_call_file)
+            
+    except Exception as e:
+        log_message(f"UniProt工具创建过程中发生错误: {e}", log_file)
+        import traceback
+        log_message(f"错误详情: {traceback.format_exc()}", log_file)
+
 def initialize_llm():
     """初始化LLM模型"""
     try:
@@ -103,7 +123,7 @@ def run_identification_test():
     log_message("测试开始", log_file)
     
     # 用户需求
-    user_requirement = "处理含有邻苯二甲酸的工业废水"
+    user_requirement = "请你告诉我有哪些邻苯二甲二丁酯水解酶"
     log_message(f"用户需求: {user_requirement}", log_file)
     
     # 初始化LLM
@@ -116,6 +136,9 @@ def run_identification_test():
     log_message("LLM模型初始化成功", log_file)
     
     try:
+        # 首先测试蛋白质序列查询功能（模拟测试，避免实际调用UniProt API）
+        test_protein_sequence_query(user_requirement, log_file, tool_call_file)
+        
         # 创建智能体
         log_message("创建工程微生物识别智能体", log_file)
         identification_agent = EngineeringMicroorganismIdentificationAgent(llm).create_agent()

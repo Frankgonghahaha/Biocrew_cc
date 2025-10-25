@@ -1,3 +1,26 @@
+"""
+Test suite for UniProtTool functionality.
+"""
+import unittest
+from core.tools.database.uniprot import UniProtTool
+
+class TestUniProtTool(unittest.TestCase):
+    """Test cases for UniProtTool."""
+    
+    def setUp(self):
+        """Set up test fixture before each test method."""
+        self.tool = UniProtTool()
+    
+    def test_uniprot_tool_exists(self):
+        """Test that UniProtTool class exists and can be instantiated."""
+        self.assertIsNotNone(self.tool)
+    
+    def test_tool_has_name(self):
+        """Test that the tool has the correct name."""
+        self.assertEqual(self.tool.name, "UniProt Database Query Tool")
+
+if __name__ == '__main__':
+    unittest.main()
 # AGENTS.md
 
 This file provides guidance to Qoder (qoder.com) when working with code in this repository.
@@ -53,6 +76,7 @@ python tests/test_tool_integration.py
 # Run specific tool tests
 python tests/test_carveme_fix.py
 python tests/test_reaction_addition.py
+python tests/test_uniprot_tool.py
 ```
 
 ### Development Commands
@@ -105,13 +129,13 @@ python -c "from core.tools.design.carveme import CarvemeTool; tool = CarvemeTool
      - `summary.py` - Gets pollutant summary statistics
      - `search.py` - Searches pollutants by keyword
      - `name_utils.py` - Standardizes pollutant names
+     - `uniprot.py` - Queries UniProt database for protein sequence and functional information
    - **Design Tools** (`/core/tools/design/`) - For creating microbial agents
      - `carveme.py` - Builds genome-scale metabolic models (GSMM)
      - `ctfba.py` - Calculates metabolic flux using cooperative trade-off FBA
      - `genome_processing.py` - Processes genome data
      - `genome_spot.py` - Predicts microbial environmental adaptability
      - `dlkcat.py` - Predicts degradation enzyme rates
-     - `phylomint.py` - Analyzes metabolic complementarity between microbes
    - **Evaluation Tools** (`/core/tools/evaluation/`) - For assessing microbial agents
      - `reaction_addition.py` - Adds metabolic reactions to SBML models
      - `medium_recommendation.py` - Generates recommended medium components using MICOM

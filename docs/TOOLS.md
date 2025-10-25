@@ -2,7 +2,7 @@
 
 ## 概述
 
-本项目包含多种工具，分为数据库工具、外部数据库访问工具和评估工具三类。所有工具都遵循CrewAI框架的工具规范，并通过DatabaseToolFactory进行统一管理。
+本项目包含多种工具，分为数据库工具、外部数据库访问工具、设计工具和评估工具四类。所有工具都遵循CrewAI框架的工具规范，并通过DatabaseToolFactory进行统一管理。
 
 ## 数据库工具
 
@@ -48,7 +48,40 @@ tool = GeneDataQueryTool()
 result = tool._run(pollutant_name="endrin")
 ```
 
-### 3. OrganismDataQueryTool
+### 3. ProteinSequenceQuerySQLTool
+
+**文件**: `core/tools/design/protein_sequence_query_sql.py`
+
+**功能**: 基于SQL数据库的蛋白质序列查询工具，用于替代传统的.faa文件处理方式
+
+**参数**:
+- `query_sequence` (str): 查询蛋白质序列（必填）
+- `min_identity` (float): 最小序列相似度百分比，默认50.0
+- `max_evalue` (float): 最大E-value阈值，默认1e-5
+- `min_alignment_length` (int): 最小比对长度，默认50
+- `limit` (int): 返回结果数量限制，默认100
+- `database_path` (str): SQL数据库文件路径，默认"protein_sequences.db"
+
+**返回值**: 包含以下字段的字典
+- `status`: 状态信息（"success"或"error"）
+- `query_sequence_length`: 查询序列长度
+- `results`: 匹配结果列表，每个结果包含物种名、基因名、蛋白质ID、序列、相似度、E-value和比对长度
+- `total_results`: 匹配结果总数
+
+**使用示例**:
+```python
+tool = ProteinSequenceQuerySQLTool()
+result = tool._run(
+    query_sequence="MKQLIVGASGSGKSTFLKFLEGYDWAEGNLVNVDPKDFLDAMTEGFLGSYDGNFVHVDYGINASLVYGNTDIYVAPQMVSGLNLPFYSQDPAVHAHFHQRLFGDQFSEFAEQVAAVDAVVKDTGMNLGQILQDAQIDPALAELGIQVVNQVDPKLQKLGFDAVIAVSLRQGHDAVMFGYDLAGIGMDVALQELHAKLNAQAALVVVSLGSMGDQEGYVDLLKHLGLKPDGIVLTSGYAHKQVVKSAAKYGVPVVVSSAYGGVDGQDGSYVAPAGIQAELGKLTGLAATVDSGAVVSDNQSFVAGYALTADGGRRAATVNGGQVVVTDGTTLTGTRAAATAEKFGGETVIVDGNQVVYGTQGGKATYANGQAVDYAAVVLQGLK",
+    min_identity=50.0,
+    max_evalue=1e-5,
+    min_alignment_length=50,
+    limit=100,
+    database_path="protein_sequences.db"
+)
+```
+
+### 5. OrganismDataQueryTool
 
 **文件**: `core/tools/database/organism_query.py`
 
@@ -68,7 +101,7 @@ tool = OrganismDataQueryTool()
 result = tool._run(pollutant_name="endrin")
 ```
 
-### 4. PollutantSummaryTool
+### 6. PollutantSummaryTool
 
 **文件**: `core/tools/database/summary.py`
 
@@ -88,7 +121,7 @@ tool = PollutantSummaryTool()
 result = tool._run(pollutant_name="endrin")
 ```
 
-### 5. PollutantSearchTool
+### 7. PollutantSearchTool
 
 **文件**: `core/tools/database/search.py`
 
@@ -108,7 +141,42 @@ tool = PollutantSearchTool()
 result = tool._run(keyword="endrin")
 ```
 
-### 6. DatabaseToolFactory
+### 8. UniProtTool
+
+**文件**: `core/tools/database/uniprot.py`
+
+**功能**: 查询UniProt数据库中的蛋白质信息，包括蛋白质序列、功能注释等
+
+**方法**:
+- `_run(query, query_type, format, limit)`: 通用查询方法
+- `search_by_protein_name(protein_name, limit)`: 根据蛋白质名称搜索
+- `search_by_gene_name(gene_name, limit)`: 根据基因名称搜索
+- `get_protein_sequence(uniprot_id)`: 获取蛋白质序列
+
+**参数**:
+- `query` (str): 查询字符串
+- `query_type` (str): 查询类型（protein_name, id, gene_name, organism）
+- `format` (str): 返回数据格式（json, xml, txt）
+- `limit` (int): 返回结果数量限制
+
+**返回值**: 包含以下字段的字典
+- `status`: 状态信息（"success"或"error"）
+- `query`: 查询字符串
+- `query_type`: 查询类型
+- `results`: 查询结果
+
+**使用示例**:
+```python
+tool = UniProtTool()
+# 通过蛋白质名称查询
+result = tool.search_by_protein_name("lacZ", limit=5)
+# 通过UniProt ID查询
+result = tool.search_by_id("P00722")
+# 获取蛋白质序列
+result = tool.get_protein_sequence("P00722")
+```
+
+### 9. DatabaseToolFactory
 
 **文件**: `core/tools/database/factory.py`
 

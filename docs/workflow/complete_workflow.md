@@ -50,7 +50,6 @@ graph TD
 1. 使用GenomeSPOTTool预测微生物的环境适应性特征
 2. 使用DLkcatTool预测降解酶对于特定底物的降解速率
 3. 使用CarvemeTool构建基因组规模代谢模型(GSMM)
-4. 使用PhylomintTool分析微生物间的代谢互补性和竞争性
 5. 使用IntegratedGenomeProcessingTool整合基因组处理结果
 
 #### 2.3 输出
@@ -96,7 +95,6 @@ graph TD
 - GenomeSPOTTool
 - DLkcatTool
 - CarvemeTool
-- PhylomintTool
 - IntegratedGenomeProcessingTool
 
 ### 菌剂评估智能体工具调用

@@ -338,7 +338,6 @@ python tests/e2e/full_workflow_test.py           # 完整工作流测试
 1. **GenomeSPOTTool** - 预测微生物的环境适应性特征
 2. **DLkcatTool** - 预测降解酶对于特定底物的降解速率
 3. **CarvemeTool** - 构建基因组规模代谢模型(GSMM)
-4. **PhylomintTool** - 分析微生物间的代谢互补性和竞争性
 
 ### 微生物菌剂评估专用工具
 

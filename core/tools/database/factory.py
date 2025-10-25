@@ -12,6 +12,7 @@ from core.tools.database.organism_query import OrganismDataQueryTool
 from core.tools.database.summary import PollutantSummaryTool
 from core.tools.database.ncbi import NCBIGenomeQueryTool
 from core.tools.database.complementarity_query import MicrobialComplementarityDBQueryTool
+from core.tools.database.uniprot import UniProtTool
 
 
 class DatabaseToolFactory:
@@ -33,7 +34,8 @@ class DatabaseToolFactory:
             OrganismDataQueryTool(),
             PollutantSummaryTool(),
             NCBIGenomeQueryTool(),
-            MicrobialComplementarityDBQueryTool()
+            MicrobialComplementarityDBQueryTool(),
+            UniProtTool()
         ]
         
         return tools
@@ -77,3 +79,8 @@ class DatabaseToolFactory:
     def create_microbial_complementarity_db_query_tool():
         """创建微生物互补性数据库查询工具实例"""
         return MicrobialComplementarityDBQueryTool()
+    
+    @staticmethod
+    def create_uniprot_tool():
+        """创建UniProt查询工具实例"""
+        return UniProtTool()
