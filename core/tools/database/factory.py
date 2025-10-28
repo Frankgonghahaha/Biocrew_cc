@@ -13,6 +13,7 @@ from core.tools.database.summary import PollutantSummaryTool
 from core.tools.database.ncbi import NCBIGenomeQueryTool
 from core.tools.database.complementarity_query import MicrobialComplementarityDBQueryTool
 from core.tools.database.uniprot import UniProtTool
+from core.tools.design.protein_sequence_query_sql_updated import ProteinSequenceQuerySQLToolUpdated
 
 
 class DatabaseToolFactory:
@@ -35,7 +36,8 @@ class DatabaseToolFactory:
             PollutantSummaryTool(),
             NCBIGenomeQueryTool(),
             MicrobialComplementarityDBQueryTool(),
-            UniProtTool()
+            UniProtTool(),
+            ProteinSequenceQuerySQLToolUpdated()
         ]
         
         return tools
@@ -84,3 +86,8 @@ class DatabaseToolFactory:
     def create_uniprot_tool():
         """创建UniProt查询工具实例"""
         return UniProtTool()
+    
+    @staticmethod
+    def create_protein_sequence_query_sql_tool():
+        """创建基于SQL的蛋白质序列查询工具实例"""
+        return ProteinSequenceQuerySQLToolUpdated()

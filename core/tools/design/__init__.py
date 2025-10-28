@@ -5,6 +5,8 @@
 
 # 数据库工具
 from .protein_sequence_query_sql import ProteinSequenceQuerySQLTool
+from .protein_sequence_query_sql_updated import ProteinSequenceQuerySQLToolUpdated
+from .degrading_microorganism_identification_tool import DegradingMicroorganismIdentificationTool
 
 # 基因组处理工具
 from .genome_processing import IntegratedGenomeProcessingTool
@@ -27,6 +29,8 @@ from .name_utils import standardize_pollutant_name, generate_pollutant_name_vari
 __all__ = [
     # 数据库工具
     'ProteinSequenceQuerySQLTool',
+    'ProteinSequenceQuerySQLToolUpdated',
+    'DegradingMicroorganismIdentificationTool',
     
     # 基因组处理工具
     'IntegratedGenomeProcessingTool',

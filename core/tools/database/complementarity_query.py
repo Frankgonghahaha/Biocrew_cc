@@ -22,9 +22,9 @@ class MicrobialComplementarityDBQueryToolSchema(BaseModel):
         default=None,
         description="第二个微生物的名称（可选）"
     )
-    gene: Optional[str] = Field(
-        default=None,
-        description="相关基因名称（可选）"
+    filter_by_complementarity: Optional[bool] = Field(
+        default=False,
+        description="是否筛选互补指数大于竞争指数的记录"
     )
 
 
@@ -61,14 +61,14 @@ class MicrobialComplementarityDBQueryTool(BaseTool):
             self.__dict__['engine'] = None
             self.__dict__['Session'] = None
 
-    def _run(self, microorganism_a: str, microorganism_b: Optional[str] = None, gene: Optional[str] = None) -> str:
+    def _run(self, microorganism_a: str, microorganism_b: Optional[str] = None, filter_by_complementarity: bool = False) -> str:
         """
         查询微生物互补性数据
         
         Args:
             microorganism_a: 第一个微生物的名称
             microorganism_b: 第二个微生物的名称（可选）
-            gene: 相关基因名称（可选）
+            filter_by_complementarity: 是否筛选互补指数大于竞争指数的记录
             
         Returns:
             查询结果的描述字符串
@@ -99,14 +99,14 @@ class MicrobialComplementarityDBQueryTool(BaseTool):
                     or_(*conditions_b)
                 )
             
-            if gene:
-                query_conditions = and_(
-                    query_conditions,
-                    MicrobialComplementarity.genes.contains(gene)
-                )
-            
             # 执行查询
-            results = session.query(MicrobialComplementarity).filter(query_conditions).all()
+            query = session.query(MicrobialComplementarity).filter(query_conditions)
+            
+            # 如果需要筛选互补指数大于竞争指数的记录
+            if filter_by_complementarity:
+                query = query.filter(MicrobialComplementarity.complementarity_index > MicrobialComplementarity.competition_index)
+            
+            results = query.all()
             
             session.close()
             
@@ -114,19 +114,23 @@ class MicrobialComplementarityDBQueryTool(BaseTool):
                 result = f"未找到关于微生物 '{microorganism_a}'"
                 if microorganism_b:
                     result += f" 和 '{microorganism_b}'"
-                if gene:
-                    result += f" 与基因 '{gene}'"
+                if filter_by_complementarity:
+                    result += " 且互补指数大于竞争指数"
                 result += " 的互补性数据"
                 return result
             
             # 格式化结果
-            result = f"找到 {len(results)} 条关于微生物互补性的记录:\n\n"
+            result = f"找到 {len(results)} 条关于微生物互补性的记录"
+            if filter_by_complementarity:
+                result += "（互补指数大于竞争指数）"
+            result += ":\n\n"
             for record in results:
                 result += f"降解功能微生物: {record.degrading_microorganism}\n"
                 result += f"互补微生物: {record.complementary_microorganism}\n"
-                result += f"相关基因: {record.genes}\n"
                 result += f"竞争指数 (Competition): {record.competition_index:.4f}\n"
                 result += f"互补指数 (Complementarity): {record.complementarity_index:.4f}\n"
+                if filter_by_complementarity:
+                    result += f"差值 (Complementarity - Competition): {record.complementarity_index - record.competition_index:.4f}\n"
                 result += "-" * 40 + "\n"
             
             return result
@@ -134,6 +138,6 @@ class MicrobialComplementarityDBQueryTool(BaseTool):
         except Exception as e:
             return f"查询微生物互补性数据时发生错误: {str(e)}"
 
-    def _arun(self, microorganism_a: str, microorganism_b: Optional[str] = None, gene: Optional[str] = None) -> str:
+    def _arun(self, microorganism_a: str, microorganism_b: Optional[str] = None, filter_by_complementarity: bool = False) -> str:
         """异步运行方法"""
-        return self._run(microorganism_a, microorganism_b, gene)
+        return self._run(microorganism_a, microorganism_b, filter_by_complementarity)

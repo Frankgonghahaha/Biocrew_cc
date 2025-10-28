@@ -58,6 +58,8 @@ class MicrobialAgentDesignAgent:
             # - 可使用代谢通量计算工具(Ctfba)计算代谢通量分布
             # - 可使用UniProt工具查询蛋白质功能信息，特别是酶的功能注释
             # - 可使用EnviPath和KEGG工具查询代谢通路信息
+            # - 可使用基于SQL的蛋白质序列查询工具(ProteinSequenceQuerySQLToolUpdated)识别降解功能微生物
+            # - 可使用降解功能微生物识别工具(DegradingMicroorganismIdentificationTool)识别降解功能微生物及其互补微生物
             
             # 工作流程：
             # 1. 分析功能微生物组的基因组特征

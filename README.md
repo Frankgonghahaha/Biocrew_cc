@@ -338,6 +338,7 @@ python tests/e2e/full_workflow_test.py           # 完整工作流测试
 1. **GenomeSPOTTool** - 预测微生物的环境适应性特征
 2. **DLkcatTool** - 预测降解酶对于特定底物的降解速率
 3. **CarvemeTool** - 构建基因组规模代谢模型(GSMM)
+4. **ProteinSequenceQuerySQLToolUpdated** - 基于SQL数据库的蛋白质序列查询工具，用于快速、高效的序列比对功能，支持BLAST的三个关键阈值：相似度、E-value和比对长度
 
 ### 微生物菌剂评估专用工具
 

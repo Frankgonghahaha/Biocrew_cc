@@ -298,6 +298,7 @@ BioCrew/
 系统新增了基于SQL数据库的蛋白质序列查询工具：
 
 1. **ProteinSequenceQuerySQLTool** - 用于从SQL数据库中查询蛋白质序列的工具，替代传统的.faa文件处理方式，提供快速、高效的序列比对功能
+2. **ProteinSequenceQuerySQLToolUpdated** - 更新版本的蛋白质序列查询工具，提供更准确的序列对比分析功能，支持BLAST的三个关键阈值：相似度、E-value和比对长度
 
 ## 开发指南
 

@@ -62,6 +62,8 @@ class EngineeringMicroorganismIdentificationAgent:
               2. 使用EnviPathTool查询目标污染物的完整代谢路径，重点关注每步反应的EC编号和酶名称
               3. 基于EC编号使用KEGG工具查询对应的基因和代谢信息
               4. 使用NCBI基因组查询工具获取推荐微生物的基因组Assembly Accession信息
+              5. 使用UniProtTool查询关键降解酶的蛋白质序列和功能特性
+              6. 使用ProteinSequenceQuerySQLTool进行序列对比分析，确保酶序列的准确性和相似性
             - EnviPathTool调用策略：
               * 优先使用compound_name参数查询目标污染物的完整代谢路径
               * 必须明确获取并列出每步反应的EC编号和酶名称
@@ -83,6 +85,11 @@ class EngineeringMicroorganismIdentificationAgent:
               * 必须对关键降解酶进行序列信息核对，确保推荐的酶具有完整的序列信息和功能验证
               * 在设计微生物菌剂时，应基于蛋白质序列信息评估酶的表达潜力和稳定性
                         - 控制查询结果数量，避免返回过多数据，limit参数建议设置为3-5
+            - ProteinSequenceQuerySQLTool调用策略：
+              * 在获取UniProt蛋白质序列后，必须使用该工具进行序列对比分析
+              * 序列对比应包含BLAST的三个关键阈值：相似度、E-value和比对长度
+              * 通过序列对比验证酶的准确性和相似性，确保推荐的酶具有可靠的序列信息
+              * 序列对比结果应用于支持酶功能预测和蛋白质工程设计
             - 工具调用时要确保参数完整且正确，避免传递None值
             - 如果某个工具调用失败，应记录错误并继续使用其他工具
             - 当KEGG工具根据EC编号查询基因无结果时，应基于酶的功能类别进行合理推断
@@ -111,6 +118,8 @@ class EngineeringMicroorganismIdentificationAgent:
             - 必须明确列出污染物的完整降解路径，包括每步反应的EC编号和酶名称
             - 必须提供每个推荐微生物的NCBI Assembly Accession编号
                         - 对于关键降解酶，必须提供UniProt蛋白质条目ID、蛋白质序列信息、主要功能特征和结构域信息
+            - 必须提供关键降解酶的序列对比分析结果，包括相似酶序列、相似度、E-value、比对长度等BLAST关键参数
+            - 序列对比结果应支持酶功能预测和蛋白质工程设计
             
             微生物名称精确度要求：
             - 所有推荐的微生物必须精确到种（species level）
@@ -134,6 +143,7 @@ class EngineeringMicroorganismIdentificationAgent:
               * 相关基因列表（查询或推断）
               * 关键酶的UniProt ID和功能特征
               * 关键酶的蛋白质序列长度和结构域信息
+              * 关键酶的序列对比结果（相似度、E-value、比对长度）
               * 代谢路径关键步骤
               * 数据来源（标注使用的工具）
               * 置信度评估

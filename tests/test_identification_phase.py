@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 测试工程微生物组识别阶段
 该测试文件专门测试工程微生物组识别阶段的功能，
@@ -31,6 +30,9 @@ from core.tasks.identification_task import MicroorganismIdentificationTask
 
 # 工具导入
 from core.tools.database.uniprot import UniProtTool
+from core.tools.database.complementarity_query import MicrobialComplementarityDBQueryTool
+from core.tools.design.degrading_microorganism_identification_tool import DegradingMicroorganismIdentificationTool
+from core.tools.design.protein_sequence_query_sql_updated import ProteinSequenceQuerySQLToolUpdated
 
 def setup_logging():
     """设置日志记录"""
@@ -98,6 +100,55 @@ def test_protein_sequence_query(user_requirement, log_file, tool_call_file):
         import traceback
         log_message(f"错误详情: {traceback.format_exc()}", log_file)
 
+
+def test_protein_sequence_query_sql(user_requirement, log_file, tool_call_file):
+    """验证基于SQL的蛋白质序列查询工具可创建性"""
+    log_message("验证基于SQL的蛋白质序列查询工具可创建性", log_file)
+    
+    try:
+        # 创建基于SQL的蛋白质序列查询工具实例（仅验证工具可创建）
+        log_message("创建基于SQL的蛋白质序列查询工具实例", log_file)
+        protein_sequence_tool = ProteinSequenceQuerySQLToolUpdated()
+        log_message("基于SQL的蛋白质序列查询工具实例创建成功", log_file)
+        log_tool_call("protein_sequence_tool", "Tool Creation", tool_call_file)
+            
+    except Exception as e:
+        log_message(f"基于SQL的蛋白质序列查询工具创建过程中发生错误: {e}", log_file)
+        import traceback
+        log_message(f"错误详情: {traceback.format_exc()}", log_file)
+
+def test_complementarity_query(user_requirement, log_file, tool_call_file):
+    """验证微生物互补性查询工具可创建性"""
+    log_message("验证微生物互补性查询工具可创建性", log_file)
+    
+    try:
+        # 创建微生物互补性查询工具实例（仅验证工具可创建）
+        log_message("创建微生物互补性查询工具实例", log_file)
+        complementarity_tool = MicrobialComplementarityDBQueryTool()
+        log_message("微生物互补性查询工具实例创建成功", log_file)
+        log_tool_call("complementarity_tool", "Tool Creation", tool_call_file)
+            
+    except Exception as e:
+        log_message(f"微生物互补性查询工具创建过程中发生错误: {e}", log_file)
+        import traceback
+        log_message(f"错误详情: {traceback.format_exc()}", log_file)
+
+def test_degrading_microorganism_identification(user_requirement, log_file, tool_call_file):
+    """验证降解功能微生物识别工具可创建性"""
+    log_message("验证降解功能微生物识别工具可创建性", log_file)
+    
+    try:
+        # 创建降解功能微生物识别工具实例（仅验证工具可创建）
+        log_message("创建降解功能微生物识别工具实例", log_file)
+        degrading_tool = DegradingMicroorganismIdentificationTool()
+        log_message("降解功能微生物识别工具实例创建成功", log_file)
+        log_tool_call("degrading_tool", "Tool Creation", tool_call_file)
+            
+    except Exception as e:
+        log_message(f"降解功能微生物识别工具创建过程中发生错误: {e}", log_file)
+        import traceback
+        log_message(f"错误详情: {traceback.format_exc()}", log_file)
+
 def initialize_llm():
     """初始化LLM模型"""
     try:
@@ -138,6 +189,15 @@ def run_identification_test():
     try:
         # 首先测试蛋白质序列查询功能（模拟测试，避免实际调用UniProt API）
         test_protein_sequence_query(user_requirement, log_file, tool_call_file)
+        
+        # 测试基于SQL的蛋白质序列查询工具
+        test_protein_sequence_query_sql(user_requirement, log_file, tool_call_file)
+        
+        # 测试微生物互补性查询工具
+        test_complementarity_query(user_requirement, log_file, tool_call_file)
+        
+        # 测试降解功能微生物识别工具
+        test_degrading_microorganism_identification(user_requirement, log_file, tool_call_file)
         
         # 创建智能体
         log_message("创建工程微生物识别智能体", log_file)

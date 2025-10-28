@@ -20,10 +20,6 @@ class MicrobialComplementarityQueryToolSchema(BaseModel):
         default=None,
         description="第二个微生物的名称（可选）"
     )
-    gene: Optional[str] = Field(
-        default=None,
-        description="相关基因名称（可选）"
-    )
 
 
 class MicrobialComplementarityQueryTool(BaseTool):
@@ -64,14 +60,13 @@ class MicrobialComplementarityQueryTool(BaseTool):
             print(f"加载互补性数据时出错: {e}")
             return pd.DataFrame()
 
-    def _run(self, microorganism_a: str, microorganism_b: Optional[str] = None, gene: Optional[str] = None) -> str:
+    def _run(self, microorganism_a: str, microorganism_b: Optional[str] = None) -> str:
         """
         查询微生物互补性数据
         
         Args:
             microorganism_a: 第一个微生物的名称
             microorganism_b: 第二个微生物的名称（可选）
-            gene: 相关基因名称（可选）
             
         Returns:
             查询结果的描述字符串
@@ -93,8 +88,6 @@ class MicrobialComplementarityQueryTool(BaseTool):
                     (self.complementarity_data['互补微生物'].str.contains(microorganism_b, case=False, na=False))
                 )
             
-            if gene:
-                query_conditions &= self.complementarity_data['基因'].str.contains(gene, case=False, na=False)
             
             # 执行查询
             result_df = self.complementarity_data[query_conditions]
@@ -103,8 +96,6 @@ class MicrobialComplementarityQueryTool(BaseTool):
                 result = f"未找到关于微生物 '{microorganism_a}'"
                 if microorganism_b:
                     result += f" 和 '{microorganism_b}'"
-                if gene:
-                    result += f" 与基因 '{gene}'"
                 result += " 的互补性数据"
                 return result
             
@@ -113,7 +104,6 @@ class MicrobialComplementarityQueryTool(BaseTool):
             for _, row in result_df.iterrows():
                 result += f"降解功能微生物: {row['降解功能微生物']}\n"
                 result += f"互补微生物: {row['互补微生物']}\n"
-                result += f"相关基因: {row['基因']}\n"
                 result += f"竞争指数 (Competition): {row['Competition']:.4f}\n"
                 result += f"互补指数 (Complementarity): {row['Complementarity']:.4f}\n"
                 result += "-" * 40 + "\n"
@@ -123,6 +113,6 @@ class MicrobialComplementarityQueryTool(BaseTool):
         except Exception as e:
             return f"查询微生物互补性数据时发生错误: {str(e)}"
 
-    def _arun(self, microorganism_a: str, microorganism_b: Optional[str] = None, gene: Optional[str] = None) -> str:
+    def _arun(self, microorganism_a: str, microorganism_b: Optional[str] = None) -> str:
         """异步运行方法"""
-        return self._run(microorganism_a, microorganism_b, gene)
+        return self._run(microorganism_a, microorganism_b)
