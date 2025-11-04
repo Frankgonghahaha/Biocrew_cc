@@ -29,6 +29,14 @@ from core.agents.evaluation_agent import MicrobialAgentEvaluationAgent
 # 任务导入
 from core.tasks.evaluation_task import MicrobialAgentEvaluationTask
 
+
+TARGET_ENVIRONMENT = {
+    "temperature": 18.5,
+    "ph": 6.6,
+    "salinity": 0.05,
+    "oxygen": "tolerant",
+}
+
 def setup_logging():
     """设置日志记录"""
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -83,7 +91,9 @@ def initialize_llm():
     try:
         llm = ChatOpenAI(
             base_url=Config.OPENAI_API_BASE,
+            openai_api_base=Config.OPENAI_API_BASE,
             api_key=Config.OPENAI_API_KEY,
+            openai_api_key=Config.OPENAI_API_KEY,
             model="openai/qwen3-30b-a3b-instruct-2507",
             temperature=Config.MODEL_TEMPERATURE,
             streaming=False,
@@ -117,12 +127,31 @@ def run_evaluation_test():
         evaluation_agent = MicrobialAgentEvaluationAgent(llm).create_agent()
         log_message("菌剂评估智能体创建成功", log_file)
         log_tool_call("evaluation_agent", "Agent Creation", tool_call_file)
+
+        # 确认环境适配工具已加载
+        has_env_tool = any(
+            getattr(tool, "name", "") == "SpeciesEnvironmentQueryTool"
+            for tool in getattr(evaluation_agent, "tools", [])
+        )
+        log_message(
+            "检测 SpeciesEnvironmentQueryTool 可用: " + ("yes" if has_env_tool else "missing"),
+            log_file,
+        )
+        assert has_env_tool, "菌剂评估智能体应包含 SpeciesEnvironmentQueryTool"
         
         # 创建任务
-        log_message("创建菌剂评估任务", log_file)
+        log_message("创建菌剂评估任务，并加载设计阶段结果（Result1~Result4）", log_file)
+        log_message(
+            "目标水质条件: "
+            f"T={TARGET_ENVIRONMENT['temperature']}°C, pH={TARGET_ENVIRONMENT['ph']}, "
+            f"盐度={TARGET_ENVIRONMENT['salinity']}, 氧环境={TARGET_ENVIRONMENT['oxygen']}",
+            log_file,
+        )
+
         evaluation_task = MicrobialAgentEvaluationTask(llm).create_task(
-            evaluation_agent, 
-            context_task=None
+            evaluation_agent,
+            context_task=None,
+            environment_profile=TARGET_ENVIRONMENT,
         )
         log_message("菌剂评估任务创建成功", log_file)
         log_tool_call("evaluation_agent", "Task Creation", tool_call_file)
@@ -152,7 +181,7 @@ def run_evaluation_test():
         
     except Exception as e:
         log_message(f"测试过程中发生错误: {e}", log_file)
-        return None
+        raise
 
 if __name__ == "__main__":
     run_evaluation_test()

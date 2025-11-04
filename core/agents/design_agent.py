@@ -23,50 +23,58 @@ class MicrobialAgentDesignAgent:
     def create_agent(self):
         """创建微生物菌剂设计智能体"""
         # 尝试导入工具
+        tools = []
+        design_stage_tools_info = []
         try:
-            from core.tools.database.factory import DatabaseToolFactory
-            tools = DatabaseToolFactory.create_all_tools()
-            database_tools_info = "系统集成了EnviPath、KEGG和UniProt数据库访问工具，可以查询环境pathway数据、生物代谢信息和蛋白质功能信息"
+            from core.tools.design.score_enzyme_degradation_tool import (
+                ScoreEnzymeDegradationTool,
+            )
+            tools.append(ScoreEnzymeDegradationTool())
+            design_stage_tools_info.append("ScoreEnzymeDegradation")
         except Exception as e:
-            tools = []
-            database_tools_info = f"数据库工具初始化失败: {e}"
+            design_stage_tools_info.append(f"ScoreEnzymeDegradation 初始化失败: {e}")
+
+        try:
+            from core.tools.design.score_environment_tool import ScoreEnvironmentTool
+            tools.append(ScoreEnvironmentTool())
+            design_stage_tools_info.append("ScoreEnvironment")
+        except Exception as e:
+            design_stage_tools_info.append(f"ScoreEnvironment 初始化失败: {e}")
         
+        design_stage_tools_summary = "; ".join(design_stage_tools_info) if design_stage_tools_info else "核心设计工具初始化成功"
+        database_tools_info = "当前阶段仅使用评分工具，未加载其他数据库工具"
+
         return Agent(
             role='微生物菌剂设计专家',
-            goal='基于功能微生物组设计高效的微生物菌剂',
-            backstory=f"""你是一位微生物菌剂设计专家，专注于利用功能微生物组数据和代谢模型设计高效的微生物菌剂。
+            goal='基于功能微生物组设计高效且稳定的微生物菌剂',
+            backstory=f"""你是一位微生物菌剂设计专家，负责执行双阶段 Design pipeline：
             
-            # 设计原则：
-            # 1. 基于功能微生物组的代谢互补性设计菌剂配方
-            # 2. 利用基因组规模代谢模型(GSMM)优化菌剂性能
-            # 3. 考虑菌剂中微生物间的协同和竞争关系
-            # 4. 预测菌剂在目标环境中的适应性和稳定性
+            ## Step 1：候选物种筛选与单菌打分（Design_pipeline_1）
+            - 读取 Sheet1~Sheet5 基础数据，结合目标温度 / pH / 盐度 / 氧环境筛选功能菌与互补菌；
+            - 计算软环境匹配分（三角隶属 + 指数尾部 / 盐度指数衰减 / 氧环境匹配）；
+            - 生成单菌综合评分 `S_microbe = 0.5·Norm01(kcat_max) + 0.4·env_soft_score + 0.1·Norm01(enzyme_diversity)`；
+            - 输出 Result1_candidate_function_species、Result2_candidate_scores、Result3_pair_Com_index。
             
-            # 数据来源：
-            # 1. 功能微生物组识别阶段的输出数据
-            # 2. 本地基因和微生物数据(data/Genes和data/Organism)
-            # 3. 外部数据库：{database_tools_info}
-            #    - EnviPath：环境化合物代谢路径信息
-            #    - KEGG：生物代谢通路和基因组信息
-            #    - UniProt：蛋白质序列和功能信息
+            ## Step 2：组合搜索与菌群评分（Design_pipeline_2）
+            - 设定组合搜索参数（topN、kmin~kmax、mode、topK、require_functional 等）；
+            - 计算 `S_consort = α·avg(S_microbe) + β·avg(delta⁺) - γ·avg(comp⁺) + λ·avg(kcat_max) - μ·size`；
+            - 输出 Result4_optimal_consortia、Result4_members_rank，并给出组合风险/优势解读。
             
-            # 可用工具：
-            # - 可使用基因组数据处理工具处理微生物基因组
-            # - 可使用基因组环境适应性预测工具(GenomeSPOT)预测微生物环境适应性
-            # - 可使用酶催化速率预测工具(DLkcat)预测关键酶的催化效率
-            # - 可使用代谢模型构建工具(Carveme)构建基因组规模代谢模型
-            # - 可使用代谢通量计算工具(Ctfba)计算代谢通量分布
-            # - 可使用UniProt工具查询蛋白质功能信息，特别是酶的功能注释
-            # - 可使用EnviPath和KEGG工具查询代谢通路信息
-            # - 可使用基于SQL的蛋白质序列查询工具(ProteinSequenceQuerySQLToolUpdated)识别降解功能微生物
-            # - 可使用降解功能微生物识别工具(DegradingMicroorganismIdentificationTool)识别降解功能微生物及其互补微生物
+            ## 已初始化工具
+            # - 数据库工具：{database_tools_info}
+            # - 设计支持工具：{design_stage_tools_summary}
+            ## 设计原则
+            1. 确保菌剂在目标环境中的适应性，以 Step1 环境过滤与软评分为基础；
+            2. 兼顾降解效率与群落稳定性，重点关注 competition / complementarity / delta 指标；
+            3. 保留设计过程中的所有中间结果，方便评估阶段复核与回溯；
+            4. 根据需求调用 {database_tools_info} 以及本地/外部工具：ScoreEnzymeDegradation、
+               ScoreEnvironment、Carveme、Ctfba、MicrobialComplementarityDBQuery、
+               DegradingMicroorganismIdentification、ProteinSequenceQuerySQL 等。
             
-            # 工作流程：
-            # 1. 分析功能微生物组的基因组特征
-            # 2. 构建各功能微生物的基因组规模代谢模型
-            # 3. 分析微生物间的代谢互补性和竞争关系
-            # 4. 设计菌剂配方并优化菌剂性能
-            # 5. 预测菌剂在目标环境中的表现
+            ## 输出要求
+            - Result1~Result4 CSV 文件必须生成并写明保存路径；
+            - 设计报告需解释筛选逻辑、评分权重、组合搜索策略及潜在风险；
+            - 为评估阶段提供重点复核清单（关键组合、敏感物种、推荐验证指标）。
             """,
             tools=tools,
             verbose=True,

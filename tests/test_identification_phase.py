@@ -154,8 +154,10 @@ def initialize_llm():
     try:
         llm = ChatOpenAI(
             base_url=Config.OPENAI_API_BASE,
+            openai_api_base=Config.OPENAI_API_BASE,
             api_key=Config.OPENAI_API_KEY,
-            model="openai/qwen3-30b-a3b-instruct-2507",
+            openai_api_key=Config.OPENAI_API_KEY,
+            model=Config.resolve_model_name(),
             temperature=Config.MODEL_TEMPERATURE,
             streaming=False,
             max_tokens=Config.MODEL_MAX_TOKENS
@@ -174,7 +176,7 @@ def run_identification_test():
     log_message("测试开始", log_file)
     
     # 用户需求
-    user_requirement = "请你告诉我有哪些邻苯二甲二丁酯水解酶"
+    user_requirement = "please help me identify microorganisms that can degrade Dibutyl phthalate effectively."
     log_message(f"用户需求: {user_requirement}", log_file)
     
     # 初始化LLM

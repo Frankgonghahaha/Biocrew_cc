@@ -134,7 +134,9 @@ def initialize_llm():
     try:
         llm = ChatOpenAI(
             base_url=Config.OPENAI_API_BASE,
+            openai_api_base=Config.OPENAI_API_BASE,
             api_key=Config.OPENAI_API_KEY,
+            openai_api_key=Config.OPENAI_API_KEY,
             model="openai/qwen3-next-80b-a3b-thinking",
             temperature=Config.MODEL_TEMPERATURE,
             streaming=False,

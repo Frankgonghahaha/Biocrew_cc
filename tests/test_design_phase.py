@@ -29,6 +29,13 @@ from core.agents.design_agent import MicrobialAgentDesignAgent
 # 任务导入
 from core.tasks.design_task import MicrobialAgentDesignTask
 
+
+REQUIRED_TOOL_NAMES = [
+    "ScoreEnzymeDegradationTool",
+    "ScoreEnvironmentTool",
+    "微生物互补性数据库查询工具",
+]
+
 def setup_logging():
     """设置日志记录"""
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -83,7 +90,9 @@ def initialize_llm():
     try:
         llm = ChatOpenAI(
             base_url=Config.OPENAI_API_BASE,
+            openai_api_base=Config.OPENAI_API_BASE,
             api_key=Config.OPENAI_API_KEY,
+            openai_api_key=Config.OPENAI_API_KEY,
             model="openai/qwen3-30b-a3b-instruct-2507",
             temperature=Config.MODEL_TEMPERATURE,
             streaming=False,
@@ -121,9 +130,17 @@ def run_design_test():
         design_agent = MicrobialAgentDesignAgent(llm).create_agent()
         log_message("微生物菌剂设计智能体创建成功", log_file)
         log_tool_call("design_agent", "Agent Creation", tool_call_file)
+
+        tool_names = [getattr(tool, "name", "") for tool in getattr(design_agent, "tools", [])]
+        missing_tools = [name for name in REQUIRED_TOOL_NAMES if name not in tool_names]
+        log_message(
+            "必备设计工具检测: " + ("全部就绪" if not missing_tools else f"缺失 {missing_tools}"),
+            log_file,
+        )
+        assert not missing_tools, f"Design agent 缺少必要工具: {missing_tools}"
         
         # 创建任务
-        log_message("创建微生物菌剂设计任务", log_file)
+        log_message("创建微生物菌剂设计任务（需输出 Result1~Result4 及设计报告）", log_file)
         design_task = MicrobialAgentDesignTask(llm).create_task(
             design_agent, 
             context_task=None,

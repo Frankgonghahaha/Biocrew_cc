@@ -84,9 +84,12 @@ class PollutantSummaryTool(BaseTool):
                 
                 organism_stats = organism_result.fetchone()
                 
+                smiles = self._fetch_smiles(pollutant_name)
+
                 return {
                     "status": "success",
                     "pollutant_name": pollutant_name,
+                    "smiles": smiles,
                     "gene_data": {
                         "total_records": gene_stats[0] if gene_stats else 0,
                         "enzyme_types": gene_stats[1] if gene_stats else 0
@@ -103,3 +106,20 @@ class PollutantSummaryTool(BaseTool):
                 "message": f"获取污染物摘要时出错: {str(e)}",
                 "pollutant_name": pollutant_name
             }
+
+    def _fetch_smiles(self, pollutant_name: str) -> Optional[str]:
+        """尝试查询污染物的 SMILES 结构。"""
+        try:
+            url = (
+                "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/name/"
+                f"{requests.utils.quote(pollutant_name)}/property/CanonicalSMILES/JSON"
+            )
+            response = requests.get(url, timeout=8)
+            response.raise_for_status()
+            data = response.json()
+            properties = data.get("PropertyTable", {}).get("Properties", [])
+            if properties:
+                return properties[0].get("CanonicalSMILES")
+        except Exception:
+            return None
+        return None

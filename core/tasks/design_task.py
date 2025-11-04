@@ -13,32 +13,31 @@ class MicrobialAgentDesignTask:
         from crewai import Task
         
         description = """
-        根据工程微生物组设计功能微生物菌剂配方，确保菌剂具有高效的污染物降解能力和良好的生态稳定性。
+        根据工程微生物识别结果及目标水质条件，完成双阶段菌剂设计流程，输出可直接进入评估阶段的候选菌群。
         
-        设计步骤：
-        1. 分析目标污染物特性和处理要求，包括浓度范围、处理时间、环境条件等
-        2. 遍历工程微生物组，组合功能菌+互补菌形成候选群落
-        3. 使用基因组数据构建每个微生物的代谢模型
-        4. 基于代谢模型分析各候选群落的降解潜力
-        5. 评估候选群落的代谢互补性和生态稳定性
-        6. 使用微生物互补性数据库查询工具分析微生物间的竞争指数和互补指数
-        7. 选择降解潜力最高且稳定性良好的候选群落作为最优菌剂
-        8. 优化菌剂配比以确保群落稳定性和结构稳定性
-        9. 预测菌剂在实际应用中的性能表现
+        ### Step 1：Design_pipeline_1（候选物种筛选与单菌打分）
+        1. 整理核心输入表：Sheet1_Complementarity、Sheet2_Species_environment、Sheet3_Function_enzyme_kact、Sheet4_species_enzyme、Sheet5_PhyloMint；
+        2. 依据目标温度 / pH / 盐度 / 氧环境筛选功能菌与互补菌，输出 `Result1_candidate_function_species.csv`；
+        3. 计算软环境匹配分（温度、pH 采用三角隶属 + 指数尾部，盐度超限指数衰减，氧环境匹配评分）；
+        4. 生成单菌综合得分 `S_microbe = 0.5·Norm01(kcat_max) + 0.4·env_soft_score + 0.1·Norm01(enzyme_diversity)`，输出 `Result2_candidate_scores.csv`；
+        5. 融合 Sheet1 与 PhyloMint 构建两两互作矩阵（competition / complementarity / delta），输出 `Result3_pair_Com_index.csv`。
         
-        工具使用策略：
-        1. 使用IntegratedGenomeProcessingTool处理微生物基因组数据，包括查询、下载和分析
-        2. 使用GenomeSPOTTool预测微生物的环境适应性特征（温度、pH、盐度和氧气耐受性）
-        3. 使用DLkcatTool预测降解酶对于特定底物的降解速率（Kcat值）
-        4. 使用CarvemeTool构建基因组规模代谢模型(GSMM)
-        5. 使用微生物互补性数据库查询工具(MicrobialComplementarityDBQueryTool)查询微生物间的竞争指数和互补指数
-        6. 使用降解功能微生物识别工具(DegradingMicroorganismIdentificationTool)识别降解功能微生物及其互补微生物
-        7. 综合分析所有工具的结果，形成完整的菌剂设计方案
+        ### Step 2：Design_pipeline_2（组合搜索与菌群评分）
+        1. 以 Step1 产物为输入，设定搜索范围（topN、kmin/kmax、模式 greedy 或 exhaustive 等）；
+        2. 组合得分 `S_consort = α·avg(S_microbe) + β·avg(delta⁺) - γ·avg(comp⁺) + λ·avg(kcat_max) - μ·size`；
+        3. 输出最优组合列表 `Result4_optimal_consortia.csv`（含成员、综合得分、互作指标来源）；
+        4. 输出成员贡献度排名 `Result4_members_rank.csv`，支持后续评估阶段重点关注关键物种；
+        5. 对候选组合给出工况匹配和协同风险分析，为评估阶段提供明确复核要点。
         
-        关键参数：
-        - 权衡系数（0-1，0=保多样性，1=提降解效率）
-        - 群落稳定性指数
-        - 代谢通量分布均匀性
+        ### 工具使用策略
+        - 使用 GenomeSPOTTool / SpeciesEnvironmentQueryTool 获取环境适配性；
+        - 使用 DLkcatTool 汇总酶 Kcat 信息，配合 Sheet4 统计酶多样性；
+        - 使用 MicrobialComplementarityDBQueryTool / PhyloMint 数据库计算互补与竞争指标；
+        - 使用 CarvemeTool、CtfbaTool 等在需要时辅助验证模型可行性；
+        - 对目标污染物调用 DegradingMicroorganismIdentificationTool、ProteinSequenceQuery 等数据库工具补充资料；
+        - 保持原始数据与结果 CSV 的目录一致性，便于后续复核与评估阶段读取。
+        
+        关键输出需覆盖功能筛选、单菌评分、互作矩阵、组合评分四个层级，确保评估智能体能够直接复用相关结果。
         """
         
         # 添加用户自定义需求到描述中
@@ -49,15 +48,13 @@ class MicrobialAgentDesignTask:
             description += f"\n\n根据评估反馈进行优化设计：\n{feedback}"
         
         expected_output = """
-        提供完整的菌剂设计方案，包括：
-        1. 菌剂组成（微生物种类和比例）
-        2. 设计原理说明（基于代谢模型和生态学原理）
-        3. 稳定性保障措施（群落结构优化策略）
-        4. 预期的净化效果（降解速率、处理时间等）
-        5. 降解潜力分析结果（各微生物的贡献度分析）
-        6. 培养基推荐（支持菌剂生长的营养条件）
-        7. 应用条件要求（温度、pH、溶解氧等环境参数）
-        8. 质量控制指标（菌剂活性检测方法）
+        1. Result1_candidate_function_species.csv：满足目标工况的功能菌候选及互补通过率统计
+        2. Result2_candidate_scores.csv：功能菌与互补菌的单菌综合打分
+        3. Result3_pair_Com_index.csv：两两互作矩阵（competition / complementarity / delta，注明数据来源）
+        4. Result4_optimal_consortia.csv：最优菌群组合（含成员列表、S_consort、avg_kcat、互作指标均值等）
+        5. Result4_members_rank.csv：成员贡献排名与关键物种说明
+        6. 设计报告：总结目标工况、单菌评分逻辑、组合筛选策略、风险提示与培育条件建议
+        7. 供评估阶段使用的复核要点：需要重点验证的组合、潜在风险点、建议关注的环境参数
         """
         
         # 如果有上下文任务，设置依赖关系

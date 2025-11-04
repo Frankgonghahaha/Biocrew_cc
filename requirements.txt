@@ -1,4 +1,4 @@
-crewai
+crewai==0.193.2
 langchain
 langchain-openai
 python-dotenv

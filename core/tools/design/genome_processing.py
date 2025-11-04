@@ -22,9 +22,7 @@ import json
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-from core.tools.design.genome_spot import GenomeSPOTTool
 from core.tools.design.carveme import CarvemeTool
-from core.tools.services.genomic_data import GenomicDataService
 
 # 定义统一的输出目录
 OUTPUTS_DIR = os.path.join(project_root, 'outputs')
@@ -36,13 +34,16 @@ os.makedirs(METABOLIC_MODELS_DIR, exist_ok=True)
 class IntegratedGenomeProcessingToolInput(BaseModel):
     genome_urls: Dict[str, str] = Field(..., description="基因组URL字典，格式为 {物种名: URL}")
     output_dir: str = Field(default="./outputs", description="输出目录")
-    run_genome_spot: bool = Field(default=True, description="是否运行GenomeSPOT分析")
+    run_genome_spot: bool = Field(
+        default=False,
+        description="是否运行GenomeSPOT分析（当前功能暂不可用，保留参数以兼容旧流程）",
+    )
     run_carveme: bool = Field(default=True, description="是否运行CarveMe构建代谢模型")
 
 class IntegratedGenomeProcessingTool(BaseTool):
     name: str = "IntegratedGenomeProcessingTool"
     description: str = "综合基因组处理工具，集成基因组下载、特征提取和代谢模型构建功能"
-    args_schema = IntegratedGenomeProcessingToolInput
+    args_schema: type[BaseModel] = IntegratedGenomeProcessingToolInput
     
     def _run(self, genome_urls: Dict[str, str], output_dir: str = "./outputs", 
              run_genome_spot: bool = True, run_carveme: bool = True) -> Dict[str, Any]:
@@ -69,10 +70,10 @@ class IntegratedGenomeProcessingTool(BaseTool):
             # 解压文件
             uncompressed_files = self._uncompress_files(downloaded_files)
             
-            # 提取基因组特征
+            # 提取基因组特征（目前禁用）
             genome_features = {}
             if run_genome_spot:
-                genome_features = self._extract_genome_features(uncompressed_files)
+                print("[IntegratedGenomeProcessingTool] GenomeSPOT 功能已停用，跳过环境特征分析。")
             
             # 构建代谢模型
             metabolic_models = {}
@@ -164,50 +165,11 @@ class IntegratedGenomeProcessingTool(BaseTool):
         return uncompressed_files
     
     def _extract_genome_features(self, genome_files: Dict[str, str]) -> Dict[str, Any]:
-        """
-        提取基因组特征
-        
-        Args:
-            genome_files: 基因组文件路径字典
-            
-        Returns:
-            dict: 基因组特征字典
-        """
-        print(f"[IntegratedGenomeProcessingTool] 开始提取基因组特征")
-        genome_features = {}
-        
-        # 初始化GenomeSPOT工具
-        genome_spot_tool = GenomeSPOTTool()
-        
-        for species, file_path in genome_files.items():
-            try:
-                print(f"[IntegratedGenomeProcessingTool] 提取 {species} 的基因组特征")
-                
-                # 读取基因组序列
-                genomic_data_service = GenomicDataService()
-                sequences = genomic_data_service.load_sequences_from_file(file_path)
-                
-                if not sequences:
-                    print(f"[IntegratedGenomeProcessingTool] 未能读取 {species} 的基因组序列")
-                    continue
-                
-                # 使用GenomeSPOT工具分析基因组特征
-                result = genome_spot_tool._run(
-                    fna_path=file_path,
-                    faa_path="",  # 暂时不需要蛋白质序列
-                    model_type="microbe"
-                )
-                
-                if result.get("status") == "success":
-                    genome_features[species] = result.get("data", {})
-                    print(f"[IntegratedGenomeProcessingTool] 成功提取 {species} 的基因组特征")
-                else:
-                    print(f"[IntegratedGenomeProcessingTool] 提取 {species} 的基因组特征失败: {result.get('message', '未知错误')}")
-                    
-            except Exception as e:
-                print(f"[IntegratedGenomeProcessingTool] 提取 {species} 的基因组特征时出错: {str(e)}")
-        
-        return genome_features
+        """兼容旧接口，目前返回空结果。"""
+        print(
+            "[IntegratedGenomeProcessingTool] GenomeSPOT 已移除，无法提取基因组特征，返回空字典。"
+        )
+        return {}
     
     def _build_metabolic_models(self, genome_files: Dict[str, str]) -> Dict[str, Any]:
         """

@@ -38,7 +38,7 @@ class GenomeSPOTToolInput(BaseModel):
 class GenomeSPOTTool(BaseTool):
     name: str = "GenomeSPOTTool"
     description: str = "用于预测微生物的环境适应性特征（温度、pH、盐度和氧气耐受性）"
-    args_schema = GenomeSPOTToolInput
+    args_schema: type[BaseModel] = GenomeSPOTToolInput
     
     def _run(self, fna_path: str, faa_path: str, models_path: str, 
              output_prefix: Optional[str] = None) -> Dict[str, Any]:

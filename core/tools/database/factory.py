@@ -10,9 +10,9 @@ from core.tools.database.pollutant_query import PollutantDataQueryTool
 from core.tools.database.gene_query import GeneDataQueryTool
 from core.tools.database.organism_query import OrganismDataQueryTool
 from core.tools.database.summary import PollutantSummaryTool
-from core.tools.database.ncbi import NCBIGenomeQueryTool
 from core.tools.database.complementarity_query import MicrobialComplementarityDBQueryTool
 from core.tools.database.uniprot import UniProtTool
+from core.tools.database.species_environment_tool import SpeciesEnvironmentQueryTool
 from core.tools.design.protein_sequence_query_sql_updated import ProteinSequenceQuerySQLToolUpdated
 
 
@@ -34,9 +34,9 @@ class DatabaseToolFactory:
             GeneDataQueryTool(),
             OrganismDataQueryTool(),
             PollutantSummaryTool(),
-            NCBIGenomeQueryTool(),
             MicrobialComplementarityDBQueryTool(),
             UniProtTool(),
+            SpeciesEnvironmentQueryTool(),
             ProteinSequenceQuerySQLToolUpdated()
         ]
         
@@ -73,11 +73,6 @@ class DatabaseToolFactory:
         return PollutantSummaryTool()
     
     @staticmethod
-    def create_ncbi_genome_query_tool():
-        """创建NCBI基因组查询工具实例"""
-        return NCBIGenomeQueryTool()
-    
-    @staticmethod
     def create_microbial_complementarity_db_query_tool():
         """创建微生物互补性数据库查询工具实例"""
         return MicrobialComplementarityDBQueryTool()
@@ -86,6 +81,11 @@ class DatabaseToolFactory:
     def create_uniprot_tool():
         """创建UniProt查询工具实例"""
         return UniProtTool()
+
+    @staticmethod
+    def create_species_environment_tool():
+        """创建物种生长环境查询工具实例"""
+        return SpeciesEnvironmentQueryTool()
     
     @staticmethod
     def create_protein_sequence_query_sql_tool():

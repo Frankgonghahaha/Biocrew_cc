@@ -19,7 +19,6 @@ class MicrobialComplementarity(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     degrading_microorganism = Column(String, nullable=False, comment="降解功能微生物")
     complementary_microorganism = Column(String, nullable=False, comment="互补微生物")
-    genes = Column(String, nullable=True, comment="相关基因")
     competition_index = Column(Float, nullable=False, comment="竞争指数")
     complementarity_index = Column(Float, nullable=False, comment="互补指数")
     
@@ -71,7 +70,6 @@ def load_excel_data_to_db(database_url: str, excel_file_path: str):
             record = MicrobialComplementarity(
                 degrading_microorganism=row['降解功能微生物'],
                 complementary_microorganism=row['互补微生物'],
-                genes=row['基因'],
                 competition_index=float(row['Competition']),
                 complementarity_index=float(row['Complementarity'])
             )

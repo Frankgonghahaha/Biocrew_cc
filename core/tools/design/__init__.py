@@ -9,14 +9,12 @@ from .protein_sequence_query_sql_updated import ProteinSequenceQuerySQLToolUpdat
 from .degrading_microorganism_identification_tool import DegradingMicroorganismIdentificationTool
 
 # 基因组处理工具
-from .genome_processing import IntegratedGenomeProcessingTool
-from .genome_processing_workflow import GenomeProcessingWorkflow
+# from .genome_processing import IntegratedGenomeProcessingTool
+# from .genome_processing_workflow import GenomeProcessingWorkflow
 
 # 预测工具
-from .genome_spot import GenomeSPOTTool
-from .dlkcat import DLkcatTool
-from .carveme import CarvemeTool
-from .ctfba import CtfbaTool
+from .score_enzyme_degradation_tool import ScoreEnzymeDegradationTool
+from .score_environment_tool import ScoreEnvironmentTool
 
 # 数据查询工具
 from .gene_query import GeneDataQueryTool
@@ -33,14 +31,10 @@ __all__ = [
     'DegradingMicroorganismIdentificationTool',
     
     # 基因组处理工具
-    'IntegratedGenomeProcessingTool',
-    'GenomeProcessingWorkflow',
     
     # 预测工具
-    'GenomeSPOTTool',
-    'DLkcatTool',
-    'CarvemeTool',
-    'CtfbaTool',
+    'ScoreEnzymeDegradationTool',
+    'ScoreEnvironmentTool',
     
     # 数据查询工具
     'GeneDataQueryTool',
