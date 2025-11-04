@@ -92,7 +92,6 @@ def initialize_llm():
             base_url=Config.OPENAI_API_BASE,
             openai_api_base=Config.OPENAI_API_BASE,
             api_key=Config.OPENAI_API_KEY,
-            openai_api_key=Config.OPENAI_API_KEY,
             model="openai/qwen3-30b-a3b-instruct-2507",
             temperature=Config.MODEL_TEMPERATURE,
             streaming=False,
