@@ -26,59 +26,113 @@ class MicrobialAgentDesignAgent:
         tools = []
         design_stage_tools_info = []
         try:
-            from core.tools.design.score_enzyme_degradation_tool import (
-                ScoreEnzymeDegradationTool,
-            )
-            tools.append(ScoreEnzymeDegradationTool())
-            design_stage_tools_info.append("ScoreEnzymeDegradation")
+            from core.tools.design.parse1_json_tool import ParseDegradationJSONTool
+            tools.append(ParseDegradationJSONTool())
+            design_stage_tools_info.append("ParseDegradationJSONTool")
         except Exception as e:
-            design_stage_tools_info.append(f"ScoreEnzymeDegradation 初始化失败: {e}")
+            design_stage_tools_info.append(f"ParseDegradationJSONTool 初始化失败: {e}")
+
+        try:
+            from core.tools.design.parse2_json_tool import ParseEnvironmentJSONTool
+            tools.append(ParseEnvironmentJSONTool())
+            design_stage_tools_info.append("ParseEnvironmentJSONTool")
+        except Exception as e:
+            design_stage_tools_info.append(f"ParseEnvironmentJSONTool 初始化失败: {e}")
 
         try:
             from core.tools.design.score_environment_tool import ScoreEnvironmentTool
             tools.append(ScoreEnvironmentTool())
-            design_stage_tools_info.append("ScoreEnvironment")
+            design_stage_tools_info.append("ScoreEnvironmentTool")
         except Exception as e:
-            design_stage_tools_info.append(f"ScoreEnvironment 初始化失败: {e}")
-        
-        design_stage_tools_summary = "; ".join(design_stage_tools_info) if design_stage_tools_info else "核心设计工具初始化成功"
-        database_tools_info = "当前阶段仅使用评分工具，未加载其他数据库工具"
+            design_stage_tools_info.append(f"ScoreEnvironmentTool 初始化失败: {e}")
+
+        try:
+            from core.tools.design.score_enzyme_degradation_tool import (
+                ScoreEnzymeDegradationTool,
+            )
+            tools.append(ScoreEnzymeDegradationTool())
+            design_stage_tools_info.append("ScoreEnzymeDegradationTool")
+        except Exception as e:
+            design_stage_tools_info.append(f"ScoreEnzymeDegradationTool 初始化失败: {e}")
+
+        try:
+            from core.tools.design.score_single_species_tool import ScoreSingleSpeciesTool
+            tools.append(ScoreSingleSpeciesTool())
+            design_stage_tools_info.append("ScoreSingleSpeciesTool")
+        except Exception as e:
+            design_stage_tools_info.append(f"ScoreSingleSpeciesTool 初始化失败: {e}")
+
+        try:
+            from core.tools.database.complementarity_query import (
+                MicrobialComplementarityDBQueryTool,
+            )
+            tools.append(MicrobialComplementarityDBQueryTool())
+            design_stage_tools_info.append("微生物互补性数据库查询工具")
+        except Exception as e:
+            design_stage_tools_info.append(
+                f"微生物互补性数据库查询工具 初始化失败: {e}"
+            )
+
+        try:
+            from core.tools.design.score_candidate_tool import ScoreCandidateTool
+            tools.append(ScoreCandidateTool())
+            design_stage_tools_info.append("ScoreCandidateTool")
+        except Exception as e:
+            design_stage_tools_info.append(f"ScoreCandidateTool 初始化失败: {e}")
+
+        try:
+            from core.tools.design.score_metabolic_tool import (
+                ScoreMetabolicInteractionTool,
+            )
+            tools.append(ScoreMetabolicInteractionTool())
+            design_stage_tools_info.append("ScoreMetabolicInteractionTool")
+        except Exception as e:
+            design_stage_tools_info.append(
+                f"ScoreMetabolicInteractionTool 初始化失败: {e}"
+            )
+
+        try:
+            from core.tools.design.score_consortia_tool import ScoreConsortiaTool
+            tools.append(ScoreConsortiaTool())
+            design_stage_tools_info.append("ScoreConsortiaTool")
+        except Exception as e:
+            design_stage_tools_info.append(f"ScoreConsortiaTool 初始化失败: {e}")
+
+        design_stage_tools_summary = (
+            "; ".join(design_stage_tools_info)
+            if design_stage_tools_info
+            else "核心设计工具初始化成功"
+        )
+        database_tools_info = "已加载微生物互补性数据库查询工具辅助互作补充"
 
         return Agent(
             role='微生物菌剂设计专家',
             goal='基于功能微生物组设计高效且稳定的微生物菌剂',
             backstory=f"""你是一位微生物菌剂设计专家，现在的设计流程以 IdentificationAgent 输出的 JSON 结果为核心输入。
             
-            ## 初始化输入
-            - 读取最新的 `IdentificationAgent_Result_*.json` 文件，解析 `functional_microbes`、`complements`、`metadata.pollutant` 与 `metadata.target_environment`；
-            - pollutant 信息需包含 SMILES（若缺失，可调用污染物数据库补录后再执行评分），并保持原始 JSON 备查；
-            - 记录每个功能微生物及其互补微生物的酶列表（名称、UniProt ID、sequence），为后续评分做准备。
+            ## Step 0：识别结果解析
+            - 读取最新的 `IdentificationAgent_Result_*.json` 文件，使用 ParseDegradationJSONTool 提取功能菌酶名称、酶序列及 `metadata.pollutant.smiles`；
+            - 使用 ParseEnvironmentJSONTool 获取功能菌与互补菌物种清单，以及目标环境参数（temperature / ph / salinity / oxygen）；
+            - 若缺失污染物 SMILES 或关键环境信息，立即记录缺口并尝试通过数据库工具补齐后再进入评分。
             
-            ## Step 1：环境适应性评分
-            - 使用 ScoreEnvironmentTool 对所有功能微生物与互补微生物逐一打分；
-            - 输入目标环境：temperature、ph、salinity、oxygen（来自 IdentificationAgent JSON），工具内部按“三角隶属 + 指数尾部”计算温度 / pH，盐度超限指数衰减，氧环境匹配规则为匹配=1.0、未知=0.5、不匹配=0.2；
-            - ScoreEnvironmentTool 已内置权重 `wT=0.35、wPH=0.35、wS=0.10、wO2=0.20` 并自动忽略缺失项后重归一化，请记录 `env_soft_score` 以及原始子项评分。
+            ## Step 1：降解能力评分（ScoreEnzymeDegradationTool）
+            - 对 ParseDegradationJSONTool 返回的物种集合执行酶降解评分，输出每个物种的 `kcat_max`、`kcat_mean` 与序列级统计；
+            - 互补微生物不承担降解任务，通常无酶序列，需将其 `Norm01(kcat_max)`（旧版命名 `Norm1(kcat)`）固定为 0，并在结果中说明原因；
+            - 保存工具调用参数与返回值，确保后续追踪。
             
-            ## Step 2：降解能力评分
-            - 对每个功能微生物，收集其 `enzymes` 中全部有效氨基酸序列，调用 ScoreEnzymeDegradationTool；
-            - 以污染物 SMILES 作为 `pollutant_smiles`，将返回的 kcat 估计做归一化，形成 `Norm1(kcat)`（若仅 1 条酶序列，可视为 1.0）；
-            - 互补微生物不承担降解任务，直接将其 `Norm1(kcat)` 设为 0；
-            - 记录工具返回的 `kcat_max`、`relative_to_reference`、每条酶序列的统计信息。
+            ## Step 2：环境适应性评分（ScoreEnvironmentTool）
+            - 以 ParseEnvironmentJSONTool 返回的物种清单为基准，统一调用 ScoreEnvironmentTool；
+            - 传入目标环境参数，记录 `env_soft_score` 及四项子评分，确认权重 `wT=0.35、wPH=0.35、wS=0.10、wO2=0.20`，并标明缺失项的处理策略。
             
-            ## Step 3：酶多样性评分
-            - 针对每个微生物统计去重后的酶种类数量；
-            - 以所有微生物的酶种类数量集合执行 0-1 归一化，得到 `Norm1(enzyme_diversity)`；
-            - 若缺乏酶信息，标记原因并在综合评分中按缺失项处理（权重需重归一化）。
+            ## Step 3：单菌综合评分（ScoreSingleSpeciesTool）
+            - 将 Step 1 与 Step 2 的结果输入 ScoreSingleSpeciesTool，自动执行归一化计算；
+            - 套用统一公式 `S_microbe = 0.5·Norm1(kcat) + 0.4·env_soft_score + 0.1·Norm01(enzyme_diversity)`（其中 `Norm1(kcat)` 与 `Norm01(kcat_max)` 等价，`Norm1(enzyme_diversity)` 与 `Norm01(enzyme_diversity)` 等价）；
+            - 生成功能菌与互补菌的综合评分表，并保留 `Result_functional_candidates.csv` / `Result_complementary_candidates.csv` 等结构化输出。
             
-            ## Step 4：单菌综合评分
-            - 汇总环境适应性与功能性得分，默认公式 `S_microbe = 0.5·Norm1(kcat) + 0.4·env_soft_score + 0.1·Norm1(enzyme_diversity)`；
-            - 对互补微生物沿用相同结构：由于 `Norm1(kcat)=0`，综合评分仅受环境与多样性影响；
-            - 保留所有中间数据，生成 `Result_functional_candidates.csv`（功能菌）与 `Result_complementary_candidates.csv`（互补菌），字段包含原始 JSON 信息、各项评分、工具调用详情。
-            
-            ## Step 5：互作与菌群设计
-            - 结合 IdentificationAgent JSON 中的 complementarity 指标以及需要时的 MicrobialComplementarityDBQueryTool 查询结果，整理 competition / complementarity / delta；
-            - 依据需求组合菌群，计算 `S_consort = α·avg(S_microbe) + β·avg(delta⁺) - γ·avg(comp⁺) + λ·avg(kcat_max) - μ·成员数量`，输出前若干组合与成员排名；
-            - 对每个组合给出环境适应性说明、潜在竞争风险与实验验证建议。
+            ## Step 4：互作强度与菌群设计
+            - 借助 ScoreMetabolicInteractionTool（可由 MicrobialComplementarityDBQueryTool 辅助）计算 competition / complementarity / delta 指标；
+            - 使用 ScoreConsortiaTool 将 `S_microbe` 与互作指标融合，计算 `S_consort = α·avg(S_microbe) + β·avg(delta⁺) - γ·avg(comp⁺) + λ·avg(kcat_max) - μ·成员数量`；
+            - 输出前 10 个菌群组合列表，包含评分拆解、环境匹配与风险提示，为评估阶段提供依据。
             
             ## 已初始化工具
             - 设计支持工具：{design_stage_tools_summary}

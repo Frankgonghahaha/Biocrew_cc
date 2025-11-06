@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
 环境适应性评分工具
-负责计算 S_microbe 中 env_soft_score 指标
+接收 ParseEnvironmentJSONTool 输出的物种清单与目标工况，
+计算每个物种的 env_soft_score 及子项评分。
 """
 
 from __future__ import annotations
@@ -10,21 +11,18 @@ import math
 import numbers
 import os
 from decimal import Decimal
-from typing import Any, Dict, List, Optional
-
-import pandas as pd
+from typing import Any, Dict, Iterable, List, Optional
 
 try:
     from crewai.tools import BaseTool
 except ImportError:  # pragma: no cover
     class BaseTool:  # type: ignore
-        """Fallback BaseTool when CrewAI is unavailable."""
-
-        def __init__(self, *args: Any, **kwargs: Any) -> None:  # noqa: D401
+        def __init__(self, *args: Any, **kwargs: Any) -> None:
             super().__init__()
 
     print("Warning: crewai 未安装，ScoreEnvironmentTool 将使用简化 BaseTool。")
-from pydantic import BaseModel, Field
+
+from pydantic import BaseModel, Field, validator
 from sqlalchemy import MetaData, Table, create_engine, func, or_, select
 from sqlalchemy.engine import Engine, URL
 from sqlalchemy.exc import SQLAlchemyError, NoSuchTableError
@@ -33,23 +31,49 @@ from sqlalchemy.sql import bindparam
 from config.config import Config
 
 
-class ScoreEnvironmentInput(BaseModel):
-    """环境评分工具的输入参数"""
+class TargetEnvironment(BaseModel):
+    """目标环境参数"""
 
-    strain: str = Field(..., description="目标微生物物种名称")
-    temperature: Optional[float] = Field(
-        default=None, description="目标水体温度 (°C)"
+    temperature: Optional[float] = Field(default=None, description="水体温度 (°C)")
+    ph: Optional[float] = Field(default=None, description="水体 pH")
+    salinity: Optional[float] = Field(default=None, description="水体盐度 (质量分数)")
+    oxygen: Optional[str] = Field(default=None, description="氧环境，例如 tolerant / anaerobic")
+
+
+class SpeciesEnvironmentRequest(BaseModel):
+    """待评分的物种请求"""
+
+    strain: str = Field(..., description="物种名称")
+    source: Optional[str] = Field(default=None, description="来源标签，例如 functional/complement")
+    limit: Optional[int] = Field(default=None, description="可选：覆盖默认查询行数上限")
+
+    @validator("strain")
+    def sanitize_strain(cls, value: str) -> str:
+        text = " ".join(value.replace("（", "(").replace("）", ")").split()).strip()
+        if not text:
+            raise ValueError("strain 不能为空")
+        return text
+
+
+class ScoreEnvironmentInput(BaseModel):
+    """环境评分批量输入"""
+
+    species: List[SpeciesEnvironmentRequest] = Field(
+        ..., description="待计算环境适应性的物种请求列表"
     )
-    ph: Optional[float] = Field(default=None, description="目标水体 pH")
-    salinity: Optional[float] = Field(
-        default=None, description="目标水体盐度 (质量分数，例如 0.05 表示 5%)"
+    target_environment: TargetEnvironment = Field(
+        ..., description="目标水体环境参数"
     )
-    oxygen: Optional[str] = Field(
-        default=None, description="目标水体氧环境，如 tolerant / not tolerant"
+    default_limit: int = Field(
+        default=5,
+        description="默认环境数据库查询行数上限",
     )
-    limit: int = Field(
-        default=5, description="若匹配多条记录，最多返回的行数"
-    )
+
+    @validator("species")
+    def ensure_species(cls, value: List[SpeciesEnvironmentRequest]) -> List[SpeciesEnvironmentRequest]:
+        if not value:
+            raise ValueError("species 列表不能为空")
+        return value
 
 
 class ScoreEnvironmentTool(BaseTool):
@@ -57,8 +81,8 @@ class ScoreEnvironmentTool(BaseTool):
 
     name: str = "ScoreEnvironmentTool"
     description: str = (
-        "依据 Sheet_Species_environment 表计算给定物种在目标工况下的 env_soft_score，"
-        "并返回匹配到的环境记录。"
+        "依据 Sheet_Species_environment 表计算每个物种在目标工况下的 env_soft_score，"
+        "支持批量处理 ParseEnvironmentJSONTool 提供的物种清单。"
     )
     args_schema: type[BaseModel] = ScoreEnvironmentInput
 
@@ -102,50 +126,83 @@ class ScoreEnvironmentTool(BaseTool):
 
     def _run(
         self,
-        strain: str,
-        temperature: Optional[float] = None,
-        ph: Optional[float] = None,
-        salinity: Optional[float] = None,
-        oxygen: Optional[str] = None,
-        limit: int = 5,
+        species: List[SpeciesEnvironmentRequest],
+        target_environment: TargetEnvironment | Dict[str, Any],
+        default_limit: int = 5,
     ) -> Dict[str, Any]:
         try:
-            rows = self._query_environment(strain, limit)
-            if not rows:
-                return {
-                    "status": "not_found",
-                    "strain": strain.strip(),
-                    "message": "未在环境表中找到匹配的物种。",
-                }
-            scored = [
-                self._score_record(
-                    record=row,
-                    temperature=temperature,
-                    ph=ph,
-                    salinity=salinity,
-                    oxygen=oxygen,
+            normalized_requests: List[SpeciesEnvironmentRequest] = []
+            for entry in species:
+                if isinstance(entry, SpeciesEnvironmentRequest):
+                    normalized_requests.append(entry)
+                elif isinstance(entry, dict):
+                    payload = dict(entry)
+                    payload["strain"] = payload.get("strain") or payload.get("species")
+                    normalized_requests.append(SpeciesEnvironmentRequest.parse_obj(payload))
+                else:
+                    raise TypeError(
+                        f"species 列表中的元素类型不受支持: {type(entry)}。"
+                    )
+
+            if isinstance(target_environment, TargetEnvironment):
+                target_env = target_environment
+            elif isinstance(target_environment, dict):
+                target_env = TargetEnvironment(**target_environment)
+            else:
+                raise TypeError(
+                    f"target_environment 类型不受支持: {type(target_environment)}。"
                 )
-                for row in rows
-            ]
-            scored.sort(
-                key=lambda item: item.get("env_soft_score", 0.0), reverse=True
-            )
+
+            aggregate: List[Dict[str, Any]] = []
+            for request in normalized_requests:
+                limit = request.limit or default_limit
+                rows = self._query_environment(request.strain, limit)
+
+                if not rows:
+                    aggregate.append(
+                        {
+                            "strain": request.strain,
+                            "source": request.source,
+                            "status": "not_found",
+                            "message": "未在环境表中找到匹配的物种。",
+                        }
+                    )
+                    continue
+
+                scored = [
+                    self._score_record(
+                        record=row,
+                        target=target_env,
+                    )
+                    for row in rows
+                ]
+                scored.sort(
+                    key=lambda item: item.get("env_soft_score", 0.0),
+                    reverse=True,
+                )
+                aggregate.append(
+                    {
+                        "strain": request.strain,
+                        "source": request.source,
+                        "status": "success",
+                        "best_score": scored[0].get("env_soft_score", 0.0),
+                        "records": scored,
+                    }
+                )
+
             return {
                 "status": "success",
-                "strain": strain.strip(),
-                "records": scored,
-                "best_score": scored[0].get("env_soft_score", 0.0),
+                "target_environment": target_env.dict(),
+                "results": aggregate,
             }
         except SQLAlchemyError as exc:
             return {
                 "status": "error",
-                "strain": strain,
                 "message": f"数据库查询失败: {exc}",
             }
         except Exception as exc:  # noqa: BLE001
             return {
                 "status": "error",
-                "strain": strain,
                 "message": f"环境评分失败: {exc}",
             }
 
@@ -175,30 +232,30 @@ class ScoreEnvironmentTool(BaseTool):
         self,
         record: Dict[str, Any],
         *,
-        temperature: Optional[float],
-        ph: Optional[float],
-        salinity: Optional[float],
-        oxygen: Optional[str],
+        target: TargetEnvironment,
     ) -> Dict[str, Any]:
         temp_score = self._bounded_score(
-            temperature,
+            target.temperature,
             record.get("temperature_minimum"),
             record.get("temperature_optimum_c"),
             record.get("temperature_maximum"),
         )
         ph_score = self._bounded_score(
-            ph,
+            target.ph,
             record.get("ph_minimum"),
             record.get("ph_optimum"),
             record.get("ph_maximum"),
         )
         salinity_score = self._bounded_score(
-            salinity,
+            target.salinity,
             record.get("salinity_minimum"),
             record.get("salinity_optimum"),
             record.get("salinity_maximum"),
         )
-        oxygen_score = self._oxygen_score(record.get("oxygen_tolerance"), oxygen)
+        oxygen_score = self._oxygen_score(
+            record.get("oxygen_tolerance"),
+            target.oxygen,
+        )
 
         env_soft_score = self._combine_scores(
             [
@@ -217,84 +274,146 @@ class ScoreEnvironmentTool(BaseTool):
                 "salinity_score": salinity_score,
                 "oxygen_score": oxygen_score,
                 "env_soft_score": env_soft_score,
-                "target_temperature": temperature,
-                "target_ph": ph,
-                "target_salinity": salinity,
-                "target_oxygen": oxygen,
+                "target_temperature": target.temperature,
+                "target_ph": target.ph,
+                "target_salinity": target.salinity,
+                "target_oxygen": target.oxygen,
             }
         )
         return enriched
 
+    def _combine_scores(
+        self, weighted_scores: Iterable[tuple[Optional[float], float]]
+    ) -> float:
+        total_weight = 0.0
+        weighted_sum = 0.0
+        for score, weight in weighted_scores:
+            if score is None:
+                continue
+            total_weight += weight
+            weighted_sum += score * weight
+        if math.isclose(total_weight, 0.0):
+            return 0.0
+        combined = weighted_sum / total_weight
+        return float(round(combined, 6))
+
     def _bounded_score(
         self,
         target_value: Optional[float],
-        min_value: Any,
-        optimum_value: Any,
-        max_value: Any,
+        minimum: Optional[float],
+        optimum: Optional[float],
+        maximum: Optional[float],
     ) -> Optional[float]:
-        value = self._to_float(target_value)
-        min_val = self._to_float(min_value)
-        max_val = self._to_float(max_value)
-        opt_val = self._to_float(optimum_value)
-        if value is None or min_val is None or max_val is None:
+        if target_value is None:
             return None
-        if max_val <= min_val:
+
+        try:
+            target = float(target_value)
+        except (TypeError, ValueError):
             return None
-        if min_val <= value <= max_val:
-            if opt_val is None or not (min_val <= opt_val <= max_val):
-                center = (min_val + max_val) / 2.0
-                half = max((max_val - min_val) / 2.0, 1e-9)
-                return max(0.0, 1.0 - abs(value - center) / half)
-            left = max(opt_val - min_val, 1e-9)
-            right = max(max_val - opt_val, 1e-9)
-            if value <= opt_val:
-                return max(0.0, 1.0 - (opt_val - value) / left)
-            return max(0.0, 1.0 - (value - opt_val) / right)
-        distance = min_val - value if value < min_val else value - max_val
-        span = max(max_val - min_val, 1e-9)
-        return math.exp(-self._TAIL_K * (distance / span))
+
+        min_v = self._safe_number(minimum)
+        opt_v = self._safe_number(optimum)
+        max_v = self._safe_number(maximum)
+
+        if min_v is None and max_v is None and opt_v is None:
+            return None
+
+        if opt_v is not None:
+            baseline = opt_v
+        elif min_v is not None and max_v is not None:
+            baseline = (min_v + max_v) / 2
+        else:
+            baseline = opt_v or target
+
+        # 三角隶属函数 + 尾部指数衰减
+        if min_v is not None and target < min_v:
+            return self._tail_decay(target, min_v, baseline)
+        if max_v is not None and target > max_v:
+            return self._tail_decay(target, max_v, baseline)
+
+        if opt_v is None:
+            if min_v is not None and max_v is not None:
+                return self._linear_membership(target, min_v, max_v)
+            return None
+
+        if min_v is not None and target < opt_v:
+            return self._linear_membership(target, min_v, opt_v)
+        if max_v is not None and target > opt_v:
+            return self._linear_membership(target, opt_v, max_v, reverse=True)
+
+        return 1.0
 
     def _oxygen_score(
-        self, recorded_oxygen: Any, target_oxygen: Optional[str]
+        self, tolerance: Optional[str], target: Optional[str]
     ) -> Optional[float]:
-        if target_oxygen is None:
+        if target is None:
             return None
-        normalized_target = str(target_oxygen).strip().lower()
-        if not normalized_target:
+
+        target_normalized = str(target).strip().lower()
+        if not target_normalized:
             return None
-        recorded = str(recorded_oxygen or "").strip().lower()
-        if recorded == normalized_target and recorded:
+
+        tolerance_normalized = (tolerance or "").strip().lower()
+        if not tolerance_normalized:
+            return 0.5 if target_normalized else None
+
+        if target_normalized in tolerance_normalized:
             return 1.0
-        if recorded in {"", "unknown", "nan", "none"}:
+        if target_normalized == "unknown":
             return 0.5
         return 0.2
 
-    def _combine_scores(self, scores: List[tuple[Optional[float], float]]) -> float:
-        numerator = 0.0
-        denominator = 0.0
-        for score, weight in scores:
-            if score is None:
-                continue
-            numerator += score * weight
-            denominator += weight
-        if denominator == 0.0:
+    @staticmethod
+    def _linear_membership(
+        value: float,
+        start: Optional[float],
+        end: Optional[float],
+        *,
+        reverse: bool = False,
+    ) -> Optional[float]:
+        if start is None or end is None:
+            return None
+        if math.isclose(start, end):
+            return 1.0
+        if value < start and not reverse:
             return 0.0
-        return float(numerator / denominator)
+        if value > end and reverse:
+            return 0.0
+        span = end - start
+        if reverse:
+            return max(0.0, min(1.0, (end - value) / span))
+        return max(0.0, min(1.0, (value - start) / span))
+
+    def _tail_decay(self, value: float, boundary: float, optimum: float) -> float:
+        distance = abs(value - boundary)
+        span = abs(optimum - boundary) or 1.0
+        ratio = distance / span
+        decay = math.exp(-self._TAIL_K * ratio)
+        return float(round(max(0.0, min(1.0, decay)), 6))
 
     @staticmethod
-    def _to_float(value: Any) -> Optional[float]:
+    def _safe_number(value: Any) -> Optional[float]:
         if value is None:
             return None
         if isinstance(value, numbers.Number):
-            return float(value)
-        if isinstance(value, Decimal):
-            return float(value)
-        if isinstance(value, str):
-            stripped = value.strip()
-            if not stripped:
+            if math.isnan(value):
                 return None
+            return float(value)
+        if isinstance(value, (str, Decimal)):
             try:
-                return float(stripped)
-            except ValueError:
+                number = float(value)
+                if math.isnan(number):
+                    return None
+                return number
+            except (TypeError, ValueError):
                 return None
         return None
+
+
+__all__ = [
+    "ScoreEnvironmentTool",
+    "ScoreEnvironmentInput",
+    "SpeciesEnvironmentRequest",
+    "TargetEnvironment",
+]

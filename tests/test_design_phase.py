@@ -30,8 +30,11 @@ from core.tasks.design_task import MicrobialAgentDesignTask
 
 
 REQUIRED_TOOL_NAMES = [
+    "ParseDegradationJSONTool",
+    "ParseEnvironmentJSONTool",
     "ScoreEnzymeDegradationTool",
     "ScoreEnvironmentTool",
+    "ScoreSingleSpeciesTool",
     "微生物互补性数据库查询工具",
 ]
 
