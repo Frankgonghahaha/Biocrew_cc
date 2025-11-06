@@ -82,8 +82,8 @@ class EngineeringMicroorganismIdentificationAgent:
               * 通过序列对比验证酶的准确性和相似性，确保推荐的酶具有可靠的序列信息
               * 序列对比结果应用于支持功能微生物识别清单的构建，并提供后续互补微生物查询所需的功能微生物名称清单
             - 微生物互补性数据库查询工具调用策略：
-              * 仅使用ProteinSequenceQuerySQLTool确认过的功能微生物名称作为输入，逐一查询互补微生物
-              * 重点记录每条结果的competition_index、complementarity_index，以及二者差值Δ（互补指数-竞争指数）
+              * 仅使用ProteinSequenceQuerySQLTool确认过的功能微生物名称作为输入，逐一查询互补微生物，对所有功能微生物均需执行查询，不设调用次数限制
+              * 仅保留互补指数小于竞争指数的互补微生物记录，并计算Δ（Complementarity-Competition），按Δ从大到小保留前三条结果
               * 若未找到互补记录，需明确记录“未找到互补微生物”并给出后续建议（如扩展名称、放宽匹配条件等）
             - 工具调用时要确保参数完整且正确，避免传递None值
             - 如果某个工具调用失败，应记录错误并继续使用其他工具

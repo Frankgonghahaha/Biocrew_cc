@@ -7,6 +7,7 @@
 import sys
 import os
 import json
+import re
 import time
 from datetime import datetime
 from pathlib import Path
@@ -82,6 +83,42 @@ def log_tool_call(agent_name, tool_name, tool_call_file):
     # 写入文件
     with open(tool_call_file, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
+
+def extract_structured_json(result_text: str):
+    """从任务输出中提取结构化JSON"""
+    pattern = re.compile(r"```json\s*(\{.*?\})\s*```", re.DOTALL)
+    match = pattern.search(result_text)
+    if not match:
+        return None
+    json_text = match.group(1).strip()
+    try:
+        return json.loads(json_text)
+    except json.JSONDecodeError:
+        return None
+
+def save_structured_json(result_text: str, log_file: str):
+    """保存结构化JSON结果"""
+    data = extract_structured_json(result_text)
+    if not data:
+        log_message("未在结果中找到结构化JSON，跳过保存", log_file)
+        return
+
+    output_dir = Path("test_results")
+    output_dir.mkdir(exist_ok=True)
+
+    metadata = data.get("metadata", {})
+    timestamp = metadata.get("generated_at")
+    if not timestamp:
+        timestamp = datetime.now().isoformat(timespec="seconds")
+        metadata["generated_at"] = timestamp
+        data["metadata"] = metadata
+    sanitized_timestamp = timestamp.replace(":", "-")
+    output_path = output_dir / f"IdentificationAgent_Result_{sanitized_timestamp}.json"
+
+    with open(output_path, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
+
+    log_message(f"结构化JSON结果已保存到: {output_path}", log_file)
 
 
 def test_protein_sequence_query(user_requirement, log_file, tool_call_file):
@@ -229,10 +266,13 @@ def run_identification_test():
         log_tool_call("identification_agent", "Task Execution", tool_call_file)
         
         # 保存结果
+        result_text = str(result)
         with open(result_file, "w", encoding="utf-8") as f:
             f.write("工程微生物组识别测试结果\n")
             f.write("=" * 30 + "\n")
-            f.write(str(result))
+            f.write(result_text)
+
+        save_structured_json(result_text, log_file)
         
         log_message(f"测试结果已保存到: {result_file}", log_file)
         log_message("测试完成", log_file)

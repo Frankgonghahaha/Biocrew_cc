@@ -15,6 +15,7 @@ from .degrading_microorganism_identification_tool import DegradingMicroorganismI
 # 预测工具
 from .score_enzyme_degradation_tool import ScoreEnzymeDegradationTool
 from .score_environment_tool import ScoreEnvironmentTool
+from .score_consortia_tool import ScoreConsortiaTool, ScoreConsortiaInput, ConsortiumDefinition
 
 # 数据查询工具
 from .gene_query import GeneDataQueryTool
@@ -35,6 +36,9 @@ __all__ = [
     # 预测工具
     'ScoreEnzymeDegradationTool',
     'ScoreEnvironmentTool',
+    'ScoreConsortiaTool',
+    'ScoreConsortiaInput',
+    'ConsortiumDefinition',
     
     # 数据查询工具
     'GeneDataQueryTool',

@@ -47,34 +47,47 @@ class MicrobialAgentDesignAgent:
         return Agent(
             role='微生物菌剂设计专家',
             goal='基于功能微生物组设计高效且稳定的微生物菌剂',
-            backstory=f"""你是一位微生物菌剂设计专家，负责执行双阶段 Design pipeline：
+            backstory=f"""你是一位微生物菌剂设计专家，现在的设计流程以 IdentificationAgent 输出的 JSON 结果为核心输入。
             
-            ## Step 1：候选物种筛选与单菌打分（Design_pipeline_1）
-            - 读取 Sheet1~Sheet5 基础数据，结合目标温度 / pH / 盐度 / 氧环境筛选功能菌与互补菌；
-            - 计算软环境匹配分（三角隶属 + 指数尾部 / 盐度指数衰减 / 氧环境匹配）；
-            - 生成单菌综合评分 `S_microbe = 0.5·Norm01(kcat_max) + 0.4·env_soft_score + 0.1·Norm01(enzyme_diversity)`；
-            - 输出 Result1_candidate_function_species、Result2_candidate_scores、Result3_pair_Com_index。
+            ## 初始化输入
+            - 读取最新的 `IdentificationAgent_Result_*.json` 文件，解析 `functional_microbes`、`complements`、`metadata.pollutant` 与 `metadata.target_environment`；
+            - pollutant 信息需包含 SMILES（若缺失，可调用污染物数据库补录后再执行评分），并保持原始 JSON 备查；
+            - 记录每个功能微生物及其互补微生物的酶列表（名称、UniProt ID、sequence），为后续评分做准备。
             
-            ## Step 2：组合搜索与菌群评分（Design_pipeline_2）
-            - 设定组合搜索参数（topN、kmin~kmax、mode、topK、require_functional 等）；
-            - 计算 `S_consort = α·avg(S_microbe) + β·avg(delta⁺) - γ·avg(comp⁺) + λ·avg(kcat_max) - μ·size`；
-            - 输出 Result4_optimal_consortia、Result4_members_rank，并给出组合风险/优势解读。
+            ## Step 1：环境适应性评分
+            - 使用 ScoreEnvironmentTool 对所有功能微生物与互补微生物逐一打分；
+            - 输入目标环境：temperature、ph、salinity、oxygen（来自 IdentificationAgent JSON），工具内部按“三角隶属 + 指数尾部”计算温度 / pH，盐度超限指数衰减，氧环境匹配规则为匹配=1.0、未知=0.5、不匹配=0.2；
+            - ScoreEnvironmentTool 已内置权重 `wT=0.35、wPH=0.35、wS=0.10、wO2=0.20` 并自动忽略缺失项后重归一化，请记录 `env_soft_score` 以及原始子项评分。
+            
+            ## Step 2：降解能力评分
+            - 对每个功能微生物，收集其 `enzymes` 中全部有效氨基酸序列，调用 ScoreEnzymeDegradationTool；
+            - 以污染物 SMILES 作为 `pollutant_smiles`，将返回的 kcat 估计做归一化，形成 `Norm1(kcat)`（若仅 1 条酶序列，可视为 1.0）；
+            - 互补微生物不承担降解任务，直接将其 `Norm1(kcat)` 设为 0；
+            - 记录工具返回的 `kcat_max`、`relative_to_reference`、每条酶序列的统计信息。
+            
+            ## Step 3：酶多样性评分
+            - 针对每个微生物统计去重后的酶种类数量；
+            - 以所有微生物的酶种类数量集合执行 0-1 归一化，得到 `Norm1(enzyme_diversity)`；
+            - 若缺乏酶信息，标记原因并在综合评分中按缺失项处理（权重需重归一化）。
+            
+            ## Step 4：单菌综合评分
+            - 汇总环境适应性与功能性得分，默认公式 `S_microbe = 0.5·Norm1(kcat) + 0.4·env_soft_score + 0.1·Norm1(enzyme_diversity)`；
+            - 对互补微生物沿用相同结构：由于 `Norm1(kcat)=0`，综合评分仅受环境与多样性影响；
+            - 保留所有中间数据，生成 `Result_functional_candidates.csv`（功能菌）与 `Result_complementary_candidates.csv`（互补菌），字段包含原始 JSON 信息、各项评分、工具调用详情。
+            
+            ## Step 5：互作与菌群设计
+            - 结合 IdentificationAgent JSON 中的 complementarity 指标以及需要时的 MicrobialComplementarityDBQueryTool 查询结果，整理 competition / complementarity / delta；
+            - 依据需求组合菌群，计算 `S_consort = α·avg(S_microbe) + β·avg(delta⁺) - γ·avg(comp⁺) + λ·avg(kcat_max) - μ·成员数量`，输出前若干组合与成员排名；
+            - 对每个组合给出环境适应性说明、潜在竞争风险与实验验证建议。
             
             ## 已初始化工具
-            # - 数据库工具：{database_tools_info}
-            # - 设计支持工具：{design_stage_tools_summary}
-            ## 设计原则
-            1. 确保菌剂在目标环境中的适应性，以 Step1 环境过滤与软评分为基础；
-            2. 兼顾降解效率与群落稳定性，重点关注 competition / complementarity / delta 指标；
-            3. 保留设计过程中的所有中间结果，方便评估阶段复核与回溯；
-            4. 根据需求调用 {database_tools_info} 以及本地/外部工具：ScoreEnzymeDegradation、
-               ScoreEnvironment、Carveme、Ctfba、MicrobialComplementarityDBQuery、
-               DegradingMicroorganismIdentification、ProteinSequenceQuerySQL 等。
+            - 设计支持工具：{design_stage_tools_summary}
+            - 其他工具：{database_tools_info}
             
             ## 输出要求
-            - Result1~Result4 CSV 文件必须生成并写明保存路径；
-            - 设计报告需解释筛选逻辑、评分权重、组合搜索策略及潜在风险；
-            - 为评估阶段提供重点复核清单（关键组合、敏感物种、推荐验证指标）。
+            - 准确记录 ScoreEnvironmentTool / ScoreEnzymeDegradationTool 的调用参数与结果，互补微生物的 kcat 评分固定为 0；
+            - 输出功能菌与互补菌的单独评分表、组合设计表、设计说明文档，并给评估阶段提供重点复核清单；
+            - 说明缺失数据及补救措施，确保设计阶段结果可复现、可追踪。
             """,
             tools=tools,
             verbose=True,

@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 """
 测试微生物菌剂设计阶段
-该测试文件专门测试微生物菌剂设计阶段的功能，
-包括基因组处理、代谢模型构建和菌剂配方设计等。
+该测试文件专门验证菌剂设计阶段是否正确加载评分工具，并确保智能体提示词包含最新的环境/功能评分逻辑（ScoreEnvironment → Norm1(kcat) → Norm1(enzyme_diversity)）。
 """
 
 import sys
@@ -111,7 +110,7 @@ def run_design_test():
     log_message("测试开始", log_file)
     
     # 用户需求
-    user_requirement = "处理含有邻苯二甲酸的工业废水"
+    user_requirement = "please help to design a microbial consortium for degrading Dibutyl phthalate effectively."
     log_message(f"用户需求: {user_requirement}", log_file)
     
     # 初始化LLM
@@ -137,9 +136,19 @@ def run_design_test():
             log_file,
         )
         assert not missing_tools, f"Design agent 缺少必要工具: {missing_tools}"
+
+        backstory_text = getattr(design_agent, "backstory", "")
+        for required_phrase in [
+            "ScoreEnvironmentTool",
+            "Norm1(kcat)",
+            "互补微生物不承担降解任务",
+            "Norm1(enzyme_diversity)",
+        ]:
+            assert required_phrase in backstory_text, f"Design agent 提示词缺少关键说明: {required_phrase}"
+        log_message("智能体提示词包含环境与功能评分要求", log_file)
         
         # 创建任务
-        log_message("创建微生物菌剂设计任务（需输出 Result1~Result4 及设计报告）", log_file)
+        log_message("创建微生物菌剂设计任务（需生成环境/功能评分与组合设计文件）", log_file)
         design_task = MicrobialAgentDesignTask(llm).create_task(
             design_agent, 
             context_task=None,

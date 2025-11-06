@@ -24,7 +24,7 @@ class MicrobialComplementarityDBQueryToolSchema(BaseModel):
     )
     filter_by_complementarity: Optional[bool] = Field(
         default=True,
-        description="是否仅返回互补指数大于竞争指数的记录"
+        description="是否仅返回互补指数小于竞争指数的记录"
     )
 
 
@@ -68,7 +68,7 @@ class MicrobialComplementarityDBQueryTool(BaseTool):
         Args:
             microorganism_a: 第一个微生物的名称
             microorganism_b: 第二个微生物的名称（可选）
-            filter_by_complementarity: 是否筛选互补指数大于竞争指数的记录
+            filter_by_complementarity: 是否筛选互补指数小于竞争指数的记录
             
         Returns:
             查询结果的描述字符串
@@ -101,45 +101,56 @@ class MicrobialComplementarityDBQueryTool(BaseTool):
             
             # 执行查询
             query = session.query(MicrobialComplementarity).filter(query_conditions)
-            
-            # 如果需要筛选互补指数大于竞争指数的记录
             if filter_by_complementarity:
-                query = query.filter(MicrobialComplementarity.complementarity_index > MicrobialComplementarity.competition_index)
-            
+                query = query.filter(
+                    MicrobialComplementarity.complementarity_index <
+                    MicrobialComplementarity.competition_index
+                )
+
+            # 根据需要筛选互补指数小于竞争指数的记录
             results = query.all()
-            if filter_by_complementarity:
-                results = [
-                    record for record in results
-                    if record.complementarity_index is not None
-                    and record.competition_index is not None
-                    and record.complementarity_index > record.competition_index
-                ]
-            
+
+            filtered_records = []
+            for record in results:
+                complementarity = record.complementarity_index
+                competition = record.competition_index
+                if complementarity is None or competition is None:
+                    continue
+                if filter_by_complementarity and not (complementarity < competition):
+                    continue
+                delta = complementarity - competition
+                filtered_records.append((record, delta))
+
             session.close()
-            
-            if not results:
+
+            if not filtered_records:
                 result = f"未找到关于微生物 '{microorganism_a}'"
                 if microorganism_b:
                     result += f" 和 '{microorganism_b}'"
                 if filter_by_complementarity:
-                    result += " 且互补指数大于竞争指数"
+                    result += " 且互补指数小于竞争指数"
                 result += " 的互补性数据"
                 return result
-            
-            # 格式化结果
-            result = f"找到 {len(results)} 条关于微生物互补性的记录"
-            if filter_by_complementarity:
-                result += "（互补指数大于竞争指数）"
+
+            # 按 Δ 值排序并仅保留前三条
+            filtered_records.sort(key=lambda item: item[1], reverse=True)
+            top_records = filtered_records[:3]
+
+            total_matches = len(filtered_records)
+            result = (
+                f"找到 {total_matches} 条关于微生物互补性的记录"
+                f"{'（互补指数小于竞争指数）' if filter_by_complementarity else ''}"
+            )
+            if total_matches > len(top_records):
+                result += f"，已按Δ降序筛选前{len(top_records)}条"
             result += ":\n\n"
-            for record in results:
-                delta = record.complementarity_index - record.competition_index \
-                    if record.complementarity_index is not None and record.competition_index is not None else None
+
+            for record, delta in top_records:
                 result += f"降解功能微生物: {record.degrading_microorganism}\n"
                 result += f"互补微生物: {record.complementary_microorganism}\n"
                 result += f"竞争指数 (Competition): {record.competition_index:.4f}\n"
                 result += f"互补指数 (Complementarity): {record.complementarity_index:.4f}\n"
-                if delta is not None:
-                    result += f"Δ (Complementarity - Competition): {delta:.4f}\n"
+                result += f"Δ (Complementarity - Competition): {delta:.4f}\n"
                 result += "-" * 40 + "\n"
             
             return result

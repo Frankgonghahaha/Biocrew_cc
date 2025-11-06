@@ -31,8 +31,8 @@ from core.tasks.evaluation_task import MicrobialAgentEvaluationTask
 
 
 TARGET_ENVIRONMENT = {
-    "temperature": 18.5,
-    "ph": 6.6,
+    "temperature": 30,
+    "ph": 7,
     "salinity": 0.05,
     "oxygen": "tolerant",
 }
