@@ -1,51 +1,49 @@
 #!/usr/bin/env python3
 """
-设计工具包初始化文件
+设计工具包初始化文件（采用延迟加载避免不必要的依赖）。
 """
 
-# 数据库工具
-from .protein_sequence_query_sql import ProteinSequenceQuerySQLTool
-from .protein_sequence_query_sql_updated import ProteinSequenceQuerySQLToolUpdated
-from .degrading_microorganism_identification_tool import DegradingMicroorganismIdentificationTool
+from __future__ import annotations
 
-# 基因组处理工具
-# from .genome_processing import IntegratedGenomeProcessingTool
-# from .genome_processing_workflow import GenomeProcessingWorkflow
+from importlib import import_module
+from typing import Tuple
 
-# 预测工具
-from .score_enzyme_degradation_tool import ScoreEnzymeDegradationTool
-from .score_environment_tool import ScoreEnvironmentTool
-from .score_consortia_tool import ScoreConsortiaTool, ScoreConsortiaInput, ConsortiumDefinition
-
-# 数据查询工具
-from .gene_query import GeneDataQueryTool
-from .organism_query import OrganismDataQueryTool
-from .pollutant_query import PollutantDataQueryTool
-from .search import PollutantSearchTool
-from .summary import PollutantSummaryTool
-from .name_utils import standardize_pollutant_name, generate_pollutant_name_variants
-
-__all__ = [
+_LAZY_IMPORTS: dict[str, Tuple[str, str]] = {
     # 数据库工具
-    'ProteinSequenceQuerySQLTool',
-    'ProteinSequenceQuerySQLToolUpdated',
-    'DegradingMicroorganismIdentificationTool',
-    
-    # 基因组处理工具
-    
-    # 预测工具
-    'ScoreEnzymeDegradationTool',
-    'ScoreEnvironmentTool',
-    'ScoreConsortiaTool',
-    'ScoreConsortiaInput',
-    'ConsortiumDefinition',
-    
+    "ProteinSequenceQuerySQLTool": (".protein_sequence_query_sql", "ProteinSequenceQuerySQLTool"),
+    "ProteinSequenceQuerySQLToolUpdated": (".protein_sequence_query_sql_updated", "ProteinSequenceQuerySQLToolUpdated"),
+    "DegradingMicroorganismIdentificationTool": (
+        ".degrading_microorganism_identification_tool",
+        "DegradingMicroorganismIdentificationTool",
+    ),
+    # 预测与评分工具
+    "ParseDegradationJSONTool": (".parse1_json_tool", "ParseDegradationJSONTool"),
+    "ParseEnvironmentJSONTool": (".parse2_json_tool", "ParseEnvironmentJSONTool"),
+    "ScoreEnzymeDegradationTool": (".score_enzyme_degradation_tool", "ScoreEnzymeDegradationTool"),
+    "ScoreEnvironmentTool": (".score_environment_tool", "ScoreEnvironmentTool"),
+    "ScoreSingleSpeciesTool": (".score_single_species_tool", "ScoreSingleSpeciesTool"),
+    "ScoreCandidateTool": (".score_candidate_tool", "ScoreCandidateTool"),
+    "ScoreConsortiaTool": (".score_consortia_tool", "ScoreConsortiaTool"),
+    "ScoreConsortiaInput": (".score_consortia_tool", "ScoreConsortiaInput"),
+    "ConsortiumDefinition": (".score_consortia_tool", "ConsortiumDefinition"),
     # 数据查询工具
-    'GeneDataQueryTool',
-    'OrganismDataQueryTool',
-    'PollutantDataQueryTool',
-    'PollutantSearchTool',
-    'PollutantSummaryTool',
-    'standardize_pollutant_name',
-    'generate_pollutant_name_variants'
-]
+    "GeneDataQueryTool": (".gene_query", "GeneDataQueryTool"),
+    "OrganismDataQueryTool": (".organism_query", "OrganismDataQueryTool"),
+    "PollutantDataQueryTool": (".pollutant_query", "PollutantDataQueryTool"),
+    "PollutantSearchTool": (".search", "PollutantSearchTool"),
+    "PollutantSummaryTool": (".summary", "PollutantSummaryTool"),
+    "standardize_pollutant_name": (".name_utils", "standardize_pollutant_name"),
+    "generate_pollutant_name_variants": (".name_utils", "generate_pollutant_name_variants"),
+}
+
+__all__ = list(_LAZY_IMPORTS.keys())
+
+
+def __getattr__(name: str):
+    if name not in _LAZY_IMPORTS:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+    module_name, attr_name = _LAZY_IMPORTS[name]
+    module = import_module(module_name, __name__)
+    attr = getattr(module, attr_name)
+    globals()[name] = attr
+    return attr

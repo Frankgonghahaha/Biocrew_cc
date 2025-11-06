@@ -13,7 +13,7 @@ from itertools import combinations
 from typing import Any, Dict, Iterable, List, Optional
 
 from crewai.tools import BaseTool  # type: ignore
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, ConfigDict, Field, validator
 
 
 def _normalize_name(value: Optional[str]) -> str:
@@ -49,7 +49,7 @@ class _PairMetrics:
 
 
 class CandidateScoreRecord(BaseModel):
-    """单菌评分记录（来自 ScoreCandidateTool）。"""
+    """单菌评分记录（来自 ScoreSingleSpeciesTool 或 ScoreCandidateTool）。"""
 
     species: str = Field(..., description="物种名称")
     S_microbe: float = Field(..., description="单菌综合得分")
@@ -99,6 +99,8 @@ class ConsortiumDefinition(BaseModel):
 class ScoreConsortiaInput(BaseModel):
     """菌群评分工具输入参数。"""
 
+    model_config = ConfigDict(populate_by_name=True)
+
     candidate_records: List[CandidateScoreRecord] = Field(
         ..., description="单菌评分记录列表"
     )
@@ -122,9 +124,6 @@ class ScoreConsortiaInput(BaseModel):
         True, description="是否要求组合中至少包含 1 个功能菌"
     )
 
-    class Config:
-        allow_population_by_field_name = True
-
     @validator("consortia")
     def ensure_consortia(cls, value: List[ConsortiumDefinition]) -> List[ConsortiumDefinition]:
         if not value:
@@ -137,7 +136,8 @@ class ScoreConsortiaTool(BaseTool):
 
     name: str = "ScoreConsortiaTool"
     description: str = (
-        "结合 ScoreCandidateTool 与 ScoreMetabolicInteractionTool 的结果，"
+        "结合 ScoreSingleSpeciesTool/ScoreCandidateTool 的单菌评分与 "
+        "ScoreMetabolicInteractionTool 的互作指标，"
         "对给定菌群组合计算综合评分 S_consort，"
         "评分公式参考 Old_Design_pipeline2："
         "S_consort = α·avg(S_microbe) + β·avg(Δ⁺) - γ·avg(competition⁺) + "
