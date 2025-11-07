@@ -117,8 +117,41 @@ class ScoreSingleSpeciesTool(BaseTool):
         top_n: Optional[int] = 10,
     ) -> Dict[str, Any]:
         try:
-            enzyme_map = {entry.strain: entry for entry in enzyme_results}
-            env_map = {entry.strain: entry for entry in environment_results}
+            normalized_species: List[SpeciesEntry] = []
+            for entry in species:
+                if isinstance(entry, SpeciesEntry):
+                    normalized_species.append(entry)
+                elif isinstance(entry, dict):
+                    normalized_species.append(SpeciesEntry.parse_obj(entry))
+                else:
+                    raise TypeError(
+                        f"species 列表中的元素类型不受支持: {type(entry)}。"
+                    )
+
+            normalized_enzyme: List[EnzymeScoreEntry] = []
+            for entry in enzyme_results:
+                if isinstance(entry, EnzymeScoreEntry):
+                    normalized_enzyme.append(entry)
+                elif isinstance(entry, dict):
+                    normalized_enzyme.append(EnzymeScoreEntry.parse_obj(entry))
+                else:
+                    raise TypeError(
+                        f"enzyme_results 列表中的元素类型不受支持: {type(entry)}。"
+                    )
+
+            normalized_environment: List[EnvironmentScoreEntry] = []
+            for entry in environment_results:
+                if isinstance(entry, EnvironmentScoreEntry):
+                    normalized_environment.append(entry)
+                elif isinstance(entry, dict):
+                    normalized_environment.append(EnvironmentScoreEntry.parse_obj(entry))
+                else:
+                    raise TypeError(
+                        f"environment_results 列表中的元素类型不受支持: {type(entry)}。"
+                    )
+
+            enzyme_map = {entry.strain: entry for entry in normalized_enzyme}
+            env_map = {entry.strain: entry for entry in normalized_environment}
 
             kcat_values: List[float] = []
             diversity_values: List[float] = []
@@ -126,7 +159,7 @@ class ScoreSingleSpeciesTool(BaseTool):
 
             intermediate: List[Dict[str, Any]] = []
 
-            for item in species:
+            for item in normalized_species:
                 enzyme_entry = enzyme_map.get(item.strain)
                 env_entry = env_map.get(item.strain)
 

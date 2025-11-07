@@ -169,24 +169,24 @@ class ScoreEnvironmentTool(BaseTool):
                     )
                     continue
 
-                scored = [
+                scored_values = [
                     self._score_record(
                         record=row,
                         target=target_env,
                     )
                     for row in rows
                 ]
-                scored.sort(
-                    key=lambda item: item.get("env_soft_score", 0.0),
-                    reverse=True,
-                )
+
+                scored_values.sort(reverse=True)
+                best_score = scored_values[0] if scored_values else 0.0
+
                 aggregate.append(
                     {
                         "strain": request.strain,
                         "source": request.source,
                         "status": "success",
-                        "best_score": scored[0].get("env_soft_score", 0.0),
-                        "records": scored,
+                        "best_score": best_score,
+                        "records": [{"env_soft_score": value} for value in scored_values],
                     }
                 )
 
@@ -233,7 +233,7 @@ class ScoreEnvironmentTool(BaseTool):
         record: Dict[str, Any],
         *,
         target: TargetEnvironment,
-    ) -> Dict[str, Any]:
+    ) -> float:
         temp_score = self._bounded_score(
             target.temperature,
             record.get("temperature_minimum"),
@@ -266,21 +266,7 @@ class ScoreEnvironmentTool(BaseTool):
             ]
         )
 
-        enriched = dict(record)
-        enriched.update(
-            {
-                "temperature_score": temp_score,
-                "ph_score": ph_score,
-                "salinity_score": salinity_score,
-                "oxygen_score": oxygen_score,
-                "env_soft_score": env_soft_score,
-                "target_temperature": target.temperature,
-                "target_ph": target.ph,
-                "target_salinity": target.salinity,
-                "target_oxygen": target.oxygen,
-            }
-        )
-        return enriched
+        return env_soft_score
 
     def _combine_scores(
         self, weighted_scores: Iterable[tuple[Optional[float], float]]

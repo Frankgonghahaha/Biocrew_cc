@@ -33,7 +33,7 @@ class ScoreMetabolicInput(BaseModel):
         default=None,
         description="IdentificationAgent 生成的 JSON 文件路径",
     )
-    functional_microbes: Optional[List[Dict[str, Any]]] = Field(
+    functional_microbes: Optional[Any] = Field(
         default=None,
         description="直接传入的功能微生物列表（结构同 IdentificationAgent JSON）",
     )
@@ -107,7 +107,7 @@ class ScoreMetabolicInteractionTool(BaseTool):
     def _run(
         self,
         identification_json_path: Optional[str] = None,
-        functional_microbes: Optional[List[Dict[str, Any]]] = None,
+        functional_microbes: Optional[Any] = None,
         species: Optional[List[Any]] = None,
         include_complements: bool = True,
         only_positive_delta: bool = False,
@@ -122,24 +122,24 @@ class ScoreMetabolicInteractionTool(BaseTool):
                     include_complements=include_complements,
                 )
             else:
+                resolved_path = self._resolve_json_path(identification_json_path)
                 microbe_records = self._load_microbes(
-                    path=identification_json_path,
+                    path=resolved_path,
                     functional_microbes=functional_microbes,
                     include_complements=include_complements,
                 )
-            unique_species = sorted(microbe_records.species)
+            unique_species = sorted(self._normalize_name(s) for s in microbe_records.species)
             results = self._calculate_pair_metrics(
                 session=session,
                 species_list=unique_species,
+                allowed_species=microbe_records.species,
                 only_positive_delta=only_positive_delta,
             )
             results = self._sort_and_trim(results, top_n)
-            summary = self._build_summary(results, microbe_records)
             return {
                 "status": "success",
                 "species_included": unique_species,
                 "pairs": results,
-                "summary": summary,
             }
         except SQLAlchemyError as exc:
             return {
@@ -154,6 +154,41 @@ class ScoreMetabolicInteractionTool(BaseTool):
         finally:
             if session is not None:
                 session.close()
+
+    def _resolve_json_path(self, path: Optional[str]) -> Optional[str]:
+        if not path:
+            return None
+
+        raw_path = Path(path).expanduser()
+        candidate_files: List[Path] = []
+
+        default_dir = (
+            Path(__file__).resolve().parents[3]
+            / "test_results"
+            / "IdentificationAgent"
+        )
+
+        if raw_path.is_file():
+            candidate_files.append(raw_path)
+        else:
+            if raw_path.name:
+                candidate_files.append(default_dir / raw_path.name)
+            if raw_path.is_dir():
+                candidate_files.extend(sorted(raw_path.glob("*.json")))
+
+        if default_dir.exists():
+            if raw_path.name:
+                candidate_files.append(default_dir / raw_path.name)
+            candidate_files.extend(sorted(default_dir.glob("*.json")))
+
+        for candidate in candidate_files:
+            if candidate.is_file():
+                return str(candidate)
+
+        if raw_path.exists():
+            return str(raw_path)
+
+        raise FileNotFoundError(f"未找到 JSON 文件：{path}")
 
     def _records_from_species(
         self,
@@ -196,53 +231,149 @@ class ScoreMetabolicInteractionTool(BaseTool):
     def _load_microbes(
         self,
         path: Optional[str],
-        functional_microbes: Optional[List[Dict[str, Any]]],
+        functional_microbes: Optional[Any],
         include_complements: bool,
     ):
-        data = None
+        records = MicrobeRecords(functional=set(), complements=set(), species=set())
+
+        if functional_microbes is not None:
+            self._collect_microbes(
+                records=records,
+                payload=functional_microbes,
+                include_complements=include_complements,
+            )
+
         if path:
             with open(path, "r", encoding="utf-8") as f:
                 data = json.load(f)
-        elif functional_microbes is not None:
-            data = {"functional_microbes": functional_microbes}
+            self._collect_microbes(
+                records=records,
+                payload=data,
+                include_complements=include_complements,
+            )
 
-        if not data or "functional_microbes" not in data:
-            raise ValueError("输入数据中缺少 functional_microbes 信息。")
+        if not records.species:
+            raise ValueError("未识别到可用于互作计算的物种。")
 
-        func_entries = data["functional_microbes"]
-        func_species = []
-        complements = []
-        for entry in func_entries:
-            strain = entry.get("strain")
-            if strain:
-                func_species.append(self._normalize_name(strain))
+        return records
+
+    def _collect_microbes(
+        self,
+        records: "MicrobeRecords",
+        payload: Any,
+        include_complements: bool,
+        default_source: str = "functional",
+        visited: Optional[Set[int]] = None,
+    ) -> None:
+        if payload is None:
+            return
+
+        if isinstance(payload, str):
+            name = self._normalize_name(payload)
+            if not name:
+                return
+            if default_source == "complement":
+                if include_complements:
+                    records.complements.add(name)
+                    records.species.add(name)
+            else:
+                records.functional.add(name)
+                records.species.add(name)
+            return
+
+        if visited is None:
+            visited = set()
+
+        obj_id = id(payload)
+        if obj_id in visited:
+            return
+        visited.add(obj_id)
+
+        if isinstance(payload, (list, tuple, set)):
+            for item in payload:
+                self._collect_microbes(
+                    records=records,
+                    payload=item,
+                    include_complements=include_complements,
+                    default_source=default_source,
+                    visited=visited,
+                )
+            return
+
+        if isinstance(payload, dict):
+            strain_value = payload.get("strain")
+            if strain_value:
+                source_hint = str(payload.get("source") or default_source).strip().lower()
+                if source_hint not in {"functional", "complement"}:
+                    source_hint = default_source
+                self._collect_microbes(
+                    records=records,
+                    payload=strain_value,
+                    include_complements=include_complements,
+                    default_source=source_hint,
+                    visited=visited,
+                )
+
+            complement_candidates: List[Any] = []
+            direct_complements = payload.get("complements")
+            if isinstance(direct_complements, (list, tuple, set)):
+                complement_candidates.extend(direct_complements)
+
+            metadata = payload.get("metadata")
+            if isinstance(metadata, dict):
+                meta_complements = metadata.get("complements")
+                if isinstance(meta_complements, (list, tuple, set)):
+                    complement_candidates.extend(meta_complements)
+
             if include_complements:
-                for comp in entry.get("complements", []):
-                    comp_strain = comp.get("strain")
-                    if comp_strain:
-                        complements.append(self._normalize_name(comp_strain))
+                for comp in complement_candidates:
+                    self._collect_microbes(
+                        records=records,
+                        payload=comp,
+                        include_complements=include_complements,
+                        default_source="complement",
+                        visited=visited,
+                    )
 
-        species = set(func_species)
-        if include_complements:
-            species.update(complements)
+            nested_keys = (
+                "functional_microbes",
+                "functional_records",
+                "species",
+                "species_payload",
+                "records",
+                "members",
+            )
+            for key in nested_keys:
+                if key in payload:
+                    self._collect_microbes(
+                        records=records,
+                        payload=payload[key],
+                        include_complements=include_complements,
+                        default_source=default_source,
+                        visited=visited,
+                    )
 
-        return MicrobeRecords(
-            functional=set(func_species),
-            complements=set(complements),
-            species=species,
-        )
+            return
+
+        # 其他类型（数字、布尔等）忽略
 
     def _calculate_pair_metrics(
         self,
         session,
         species_list: List[str],
+        allowed_species: Set[str],
         only_positive_delta: bool,
     ) -> List[Dict[str, Any]]:
         normalized = [self._normalize_name(s) for s in species_list]
+        allowed = {self._normalize_name(s) for s in allowed_species}
         pairs_data: List[Dict[str, Any]] = []
         for a, b in combinations(normalized, 2):
             records = self._fetch_pair_records(session, a, b)
             for record in records:
+                functional_name = self._normalize_name(record.degrading_microorganism)
+                complement_name = self._normalize_name(record.complementary_microorganism)
+                if functional_name not in allowed or complement_name not in allowed:
+                    continue
                 delta = self._compute_delta(
                     record.complementarity_index,
                     record.competition_index,
@@ -251,12 +382,11 @@ class ScoreMetabolicInteractionTool(BaseTool):
                     continue
                 pairs_data.append(
                     {
-                        "functional_species": record.degrading_microorganism,
-                        "complement_species": record.complementary_microorganism,
+                        "functional_species": functional_name,
+                        "complement_species": complement_name,
                         "competition_index": record.competition_index,
                         "complementarity_index": record.complementarity_index,
                         "delta_index": delta,
-                        "source": "database",
                     }
                 )
         return pairs_data
@@ -325,31 +455,6 @@ class ScoreMetabolicInteractionTool(BaseTool):
         if top_n is not None and top_n > 0:
             return sorted_results[:top_n]
         return sorted_results
-
-    @staticmethod
-    def _build_summary(results: List[Dict[str, Any]], records: "MicrobeRecords") -> Dict[str, Any]:
-        positives = sum(
-            1 for item in results if item.get("delta_index") is not None and item["delta_index"] > 0
-        )
-        negatives = sum(
-            1 for item in results if item.get("delta_index") is not None and item["delta_index"] < 0
-        )
-        zeros = sum(
-            1
-            for item in results
-            if item.get("delta_index") is not None and math.isclose(item["delta_index"], 0.0)
-        )
-        missing = sum(1 for item in results if item.get("delta_index") is None)
-        return {
-            "total_pairs": len(results),
-            "positive_delta_pairs": positives,
-            "negative_delta_pairs": negatives,
-            "zero_delta_pairs": zeros,
-            "missing_delta_pairs": missing,
-            "functional_species_count": len(records.functional),
-            "complement_species_count": len(records.complements),
-        }
-
 
 @dataclass
 class MicrobeRecords:

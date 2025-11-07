@@ -7,10 +7,13 @@
 
 from __future__ import annotations
 
+import json
 import math
 from dataclasses import dataclass
+from datetime import datetime
 from itertools import combinations
-from typing import Any, Dict, Iterable, List, Optional
+from pathlib import Path
+from typing import Any, Dict, Iterable, List, Optional, Set
 
 from crewai.tools import BaseTool  # type: ignore
 from pydantic import BaseModel, ConfigDict, Field, validator
@@ -52,7 +55,9 @@ class CandidateScoreRecord(BaseModel):
     """单菌评分记录（来自 ScoreSingleSpeciesTool 或 ScoreCandidateTool）。"""
 
     species: str = Field(..., description="物种名称")
-    S_microbe: float = Field(..., description="单菌综合得分")
+    S_microbe: Optional[float] = Field(
+        default=None, description="单菌综合得分，缺失时按 0 处理"
+    )
     source: Optional[str] = Field(default=None, description="来源标签，例如 functional/complement")
     kcat_max: Optional[float] = Field(default=None, description="最大 kcat 估计值")
     environment_match: Optional[float] = Field(default=None, description="环境适应评分")
@@ -63,6 +68,15 @@ class CandidateScoreRecord(BaseModel):
         if not normalized:
             raise ValueError("species 不能为空")
         return normalized
+
+    @validator("S_microbe", pre=True, always=True)
+    def default_s_microbe(cls, value: Optional[float]) -> float:
+        if value is None:
+            return 0.0
+        try:
+            return float(value)
+        except (TypeError, ValueError):
+            return 0.0
 
 
 class PairScoreRecord(BaseModel):
@@ -105,10 +119,12 @@ class ScoreConsortiaInput(BaseModel):
         ..., description="单菌评分记录列表"
     )
     pair_records: List[PairScoreRecord] = Field(
-        ..., description="物种对互作评分记录列表"
+        default_factory=list,
+        description="物种对互作评分记录列表，可为空",
     )
     consortia: List[ConsortiumDefinition] = Field(
-        ..., description="待评估的菌群组合"
+        default_factory=list,
+        description="待评估的菌群组合；若启用自动生成可留空",
     )
     alpha: float = Field(0.2, description="权重：平均 S_microbe")
     beta: float = Field(0.2, description="权重：平均正向 Δ")
@@ -123,12 +139,46 @@ class ScoreConsortiaInput(BaseModel):
     require_functional: bool = Field(
         True, description="是否要求组合中至少包含 1 个功能菌"
     )
+    min_size: int = Field(2, description="自动生成组合的最小物种数")
+    max_size: int = Field(5, description="自动生成组合的最大物种数")
+    auto_generate: bool = Field(
+        True, description="当未提供 consortia 时，是否根据单菌评分自动生成组合"
+    )
+    auto_seed_limit: int = Field(
+        8,
+        description="自动组合时，按 S_microbe 排序后取前 N 个物种作为候选池",
+    )
+    auto_max_consortia: int = Field(
+        100,
+        description="自动生成的最大组合数量上限，防止组合爆炸",
+    )
+    output_timestamp: Optional[str] = Field(
+        default=None,
+        description="输出 JSON 的时间戳（例如 2025-06-21T12-45-33），用于命名文件；"
+        "如果为空则使用当前时间。",
+    )
 
-    @validator("consortia")
-    def ensure_consortia(cls, value: List[ConsortiumDefinition]) -> List[ConsortiumDefinition]:
-        if not value:
-            raise ValueError("至少需要提供 1 个菌群组合")
+    @validator("min_size")
+    def validate_min_size(cls, value: int) -> int:
+        if value < 1:
+            raise ValueError("min_size 必须 >= 1")
         return value
+
+    @validator("max_size")
+    def validate_size_range(cls, value: int, values: Dict[str, Any]) -> int:
+        min_size = values.get("min_size", 1)
+        if value < min_size:
+            raise ValueError("max_size 必须 >= min_size")
+        return value
+
+    @validator("consortia", always=True)
+    def ensure_consortia(
+        cls, value: List[ConsortiumDefinition], values: Dict[str, Any]
+    ) -> List[ConsortiumDefinition]:
+        auto_generate = values.get("auto_generate", True)
+        if not value and not auto_generate:
+            raise ValueError("至少需要提供 1 个菌群组合，或启用 auto_generate。")
+        return value or []
 
 
 class ScoreConsortiaTool(BaseTool):
@@ -156,15 +206,40 @@ class ScoreConsortiaTool(BaseTool):
         lambda_kcat: float = 0.35,
         mu: float = -0.05,
         require_functional: bool = True,
+        min_size: int = 2,
+        max_size: int = 5,
+        auto_generate: bool = True,
+        auto_seed_limit: int = 8,
+        auto_max_consortia: int = 100,
+        output_timestamp: Optional[str] = None,
     ) -> Dict[str, Any]:
         try:
             candidate_map = self._build_candidate_lookup(candidate_records)
             pair_lookup = self._build_pair_lookup(pair_records)
 
+            evaluated_consortia = list(consortia or [])
+            if auto_generate:
+                generated = self._auto_generate_consortia(
+                    candidate_records=candidate_records,
+                    min_size=min_size,
+                    max_size=max_size,
+                    require_functional=require_functional,
+                    seed_limit=auto_seed_limit,
+                    max_count=auto_max_consortia,
+                )
+                evaluated_consortia.extend(generated)
+
+            if not evaluated_consortia:
+                return {
+                    "status": "empty",
+                    "message": "未提供菌群组合，且自动生成功能未生成有效组合。",
+                    "warnings": [],
+                }
+
             results = []
             warnings = []
 
-            for idx, consortium in enumerate(consortia, start=1):
+            for idx, consortium in enumerate(evaluated_consortia, start=1):
                 name = consortium.name or f"consortium_{idx}"
                 normalized_members = self._unique_members(consortium.members)
                 if not normalized_members:
@@ -215,9 +290,15 @@ class ScoreConsortiaTool(BaseTool):
                 }
 
             results.sort(key=lambda item: item["score"], reverse=True)
+            total_generated = len(results)
+            output_file = self._persist_top_consortia(
+                results,
+                limit=10,
+                timestamp_override=output_timestamp,
+            )
             best = results[0]
             summary = {
-                "count": len(results),
+                "count": total_generated,
                 "best_name": best["name"],
                 "best_score": best["score"],
             }
@@ -225,14 +306,129 @@ class ScoreConsortiaTool(BaseTool):
             return {
                 "status": "success",
                 "summary": summary,
-                "consortia": results,
+                "consortia": [best],
                 "warnings": warnings,
+                "output_file": output_file,
             }
         except Exception as exc:  # noqa: BLE001
             return {
                 "status": "error",
                 "message": f"菌群评分失败: {exc}",
             }
+
+    def _auto_generate_consortia(
+        self,
+        candidate_records: List[CandidateScoreRecord],
+        min_size: int,
+        max_size: int,
+        require_functional: bool,
+        seed_limit: int,
+        max_count: int,
+    ) -> List[ConsortiumDefinition]:
+        if max_size < min_size or not candidate_records:
+            return []
+
+        scored_candidates = sorted(
+            [record for record in candidate_records if record.species],
+            key=lambda item: item.S_microbe if item.S_microbe is not None else float("-inf"),
+            reverse=True,
+        )
+        if seed_limit > 0:
+            scored_candidates = scored_candidates[:seed_limit]
+
+        if len(scored_candidates) < min_size:
+            return []
+
+        source_map = {
+            _normalize_name(record.species): (record.source or "").strip().lower()
+            for record in scored_candidates
+        }
+        species_pool = list(source_map.keys())
+        max_size = min(max_size, len(species_pool))
+
+        generated: List[ConsortiumDefinition] = []
+        seen: Set[tuple[str, ...]] = set()
+
+        for size in range(min_size, max_size + 1):
+            for combo in combinations(species_pool, size):
+                if len(generated) >= max_count:
+                    return generated
+                if require_functional and not any(
+                    source_map.get(member) == "functional" for member in combo
+                ):
+                    continue
+                key = tuple(combo)
+                if key in seen:
+                    continue
+                seen.add(key)
+                generated.append(ConsortiumDefinition(members=list(combo)))
+        return generated
+
+    def _persist_top_consortia(
+        self,
+        results: List[Dict[str, Any]],
+        limit: int = 10,
+        timestamp_override: Optional[str] = None,
+    ) -> Optional[str]:
+        if not results:
+            return None
+
+        top_records = results[:limit] if limit and limit > 0 else results
+        payload = []
+        for entry in top_records:
+            payload.append(
+                {
+                    "consortium_id": entry.get("name"),
+                    "members": entry.get("members"),
+                    "size": entry.get("size"),
+                    "avg_S_microbe": entry.get("avg_S_microbe"),
+                    "avg_delta_pos": entry.get("avg_delta_pos"),
+                    "avg_comp_pos": entry.get("avg_comp_pos"),
+                    "avg_kcat": entry.get("avg_kcat_max"),
+                    "S_consort": entry.get("score"),
+                    "used_pairs": entry.get("used_pairs"),
+                    "source_count": entry.get("source_count"),
+                }
+            )
+
+        root_dir = Path(__file__).resolve().parents[3]
+        output_dir = root_dir / "test_results" / "DesignAgent"
+        output_dir.mkdir(parents=True, exist_ok=True)
+
+        timestamp, safe_ts = self._resolve_output_timestamp(timestamp_override)
+        file_path = output_dir / f"DesignAgent_{safe_ts}.json"
+
+        data = {
+            "generated_at": timestamp,
+            "record_count": len(payload),
+            "records": payload,
+        }
+        with file_path.open("w", encoding="utf-8") as fh:
+            json.dump(data, fh, ensure_ascii=False, indent=2)
+        return str(file_path)
+
+    @staticmethod
+    def _resolve_output_timestamp(
+        timestamp_override: Optional[str],
+    ) -> tuple[str, str]:
+        if timestamp_override:
+            candidate = timestamp_override.strip()
+            if "T" in candidate:
+                date_part, time_part = candidate.split("T", 1)
+                time_iso = time_part.replace("-", ":")
+                iso_candidate = f"{date_part}T{time_iso}"
+                try:
+                    normalized = datetime.fromisoformat(iso_candidate).isoformat(timespec="seconds")
+                    return normalized, candidate.replace(":", "-")
+                except ValueError:
+                    pass
+            try:
+                normalized = datetime.fromisoformat(candidate).isoformat(timespec="seconds")
+                return normalized, normalized.replace(":", "-")
+            except ValueError:
+                pass
+        now = datetime.now().isoformat(timespec="seconds")
+        return now, now.replace(":", "-")
 
     @staticmethod
     def _unique_members(members: Iterable[str]) -> List[str]:
