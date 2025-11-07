@@ -1,108 +1,48 @@
-from crewai import Task
-import os
+from __future__ import annotations
 
-# 定义统一模型目录
-current_dir = os.path.dirname(os.path.abspath(__file__))
-DEFAULT_MODELS_DIR = os.path.join(current_dir, '..', '..', 'outputs', 'metabolic_models')
+from crewai import Task
+
 
 class MicrobialAgentEvaluationTask:
+    """评估任务：解析菌剂组合并构建 FAA 文件"""
+
     def __init__(self, llm):
         self.llm = llm
 
-    def create_task(self, agent, context_task=None, environment_profile=None):
-        default_profile = {
-            "temperature": 25.0,
-            "ph": 7.0,
-            "salinity": 0.02,
-            "oxygen": "tolerant",
-        }
-        profile = {**default_profile, **(environment_profile or {})}
+    def create_task(self, agent, context_task=None):
+        description = """
+        请完成菌剂评估前的准备工作，确保评估所需的群落成员与蛋白序列文件齐全。
 
-        profile_text = (
-            "目标水质条件："
-            f"温度 {profile.get('temperature')}°C，"
-            f"pH {profile.get('ph')}，"
-            f"盐度 {profile.get('salinity')} (质量分数)，"
-            f"氧环境 {profile.get('oxygen')}。"
-        )
+        ### Step 1：解析 DesignAgent 结果
+        - 输入：`test_results/DesignAgent/DesignAgent.json`
+        - 调用 `ParseDesignConsortiaTool`，解析 `consortium_id=1`（如需评估其他组合，可根据上下文调整）。
+        - 输出：需要评估的菌剂成员列表（members list），并校验记录中的 `S_consort` 等关键字段。
 
-        description = f"""
-        根据微生物菌剂、水质净化目标、污水厂水质背景全面评估菌剂性能，确保菌剂在实际应用中具有良好的效果和稳定性。
-        请充分利用设计阶段输出的数据：Result1_candidate_function_species.csv、Result2_candidate_scores.csv、
-        Result3_pair_Com_index.csv、Result4_optimal_consortia.csv，对推荐菌群的可行性进行复核。
-        {profile_text}
-        
-        评估维度：
-        1. 生物净化效果：
-           - 降解速率：Degradation_rate=F_take×X（X=菌剂投加量）
-           - 达标判断：满足水质目标则定效果，不满足则更新匹配提示词回退筛选
-           - 中间产物积累监测：避免有毒中间产物的积累
-        2. 群落生态特性（核心标准）：
-           - 稳定性：Pianka生态位重叠指数（互补度C=1-O，C越高越稳）
-           - 鲁棒性：物种敲除指数（I_KO越近1越稳）、通路阻断恢复（R高/T_rec短越稳）
-           - 群落多样性：Shannon指数评估群落健康度
-        3. 代谢性能：
-           - 使用ctFBA工具计算实际代谢通量
-           - 群落生长率分析
-           - 代谢通量分布评估
-           - 稳定性指标计算（多样性指数、鲁棒性评分）
-           - 能量代谢效率分析
-        4. 环境适应性（新增重点）：
-           - 使用物种生长环境工具查询菌剂物种在数据库中的生长条件
-           - 结合{profile_text}计算适应性得分（0-1），作为群落稳定性决策的前置输入
-           - 对得分较低的物种给出替换或强化建议
+        ### Step 2：构建 FAA 文件
+        - 输入：Step 1 解析得到的 `members` 列表。
+        - 调用 `FaaBuildTool`：
+            - 依据成员名称查询数据库中的蛋白序列；
+            - 将每个物种的氨基酸序列写入 `test_results/EvaluateAgent/faa/<物种>.faa`；
+            - 返回生成成功与缺失的物种信息，便于后续评估阶段补齐。
 
-        评估步骤：
-        1. 使用代谢反应填充工具为模型添加必要的代谢反应
-        2. 使用培养基推荐工具生成推荐培养基
-        3. 使用ctFBA工具计算菌剂的实际代谢性能
-        4. 对设计阶段推荐的核心组合（Result4_optimal_consortia.csv）进行逐项验证：
-           - 依据Result2、Result3中的单菌与互作指标复核组合得分；
-           - 使用SpeciesEnvironmentQueryTool结合目标水质计算适应性得分，确认是否满足阈值；
-           - 对适应性偏低或竞争风险较高的成员提出替换或比例调整建议。
-        5. 综合分析菌剂在上述维度的表现
-        6. 重点关注群落稳定性和结构稳定性是否达到标准（核心标准必须达标）并结合环境适应性判定
-        7. 如果群落稳定性和结构稳定性不符合标准，请明确指出问题并建议回退到工程微生物组识别阶段
-        8. 如果这两项核心标准达标，再综合评估其他维度
-        9. 提供具体的改进建议和优化方案
-
-        工具使用策略：
-        1. 首先使用ReactionAdditionTool为模型添加必要的代谢反应，确保模型完整性
-           - 可以使用reactions_csv参数指定反应文件
-           - 也可以使用pollutant_name参数自动查询并生成反应数据
-           - 模型路径为: {DEFAULT_MODELS_DIR}
-        2. 然后使用MediumRecommendationTool生成推荐培养基，为后续分析提供基础条件
-           - 模型路径为: {DEFAULT_MODELS_DIR}
-        3. 接着使用CtfbaTool计算菌剂的实际代谢通量和生长率
-           - 模型路径为: {DEFAULT_MODELS_DIR}
-        4. 使用SpeciesEnvironmentQueryTool查询菌剂关键物种的环境参数，并基于{profile_text}计算适应性分
-        5. 最后使用EvaluationTool综合评估各项指标
-           - 模型路径为: {DEFAULT_MODELS_DIR}
-
-        决策规则：
-        - 群落稳定性和结构稳定性是必须达标的两个核心标准
-        - 环境适应性评分需达到0.6以上，否则判定为高风险并提出调整建议
-        - 如果任一核心标准不达标，整个菌剂方案需要重新设计
-        - 所有评估结果必须有明确的数据支撑
+        ### 输出要求
+        1. 给出解析到的菌剂成员名单及其来源 JSON（包含 consortium 的关键指标，便于评估阶段引用）。
+        2. 说明 FAA 构建结果：生成了哪些文件、缺失哪些物种、下一步如何处理。
+        3. 若某些物种缺少序列，需在报告中记录原因并提出补救建议。
+        4. 结果整理成结构化说明，确保 EvaluateAgent 在评估启动时即可复用这些文件。
         """
 
         expected_output = """
-        提供详细的菌剂评价报告，包括：
-        1. 各维度评分和分析（满分10分，包含详细评分依据）
-        2. 核心标准评估结果（群落稳定性和结构稳定性必须明确达标与否）
-        3. 环境适应性评分表（包含每个物种的适应性得分和风险说明），并对设计阶段的S_microbe、S_consort得分进行对比说明
-        4. 培养基推荐结果（具体成分和浓度）
-        5. ctFBA计算结果（代谢通量、生长率等）
-        6. 明确的决策建议（通过或回退重新识别），包含针对环境适应性的优化措施
-        7. 如果需要回退，提供具体的改进建议
+        - 解析到的 consortium 记录（含 members、S_consort、avg_S_microbe 等字段）。
+        - FAA 文件生成概览，列出成功/缺失的物种与输出目录。
+        - 对缺失项的处理计划或额外需求说明。
         """
-        
+
         task = Task(
-            description=description,
-            expected_output=expected_output,
+            description=description.strip(),
+            expected_output=expected_output.strip(),
             agent=agent,
             context=[context_task] if context_task else None,
-            llm=self.llm
+            llm=self.llm,
         )
-        
         return task
