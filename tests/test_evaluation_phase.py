@@ -29,14 +29,6 @@ from core.agents.evaluation_agent import MicrobialAgentEvaluationAgent
 # 任务导入
 from core.tasks.evaluation_task import MicrobialAgentEvaluationTask
 
-
-TARGET_ENVIRONMENT = {
-    "temperature": 30,
-    "ph": 7,
-    "salinity": 0.05,
-    "oxygen": "tolerant",
-}
-
 def setup_logging():
     """设置日志记录"""
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -128,30 +120,32 @@ def run_evaluation_test():
         log_message("菌剂评估智能体创建成功", log_file)
         log_tool_call("evaluation_agent", "Agent Creation", tool_call_file)
 
-        # 确认环境适配工具已加载
-        has_env_tool = any(
-            getattr(tool, "name", "") == "SpeciesEnvironmentQueryTool"
-            for tool in getattr(evaluation_agent, "tools", [])
-        )
-        log_message(
-            "检测 SpeciesEnvironmentQueryTool 可用: " + ("yes" if has_env_tool else "missing"),
-            log_file,
-        )
-        assert has_env_tool, "菌剂评估智能体应包含 SpeciesEnvironmentQueryTool"
+        # 确认核心工具已加载
+        tool_names = [getattr(tool, "name", "") for tool in getattr(evaluation_agent, "tools", [])]
+        has_parse_tool = "ParseDesignConsortiaTool" in tool_names
+        has_faa_tool = "FaaBuildTool" in tool_names
+        has_carveme_tool = "CarvemeModelBuildTool" in tool_names
+        has_medium_tool = "MediumBuildTool" in tool_names
+        has_pathway_tool = "AddPathwayTool" in tool_names
+        has_micom_tool = "MicomSimulationTool" in tool_names
+        log_message(f"检测 ParseDesignConsortiaTool 可用: {'yes' if has_parse_tool else 'missing'}", log_file)
+        log_message(f"检测 FaaBuildTool 可用: {'yes' if has_faa_tool else 'missing'}", log_file)
+        log_message(f"检测 CarvemeModelBuildTool 可用: {'yes' if has_carveme_tool else 'missing'}", log_file)
+        log_message(f"检测 MediumBuildTool 可用: {'yes' if has_medium_tool else 'missing'}", log_file)
+        log_message(f"检测 AddPathwayTool 可用: {'yes' if has_pathway_tool else 'missing'}", log_file)
+        log_message(f"检测 MicomSimulationTool 可用: {'yes' if has_micom_tool else 'missing'}", log_file)
+        assert has_parse_tool, "菌剂评估智能体应包含 ParseDesignConsortiaTool"
+        assert has_faa_tool, "菌剂评估智能体应包含 FaaBuildTool"
+        assert has_carveme_tool, "菌剂评估智能体应包含 CarvemeModelBuildTool"
+        assert has_medium_tool, "菌剂评估智能体应包含 MediumBuildTool"
+        assert has_pathway_tool, "菌剂评估智能体应包含 AddPathwayTool"
+        assert has_micom_tool, "菌剂评估智能体应包含 MicomSimulationTool"
         
         # 创建任务
-        log_message("创建菌剂评估任务，并加载设计阶段结果（Result1~Result4）", log_file)
-        log_message(
-            "目标水质条件: "
-            f"T={TARGET_ENVIRONMENT['temperature']}°C, pH={TARGET_ENVIRONMENT['ph']}, "
-            f"盐度={TARGET_ENVIRONMENT['salinity']}, 氧环境={TARGET_ENVIRONMENT['oxygen']}",
-            log_file,
-        )
-
+        log_message("创建菌剂评估任务（解析设计结果 + 构建 FAA）", log_file)
         evaluation_task = MicrobialAgentEvaluationTask(llm).create_task(
             evaluation_agent,
             context_task=None,
-            environment_profile=TARGET_ENVIRONMENT,
         )
         log_message("菌剂评估任务创建成功", log_file)
         log_tool_call("evaluation_agent", "Task Creation", tool_call_file)

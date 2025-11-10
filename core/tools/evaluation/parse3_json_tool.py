@@ -79,10 +79,7 @@ class ParseDesignConsortiaTool(BaseTool):
 
             return {
                 "status": "success",
-                "json_path": str(path),
-                "consortium_id": target_id,
                 "members": members,
-                "record": matched_record,
             }
         except Exception as exc:  # noqa: BLE001
             return {

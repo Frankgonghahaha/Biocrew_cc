@@ -2,6 +2,10 @@ from crewai import Agent
 
 from core.tools.evaluation.parse3_json_tool import ParseDesignConsortiaTool
 from core.tools.evaluation.faa_build_tool import FaaBuildTool
+from core.tools.evaluation.carveme_tool import CarvemeModelBuildTool
+from core.tools.evaluation.medium_tool import MediumBuildTool
+from core.tools.evaluation.add_pathway_tool import AddPathwayTool
+from core.tools.evaluation.micom_tool import MicomSimulationTool
 
 
 class MicrobialAgentEvaluationAgent:
@@ -12,6 +16,10 @@ class MicrobialAgentEvaluationAgent:
         tools = [
             ParseDesignConsortiaTool(),
             FaaBuildTool(),
+            CarvemeModelBuildTool(),
+            MediumBuildTool(),
+            AddPathwayTool(),
+            MicomSimulationTool(),
         ]
 
         return Agent(

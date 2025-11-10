@@ -38,7 +38,7 @@ class FaaBuildInput(BaseModel):
         description="FAA 文件输出目录，默认 test_results/EvaluateAgent/faa",
     )
     sequences_per_species: int = Field(
-        default=200,
+        default=3000,
         description="每个物种写入的最大序列条数",
     )
 
@@ -107,13 +107,19 @@ class FaaBuildTool(BaseTool):
             session = self._Session()
             generated_files: List[str] = []
             missing_species: List[str] = []
+            skipped_species: List[str] = []
 
             for name in unique_species:
+                file_path = target_dir / f"{self._sanitize_filename(name)}.faa"
+                if file_path.exists():
+                    skipped_species.append(name)
+                    generated_files.append(str(file_path))
+                    continue
+
                 sequences = self._fetch_sequences(session, name, sequences_per_species)
                 if not sequences:
                     missing_species.append(name)
                     continue
-                file_path = target_dir / f"{self._sanitize_filename(name)}.faa"
                 with file_path.open("w", encoding="utf-8") as fh:
                     for entry in sequences:
                         header = f">{entry['sequence_id']}|{name}"
@@ -126,6 +132,7 @@ class FaaBuildTool(BaseTool):
                 "output_dir": str(target_dir),
                 "generated_files": generated_files,
                 "missing_species": missing_species,
+                "skipped_species": skipped_species,
             }
 
         except SQLAlchemyError as exc:
